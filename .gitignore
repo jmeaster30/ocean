@@ -1,0 +1,13 @@
+.vscode/*
+CMakeFiles/*
+*/CMakeFiles/*
+*.cmake
+*/Makefile
+Makefile
+CMakeCache.txt
+
+ocean
+src/ocean.tab.cpp
+src/ocean.tab.hpp
+
+*/*.output
