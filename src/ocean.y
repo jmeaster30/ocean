@@ -46,7 +46,7 @@ extern Program* root;
 %token <token> TYPE AUTO VOID
 %token <token> ENUM PACK VARIANT
 %token <token> STOP BREAK CONTINUE IF ELSE WHILE FOR IN BY
-%token <token> SWITCH RANGE
+%token <token> SWITCH RANGE DEFAULT
 
 %token <token> QUESTION TILDE NEWLINE CONST
 %token <token> ARROW DOT NOT COMMA COLON SEMICOLON DUBCOLON
@@ -128,6 +128,11 @@ SWITCHBODY : BRACE_OPEN SWITCHCASELIST BRACE_CLOSED { $$ = $2; }
 SWITCHCASELIST : SWITCHCASELIST EXPR ARROW CMPD {
                     $$ = $1;  
                     SwitchCase* switchCase = new SwitchCase($2, $4);
+                    $$->push_back(switchCase);
+               }
+               | SWITCHCASELIST DEFAULT ARROW CMPD {
+                    $$ = $1;
+                    SwitchCase* switchCase = new SwitchCase(nullptr, $4);
                     $$->push_back(switchCase);
                }
                | SWITCHCASELIST NEWLINE { $$ = $1; }

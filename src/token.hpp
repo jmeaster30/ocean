@@ -37,6 +37,7 @@ enum class TokenType {
 	Continue,
 	Stop,
 	Switch,
+	Default,
 
 	//variables and constants
 	Identifier,

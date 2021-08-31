@@ -9,5 +9,6 @@ CMakeCache.txt
 ocean
 src/ocean.tab.cpp
 src/ocean.tab.hpp
+src/lex.yy.cpp
 
 */*.output

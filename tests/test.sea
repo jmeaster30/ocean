@@ -17,9 +17,22 @@ enum Types {
 }
 
 func: (yeah: auto<T>, oh: T) -> (a: i32, b: i32) {
-  stop
-  break
-  continue
+  switch yeah {
+    Types::a -> {
+      a = 5
+      b = 7 + 13
+      continue # this falls through into the b case
+    }
+    Types::b -> {
+      a = b
+    }
+    Types::c || Types::d -> {
+      q = asdff
+    }
+    default -> {
+      what = 5 + 6 * 2
+    }
+  }
 }
 
 main: () -> (ret: i32) {

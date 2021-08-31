@@ -52,6 +52,7 @@ int ProcessToken(const char* name, int token_parser_id, TokenType token_type, in
 "pack"     { return ProcessToken("pack",     PACK,     TokenType::Pack, 0); }
 "variant"  { return ProcessToken("variant",  VARIANT,  TokenType::Variant, 0); }
 
+"default"  { return ProcessToken("DEFAULT",  DEFAULT,  TokenType::Default, 0); }
 "stop"     { return ProcessToken("STOP",     STOP,     TokenType::Stop, 0); }
 "break"    { return ProcessToken("BREAK",    BREAK,    TokenType::Break, 0); }
 "continue" { return ProcessToken("CONTINUE", CONTINUE, TokenType::Continue, 0); }
