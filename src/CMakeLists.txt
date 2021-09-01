@@ -1,3 +1,8 @@
+#compiler definitions
+add_compile_definitions(
+  DEBUG_MESSAGES
+)
+
 #source files
 set(SOURCES
   main.cpp

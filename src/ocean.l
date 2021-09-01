@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "helper.hpp"
+
 #include <list>
 #include <string>
 #include "token.hpp"
@@ -125,7 +127,7 @@ int ProcessToken(const char* name, int token_parser_id, TokenType token_type, in
 [a-zA-Z_][a-zA-Z0-9_]*     { return ProcessToken("IDENTIFIER", IDENTIFIER, TokenType::Identifier, 0); }
 
 . {
-  //printf("[%i, %i] Unknown Token %s\n", line_number, column_number, yytext);
+  //tdebugf("[%i, %i] Unknown Token %s\n", line_number, column_number, yytext);
 
   //column_number += yyleng;
   InvalidToken();
@@ -143,26 +145,26 @@ int yywrap(void){
 }
 
 void InvalidToken(){
-  printf("ERROR ON LINE %i [%i] : \n Unknown Token %s\n", line_number, column_number, yytext);
+  fprintf(stderr, "ERROR ON LINE %i [%i] : \n Unknown Token %s\n", line_number, column_number, yytext);
 }
 
 void Drop()
 {
   UpdateLineColumnNumber();
-  printf("[%i, %i] DROPPED : %s\n", line_number, column_number, yytext);
+  tdebugf("[%i, %i] DROPPED : %s\n", line_number, column_number, yytext);
 }
 
 void Drop(const char* message)
 {
   UpdateLineColumnNumber();
-  printf("[%i, %i] DROPPED : %s\n", line_number, column_number, message);
+  tdebugf("[%i, %i] DROPPED : %s\n", line_number, column_number, message);
 }
 
 int ProcessToken(const char* name, int token_parser_id, TokenType token_type, int value_type)
 {
   UpdateLineColumnNumber();
 
-  printf("[%i, %i] %s %s\n", line_number, column_number, name, yytext);
+  tdebugf("[%i, %i] %s %s\n", line_number, column_number, name, yytext);
 
   Token* token;
   if(value_type == 0){

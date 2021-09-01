@@ -76,375 +76,351 @@ std::string ArrayValue::getNodeType() { return "Array"; }
 
 std::string ObjectValue::getNodeType() { return "Object"; }
 
-/** PRINT FUNCTIONS **/
+/** toString FUNCTIONS **/
 
-void BaseType::print() {
-  std::cout << "(BaseType: ";
-  if (_type) std::cout << _type->toString();
-  if (_auto_name) std::cout << " (Name: " << _auto_name->toString() << ")";
-  std::cout << ")";
+//! The following functions are not great and will result in a major performance hit
+//!     (but we shouldn't be converting the entire ast to a string very often if even more than once)
+//! However... I am not at the point of optimizing code and it seems like something I can do later
+//! This comment recognizing the issue will hold me accountable and I accept that my future self will
+//!s  be ashamed with me
+
+std::string BaseType::toString() {
+  std::string results = "(BaseType: ";
+  if (_type) results += _type->toString();
+  if (_auto_name) results += " (Name: " + _auto_name->toString() + ")";
+  results += ")";
+  return results;
 }
 
-void ConstType::print() {
-  std::cout << "(Const: ";
-  if (_type) _type->print();
-  std::cout << ")";
+std::string ConstType::toString() {
+  std::string results = "(Const: ";
+  if (_type) results += _type->toString();
+  results += ")";
+  return results;
 }
 
-void PointerType::print() {
-  std::cout << "(Pointer: ";
-  if (_type) _type->print();
-  std::cout << ")";
+std::string PointerType::toString() {
+  std::string results = "(Pointer: ";
+  if (_type) results += _type->toString();
+  results += ")";
+  return results;
 }
 
-void ArrayType::print() {
-  std::cout << "(ArrayType: ";
-  if (_type) _type->print();
+std::string ArrayType::toString() {
+  std::string results = "(ArrayType: ";
+  if (_type) results += _type->toString();
   if (_array_length) {
-    std::cout << " (Size: ";
-    _array_length->print();
-    std::cout << ")";
+    results += " (Size: " + _array_length->toString() + ")";
   }
-  std::cout << ")";
+  results += ")";
+  return results;
 }
 
-void Parameter::print() {
-  std::cout << "(Parameter: ";
-  if (_id) std::cout << "(Name: " << _id->toString() << ")";
+std::string Parameter::toString() {
+  std::string results = "(Parameter: ";
+  if (_id) results += "(Name: " + _id->toString() + ")";
   if (_type) {
-    std::cout << " ";
-    _type->print();
+    results += " " + _type->toString();
   }
-  std::cout << ")";
+  results += ")";
+  return results;
 }
 
-void Program::print() {
-  std::cout << "(Program:";
+std::string Program::toString() {
+  std::string results = "(Program:";
   if (_stmts) {
     for (auto stmt : *_stmts) {
-      std::cout << " ";
-      stmt->print();
+      results += " " + stmt->toString();
     }
   }
-  std::cout << ")";
+  results += ")";
+  return results;
 }
 
-void Macro::print() {
-  std::cout << "(Macro: ";
-  if (_macro) std::cout << _macro->toString();
-  std::cout << ")";
+std::string Macro::toString() {
+  std::string results = "(Macro: ";
+  if (_macro) results += _macro->toString();
+  results += ")";
+  return results;
 }
 
-void CompoundStmt::print() {
-  std::cout << "(Compound:";
+std::string CompoundStmt::toString() {
+  std::string results = "(Compound:";
   if (_stmts) {
     for (auto stmt : *_stmts) {
-      std::cout << " ";
-      stmt->print();
+      results += " " + stmt->toString();
     }
   }
-  std::cout << ")";
+  results += ")";
+  return results;
 }
 
-void VarDec::print() {
-  std::cout << "(VarDec: ";
-  if (_id) std::cout << "(Name: " << _id->toString() << ")";
+std::string VarDec::toString() {
+  std::string results = "(VarDec: ";
+  if (_id) results += "(Name: " + _id->toString() + ")";
   if (_type) {
-    std::cout << " ";
-    _type->print();
+    results += " " +  _type->toString();
   }
   if (_expr) {
-    std::cout << " (Value: ";
-    _expr->print();
-    std::cout << ")";
+    results += " (Value: " + _expr->toString() + ")";
   }
-  std::cout << ")";
+  results += ")";
+  return results;
 }
 
-void FuncDec::print() {
-  std::cout << "(FuncDec: ";
-  if (_id) std::cout << "(Name: " << _id->toString() << ")";
+std::string FuncDec::toString() {
+  std::string results = "(FuncDec: ";
+  if (_id) results += "(Name: " + _id->toString() + ")";
   if (_params) {
-    std::cout << " (Params:";
+    results += " (Params:";
     for (auto param : *_params) {
-      std::cout << " ";
-      param->print();
+      results += " " + param->toString();
     }
-    std::cout << ")";
+    results += ")";
   }
   if (_returns) {
-    std::cout << " (Returns:";
+    results += " (Returns:";
     for (auto ret : *_returns) {
-      std::cout << " ";
-      ret->print();
+      results += " " + ret->toString();
     }
-    std::cout << ")";
+    results += ")";
   }
-  if (_body) _body->print();
-  std::cout << ")";
+  if (_body) results += " " + _body->toString();
+  results += ")";
+  return results;
 }
 
-void EnumDec::print() {
-  std::cout << "(Enum: ";
-  if (_id) std::cout << "(Name: " << _id->toString() << ")";
+std::string EnumDec::toString() {
+  std::string results = "(Enum: ";
+  if (_id) results += "(Name: " + _id->toString() + ")";
   if (_declist) {
     for (auto dec : *_declist) {
-      std::cout << " ";
-      dec->print();
+      results += " " + dec->toString();
     }
   }
-  std::cout << ")";
+  results += ")";
+  return results;
 }
 
-void PackDec::print() {
-  std::cout << "(Pack: ";
-  if (_id) std::cout << "(Name: " << _id->toString() << ")";
+std::string PackDec::toString() {
+  std::string results = "(Pack: ";
+  if (_id) results += "(Name: " + _id->toString() + ")";
   if (_declist) {
     for (auto dec : *_declist) {
-      std::cout << " ";
-      dec->print();
+      results += " " + dec->toString();
     }
   }
-  std::cout << ")";
+  results += ")";
+  return results;
 }
 
-void VariantDec::print() {
-  std::cout << "(Variant: ";
-  if (_id) std::cout << "(Name: " << _id->toString() << ")";
+std::string VariantDec::toString() {
+  std::string results = "(Variant: ";
+  if (_id) results += "(Name: " + _id->toString() + ")";
   if (_declist) {
     for (auto dec : *_declist) {
-      std::cout << " ";
-      dec->print();
+      results += " " + dec->toString();
     }
   }
-  std::cout << ")";
+  results += ")";
+  return results;
 }
 
-void IfStmt::print() {
-  std::cout << "(If: ";
+std::string IfStmt::toString() {
+  std::string results = "(If: ";
   if (_cond) {
-    std::cout << "(Condition: ";
-    _cond->print();
-    std::cout << ")";
+    results += "(Condition: " + _cond->toString() + ")";
   }
   if (_body) {
-    std::cout << " (True: ";
-    _body->print();
-    std::cout << ")";
+    results += " (True: " + _body->toString() + ")";
   }
   if (_elseBody) {
-    std::cout << " (False: ";
-    _elseBody->print();
-    std::cout << ")";
+    results += " (False: " + _elseBody->toString() + ")";
   }
-  std::cout << ")";
+  results += ")";
+  return results;
 }
 
-void SwitchCase::print() {
-  std::cout << "(SwitchCase: ";
+std::string SwitchCase::toString() {
+  std::string results = "(SwitchCase: ";
   if (_case) {
-    std::cout << "(Case: ";
-    _case->print();
-    std::cout << ")";
+    results += "(Case: " + _case->toString() + ")";
   }
   if (_body) {
-    std::cout << " ";
-    _body->print();
+    results += " " + _body->toString();
   }
-  std::cout << ")";
+  results += ")";
+  return results;
 }
 
-void SwitchStmt::print() {
-  std::cout << "(Switch: ";
+std::string SwitchStmt::toString() {
+  std::string results = "(Switch: ";
   if (_cond) {
-    std::cout << "(Cond: ";
-    _cond->print();
-    std::cout << ")";
+    results += "(Cond: " + _cond->toString() + ")";
   }
   if (_cases) {
     for (auto c : *_cases) {
-      std::cout << " ";
-      c->print();
+      results += " " +  c->toString();
     }
   }
+  results += ")";
+  return results;
 }
 
-void WhileStmt::print() {
-  std::cout << "(While: ";
+std::string WhileStmt::toString() {
+  std::string results = "(While: ";
   if (_cond) {
-    std::cout << "(Cond: ";
-    _cond->print();
-    std::cout << ")";
+    results += "(Cond: " + _cond->toString() + ")";
   }
   if (_body) {
-    std::cout << " ";
-    _body->print();
+    results += " " + _body->toString();
   }
-  std::cout << ")";
+  results += ")";
+  return results;
 }
 
-void ForStmt::print() {
-  std::cout << "(For: ";
-  if (_id) std::cout << "(IterName: " << _id->toString() << ")";
-  if (_iter) {
-    std::cout << " (Iterable: ";
-    _iter->print();
-    std::cout << ")";
-  }
-  if (_by) {
-    std::cout << " (By: ";
-    _by->print();
-    std::cout << ")";
-  }
-  if (_body) {
-    std::cout << " ";
-    _body->print();
-  }
-  std::cout << ")";
+std::string ForStmt::toString() {
+  std::string results = "(For: ";
+  if (_id) results += "(IterName: " + _id->toString() + ")";
+  if (_iter) results += " (Iterable: " + _iter->toString() + ")";
+  if (_by) results += " (By: " + _by->toString() + ")";
+  if (_body) results += " " + _body->toString();
+  results += ")";
+  return results;
 }
 
-void ExprStmt::print() {
-  std::cout << "(Expr: ";
-  if (_expr) _expr->print();
-  std::cout << ")";
+std::string ExprStmt::toString() {
+  std::string results = "(Expr: ";
+  if (_expr) results += _expr->toString();
+  results += ")";
+  return results;
 }
 
-void StopStmt::print() { std::cout << "(Stop:)"; }
-void BreakStmt::print() { std::cout << "(Break:)"; }
-void ContinueStmt::print() { std::cout << "(Continue:)"; }
+std::string StopStmt::toString() { return "(Stop:)"; }
+std::string BreakStmt::toString() { return "(Break:)"; }
+std::string ContinueStmt::toString() { return "(Continue:)"; }
 
-void Variable::print() {
-  std::cout << "(Variable: ";
+std::string Variable::toString() {
+  std::string result = "(Variable: ";
   if (!_var) {
-    if (_name) std::cout << "(Name: " << _name->toString() << ")";
+    if (_name) result += "(Name: " + _name->toString() + ")";
   } else {
-    if (_name) std::cout << "(Namespace: " << _name->toString() << ")";
-    if (_var) {
-      std::cout << " ";
-      _var->print();
-    }
+    if (_name) result += "(Namespace: " + _name->toString() + ")";
+    if (_var) result += " " + _var->toString();
   }
-  std::cout << ")";
+  result += ")";
+  return result;
 }
 
-void MemberAccess::print() {
-  std::cout << "(MemberAccess: ";
-  if (_parent) _parent->print();
-  if (_id) std::cout << " (MemberName: " << _id->toString() << ")";
-  std::cout << ")";
+std::string MemberAccess::toString() {
+  std::string result = "(MemberAccess: ";
+  if (_parent) result += _parent->toString();
+  if (_id) result += " (MemberName: " + _id->toString() + ")";
+  result += ")";
+  return result;
 }
 
-void ArrayAccess::print() {
-  std::cout << "(ArrayAccess: ";
-  if (_parent) _parent->print();
-  if (_expr) {
-    std::cout << " (Element: ";
-    _expr->print();
-    std::cout << ")";
-  }
-  std::cout << ")";
+std::string ArrayAccess::toString() {
+  std::string result = "(ArrayAccess: ";
+  if (_parent) result += _parent->toString();
+  if (_expr) result += " (Element: " + _expr->toString() + ")";
+  result += ")";
+  return result;
 }
 
-void Call::print() {
-  std::cout << "(Call: ";
-  if (_parent) _parent->print();
+std::string Call::toString() {
+  std::string result = "(Call: ";
+  if (_parent) result += _parent->toString();
   if (_args) {
-    std::cout << " (Args:";
+    result +=  " (Args:";
     for(auto arg : *_args) {
-      std::cout << " ";
-      arg->print();
+      result +=  " " + arg->toString();
     }
-    std::cout << ")";
+    result += ")";
   }
-  std::cout << ")";
+  result += ")";
+  return result;
 }
 
-void Assignment::print() {
-  std::cout << "(Assignment: ";
-  if (_op) std::cout << "(Op: " << _op->toString() << ")";
-  if (_var) {
-    _var->print();
-  }
-  if (_expr) {
-    std::cout << " (Value: ";
-    _expr->print();
-    std::cout << ")";
-  }
-  std::cout << ")";
+std::string Assignment::toString() {
+  std::string result = "(Assignment: ";
+  if (_op) result += "(Op: " + _op->toString() + ")";
+  if (_var) result += _var->toString();
+  if (_expr) result += " (Value: " +_expr->toString() + ")";
+  result += ")";
+  return result;
 }
 
-void BinaryExpr::print() {
-  std::cout << "(Binary: ";
-  if (_op) std::cout << "(Op: " << _op->toString() << ")";
-  if (_left) {
-    std::cout << " ";
-    _left->print();
-  }
-  if (_right) {
-    std::cout << " ";
-    _right->print();
-  }
-  std::cout << ")";
+std::string BinaryExpr::toString() {
+  std::string results = "(Binary: ";
+  if (_op) results += "(Op: " + _op->toString() + ")";
+  if (_left) results += " " + _left->toString();
+  if (_right) results += " " + _right->toString();
+  results += ")";
+  return results;
 }
 
-void UnaryExpr::print() {
-  std::cout << "(Unary: ";
-  if (_op) std::cout << "(Op: " << _op->toString() << ")";
-  if (_expr) {
-    std::cout << " ";
-    _expr->print();
-  }
-  std::cout << ")";
+std::string UnaryExpr::toString() {
+  std::string results = "(Unary: ";
+  if (_op) results += "(Op: " + _op->toString() + ")";
+  if (_expr) results += " " + _expr->toString();
+  results += ")";
+  return results;
 }
 
-void IntValue::print() {
-  std::cout << "(Int: ";
-  if (_value) std::cout << _value->toString();
-  std::cout << ")";
+std::string IntValue::toString() {
+  std::string results = "(Int: ";
+  if (_value) results += _value->toString();
+  results += ")";
+  return results;
 }
 
-void HexValue::print() {
-  std::cout << "(Hex: ";
-  if (_value) std::cout << _value->toString();
-  std::cout << ")";
+std::string HexValue::toString() {
+  std::string results = "(Hex: ";
+  if (_value) results += _value->toString();
+  results += ")";
+  return results;
 }
 
-void BoolValue::print() {
-  std::cout << "(Bool: ";
-  if (_value) std::cout << _value->toString();
-  std::cout << ")";
+std::string BoolValue::toString() {
+  std::string results = "(Bool: ";
+  if (_value) results += _value->toString();
+  results += ")";
+  return results;
 }
 
-void FloatValue::print() {
-  std::cout << "(Float: ";
-  if (_value) std::cout << _value->toString();
-  std::cout << ")";
+std::string FloatValue::toString() {
+  std::string results = "(Float: ";
+  if (_value) results += _value->toString();
+  results += ")";
+  return results;
 }
 
-void StringValue::print() {
-  std::cout << "(String: ";
-  if (_value) std::cout << _value->toString();
-  std::cout << ")";
+std::string StringValue::toString() {
+  std::string results = "(String: ";
+  if (_value) results += _value->toString();
+  results += ")";
+  return results;
 }
 
-void ArrayValue::print() {
-  std::cout << "(Array:";
+std::string ArrayValue::toString() {
+  std::string results = "(Array:";
   if (_elements) {
     for (auto elem : *_elements) {
-      std::cout << " ";
-      elem->print();
+      results += " " + elem->toString();
     }
   }
-  std::cout << ")";
+  results += ")";
+  return results;
 }
 
-void ObjectValue::print() {
-  std::cout << "(ObjectInitialize:";
+std::string ObjectValue::toString() {
+  std::string results = "(ObjectInitialize:";
   if (_elements) {
     for (auto elem : *_elements) {
-      std::cout << " ";
-      elem->print();
+      results += " " + elem->toString();
     }
   }
-  std::cout << ")";
+  results += ")";
+  return results;
 }

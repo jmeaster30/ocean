@@ -1,6 +1,8 @@
 #include <iostream>
 #include <vector>
 
+#include "helper.hpp"
+
 #include "ast.hpp"
 
 #include "ocean.tab.hpp"
@@ -18,19 +20,21 @@ int main(int argc, char** argv) {
       return 1;
     }
   }else{
-    yyin = stdin;
+    std::cout << "Please supply a source file." << std::endl;
+    return 1;
   }
 
   yyparse();
-  std::cout << "Done Parsing" << std::endl;
+  debug("Done Parsing...");
   if(root == nullptr){
-    std::cout << "Null Root. THERE WAS A PROBLEM" << std::endl;
+    std::cout << "There was an issue with parsing this file. The parser returned a null ast root." << std::endl;
+    return 1;
   } else {
-    root->print();
+    adebug(root->toString());
   }
 
+  debug("This file contained valid ocean source code");
   //program* main_root = root; //save the main root node of the ast so it doesn't get messed up by parsing other files
-
   
   return 0;
 }

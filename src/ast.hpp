@@ -8,25 +8,25 @@
 class AstNode {
 public:
   virtual std::string getNodeType() = 0;
-  virtual void print() = 0;
+  virtual std::string toString() = 0;
 };
 
 class Statement : public AstNode {
 public:
   virtual std::string getNodeType() = 0;
-  virtual void print() = 0;
+  virtual std::string toString() = 0;
 };
 
 class Expression : public AstNode {
 public:
   virtual std::string getNodeType() = 0;
-  virtual void print() = 0;
+  virtual std::string toString() = 0;
 };
 
 class VarType : public AstNode {
 public:
   virtual std::string getNodeType() = 0;
-  virtual void print() = 0;
+  virtual std::string toString() = 0;
 };
 
 class BaseType : public VarType {
@@ -38,7 +38,7 @@ public:
     _type(type), _auto_name(auto_name) {}
 
   std::string getNodeType();
-  void print();
+  std::string toString();
 };
 
 class ConstType : public VarType {
@@ -48,7 +48,7 @@ public:
   ConstType(VarType* type) : _type(type) {}
 
   std::string getNodeType();
-  void print();
+  std::string toString();
 };
 
 class PointerType : public VarType {
@@ -58,7 +58,7 @@ public:
   PointerType(VarType* type) : _type(type) {}
 
   std::string getNodeType();
-  void print();
+  std::string toString();
 };
 
 class ArrayType : public VarType {
@@ -70,7 +70,7 @@ public:
     _type(type), _array_length(array_length) {}
 
   std::string getNodeType();
-  void print();
+  std::string toString();
 };
 
 class Parameter : public AstNode {
@@ -82,7 +82,7 @@ public:
     _id(id), _type(type) {}
 
   std::string getNodeType();
-  void print();
+  std::string toString();
 };
 
 class Program : public AstNode {
@@ -92,7 +92,7 @@ public:
   Program(std::vector<Statement*>* stmts) : _stmts(stmts) {}
 
   std::string getNodeType();
-  void print();
+  std::string toString();
 };
 
 class Macro : public Statement {
@@ -102,7 +102,7 @@ public:
   Macro(Token* macro) : _macro(macro) {}
 
   std::string getNodeType();
-  void print();
+  std::string toString();
 };
 
 class CompoundStmt : public Statement {
@@ -112,13 +112,13 @@ public:
   CompoundStmt(std::vector<Statement*>* stmts) : _stmts(stmts) {}
 
   std::string getNodeType();
-  void print();
+  std::string toString();
 };
 
 class Declaration : public Statement {
 public:
   virtual std::string getNodeType() = 0;
-  virtual void print() = 0;
+  virtual std::string toString() = 0;
 };
 
 class VarDec : public Declaration {
@@ -131,7 +131,7 @@ public:
     _id(id), _type(type), _expr(expr) {}
 
   std::string getNodeType();
-  void print();
+  std::string toString();
 };
 
 class FuncDec : public Declaration {
@@ -145,7 +145,7 @@ public:
     _id(id), _params(params), _returns(returns), _body(body) {}
 
   std::string getNodeType();
-  void print();
+  std::string toString();
 };
 
 class EnumDec : public Declaration {
@@ -158,7 +158,7 @@ public:
     _start(start), _id(id), _declist(declist) {}
 
   std::string getNodeType();
-  void print();
+  std::string toString();
 };
 
 class PackDec : public Declaration {
@@ -171,7 +171,7 @@ public:
     _start(start), _id(id), _declist(declist) {}
 
   std::string getNodeType();
-  void print();
+  std::string toString();
 };
 
 class VariantDec : public Declaration {
@@ -184,7 +184,7 @@ public:
     _start(start), _id(id), _declist(declist) {}
 
   std::string getNodeType();
-  void print();
+  std::string toString();
 };
 
 class IfStmt : public Statement {
@@ -198,7 +198,7 @@ public:
     _start(start), _cond(cond), _body(body), _elseBody(elseBody) {}
 
   std::string getNodeType();
-  void print();
+  std::string toString();
 };
 
 class SwitchCase : public AstNode {
@@ -210,7 +210,7 @@ public:
     _case(c), _body(body) {}
 
   std::string getNodeType();
-  void print();
+  std::string toString();
 };
 
 class SwitchStmt : public Statement {
@@ -223,7 +223,7 @@ public:
     _start(start), _cond(cond), _cases(cases) {}
 
   std::string getNodeType();
-  void print();
+  std::string toString();
 };
 
 class WhileStmt : public Statement {
@@ -236,7 +236,7 @@ public:
     _start(start), _cond(cond), _body(body) {}
 
   std::string getNodeType();
-  void print();
+  std::string toString();
 };
 
 class ForStmt : public Statement {
@@ -251,7 +251,7 @@ public:
     _start(start), _id(id), _iter(iter), _by(by), _body(body) {}
 
   std::string getNodeType();
-  void print();
+  std::string toString();
 };
 
 class ExprStmt : public Statement {
@@ -261,7 +261,7 @@ public:
   ExprStmt(Expression* expr) : _expr(expr) {}
 
   std::string getNodeType();
-  void print();
+  std::string toString();
 };
 
 class StopStmt : public Statement {
@@ -270,7 +270,7 @@ public:
 
   StopStmt(Token* token) : _token(token) {}
   std::string getNodeType();
-  void print();
+  std::string toString();
 };
 
 class BreakStmt : public Statement {
@@ -279,7 +279,7 @@ public:
 
   BreakStmt(Token* token) : _token(token) {}
   std::string getNodeType();
-  void print();
+  std::string toString();
 };
 
 class ContinueStmt : public Statement {
@@ -288,13 +288,13 @@ public:
 
   ContinueStmt(Token* token) : _token(token) {}
   std::string getNodeType();
-  void print();
+  std::string toString();
 };
 
 class Var : public Expression {
 public:
   virtual std::string getNodeType() = 0;
-  virtual void print() = 0;
+  virtual std::string toString() = 0;
 };
 
 class Variable : public Var {
@@ -306,7 +306,7 @@ public:
     _name(name), _var(var) {}
 
   std::string getNodeType();
-  void print();
+  std::string toString();
 };
 
 class MemberAccess : public Var {
@@ -317,7 +317,7 @@ public:
   MemberAccess(Var* parent, Token* id) : _parent(parent), _id(id) {}
 
   std::string getNodeType();
-  void print();
+  std::string toString();
 };
 
 class ArrayAccess : public Var {
@@ -328,7 +328,7 @@ public:
   ArrayAccess(Var* parent, Expression* expr) : _parent(parent), _expr(expr) {}
 
   std::string getNodeType();
-  void print();
+  std::string toString();
 };
 
 class Call : public Var {
@@ -340,7 +340,7 @@ public:
     _parent(parent), _args(args) {}
 
   std::string getNodeType();
-  void print();
+  std::string toString();
 };
 
 class Assignment : public Expression {
@@ -353,7 +353,7 @@ public:
     _var(var), _op(op), _expr(expr) {}
 
   std::string getNodeType();
-  void print();
+  std::string toString();
 };
 
 class BinaryExpr : public Expression {
@@ -366,7 +366,7 @@ public:
     _op(op), _left(left), _right(right) {}
 
   std::string getNodeType();
-  void print();
+  std::string toString();
 };
 
 class UnaryExpr : public Expression {
@@ -377,7 +377,7 @@ public:
   UnaryExpr(Token* op, Expression* expr) : _op(op), _expr(expr) {}
 
   std::string getNodeType();
-  void print();
+  std::string toString();
 };
 
 class IntValue : public Expression {
@@ -387,7 +387,7 @@ public:
   IntValue(Token* value) : _value(value) {}
 
   std::string getNodeType();
-  void print();
+  std::string toString();
 };
 
 class HexValue : public Expression {
@@ -397,7 +397,7 @@ public:
   HexValue(Token* value) : _value(value) {}
 
   std::string getNodeType();
-  void print();
+  std::string toString();
 };
 
 class BoolValue : public Expression {
@@ -407,7 +407,7 @@ public:
   BoolValue(Token* value) : _value(value) {}
 
   std::string getNodeType();
-  void print();
+  std::string toString();
 };
 
 class FloatValue : public Expression {
@@ -417,7 +417,7 @@ public:
   FloatValue(Token* value) : _value(value) {}
 
   std::string getNodeType();
-  void print();
+  std::string toString();
 };
 
 class StringValue : public Expression {
@@ -427,7 +427,7 @@ public:
   StringValue(Token* value) : _value(value) {}
 
   std::string getNodeType();
-  void print();
+  std::string toString();
 };
 
 class ArrayValue : public Expression {
@@ -437,7 +437,7 @@ public:
   ArrayValue(std::vector<Expression*>* elements) : _elements(elements) {}
 
   std::string getNodeType();
-  void print();
+  std::string toString();
 };
 
 class ObjectValue : public Expression {
@@ -447,5 +447,5 @@ public:
   ObjectValue(std::vector<Declaration*>* elements) : _elements(elements) {}
 
   std::string getNodeType();
-  void print();
+  std::string toString();
 };
