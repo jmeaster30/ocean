@@ -1,6 +1,7 @@
 #compiler definitions
 add_compile_definitions(
   DEBUG_MESSAGES
+  DEBUG_AST
 )
 
 #source files

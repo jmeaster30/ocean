@@ -47,7 +47,8 @@ int ProcessToken(const char* name, int token_parser_id, TokenType token_type, in
 "f32"      { return ProcessToken("f32",    TYPE, TokenType::Type, 0); }
 "f64"      { return ProcessToken("f64",    TYPE, TokenType::Type, 0); }
 "auto"     { return ProcessToken("auto",   AUTO, TokenType::Auto, 0); } 
-"void"     { return ProcessToken("void",   VOID, TokenType::Void, 0); } 
+"void"     { return ProcessToken("void",   VOID, TokenType::Void, 0); }
+"func"     { return ProcessToken("func",   FUNC, TokenType::Func, 0); }
 
 "const"    { return ProcessToken("const",    CONST,    TokenType::Const, 0); }
 "enum"     { return ProcessToken("enum",     ENUM,     TokenType::Enum, 0); }

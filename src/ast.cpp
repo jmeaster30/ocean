@@ -6,6 +6,8 @@
 
 std::string BaseType::getNodeType() { return "BaseType"; }
 
+std::string FuncType::getNodeType() { return "FuncType"; }
+
 std::string ConstType::getNodeType() { return "ConstType"; }
 
 std::string PointerType::getNodeType() { return "PointerType"; }
@@ -88,6 +90,26 @@ std::string BaseType::toString() {
   std::string results = "(BaseType: ";
   if (_type) results += _type->toString();
   if (_auto_name) results += " (Name: " + _auto_name->toString() + ")";
+  results += ")";
+  return results;
+}
+
+std::string FuncType::toString() {
+  std::string results = "(FuncType:";
+  if (_param_types) {
+    results += " (ParamTypes:";
+    for (auto ptype : *_param_types) {
+      results += " " + ptype->toString();
+    }
+    results += ")";
+  }
+  if (_return_types) {
+    results += " (ReturnTypes:";
+    for (auto rtype : *_return_types) {
+      results += " " + rtype->toString();
+    }
+    results += ")";
+  }
   results += ")";
   return results;
 }

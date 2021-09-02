@@ -20,6 +20,7 @@ enum class TokenType {
 	//Keywords
 	Type,
 	Auto,
+	Func,
 	Void,
 
 	Const,

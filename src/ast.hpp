@@ -41,6 +41,19 @@ public:
   std::string toString();
 };
 
+class FuncType : public VarType {
+public:
+  Token* _func;
+  std::vector<VarType*>* _param_types;
+  std::vector<VarType*>* _return_types;
+
+  FuncType(Token* func, std::vector<VarType*>* param_types, std::vector<VarType*>* return_types) :
+    _func(func), _param_types(param_types), _return_types(return_types) {}
+
+  std::string getNodeType();
+  std::string toString();
+};
+
 class ConstType : public VarType {
 public:
   VarType* _type;

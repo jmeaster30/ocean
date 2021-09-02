@@ -40,10 +40,11 @@ extern Program* root;
   std::vector<Parameter*>* paramlist;
   std::vector<Declaration*>* declist;
   std::vector<Expression*>* arglist;
+  std::vector<VarType*>* typelist;
 }
 
 %token ENDOFFILE 0 "end of file"
-%token <token> TYPE AUTO VOID
+%token <token> TYPE AUTO VOID FUNC
 %token <token> ENUM PACK VARIANT
 %token <token> STOP BREAK CONTINUE IF ELSE WHILE FOR IN BY
 %token <token> SWITCH RANGE DEFAULT
@@ -87,6 +88,7 @@ extern Program* root;
 %type <arglist> ARGS FARGS
 %type <declaration> DEC
 %type <compound> CMPD
+%type <typelist> TYPE_LIST
 
 %%
 
@@ -260,11 +262,16 @@ VARTYPE : TYPE { $$ = new BaseType($1, nullptr); }
         | AUTO { $$ = new BaseType($1, nullptr); }
         | AUTO ANGLE_OPEN IDENTIFIER ANGLE_CLOSED { $$ = new BaseType($1, $3); }
         | VOID { $$ = new BaseType($1, nullptr); }
+        | FUNC ANGLE_OPEN TYPE_LIST ARROW TYPE_LIST ANGLE_CLOSED { $$ = new FuncType($1, $3, $5); }
         | IDENTIFIER { $$ = new BaseType($1, nullptr); }
         | VARTYPE CONST { $$ = new ConstType($1); }
         | VARTYPE TILDE { $$ = new PointerType($1); }
         | VARTYPE SQUARE_OPEN EXPR SQUARE_CLOSED { $$ = new ArrayType($1, $3); }
         ;
+
+TYPE_LIST : TYPE_LIST COMMA VARTYPE { $$ = $1; $$->push_back($3); }
+          | VARTYPE { $$ = new std::vector<VarType*>(); $$->push_back($1); }
+          ;
 
 NVAR : IDENTIFIER DUBCOLON NVAR { $$ = new Variable($1, $3); }
      | IDENTIFIER { $$ = new Variable($1, nullptr); }
