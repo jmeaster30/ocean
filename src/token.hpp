@@ -22,6 +22,7 @@ enum class TokenType {
 	Auto,
 	Func,
 	Void,
+	Op,
 
 	Const,
 	Enum,

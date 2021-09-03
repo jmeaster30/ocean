@@ -11,7 +11,7 @@ extern FILE* yyin;
 Program* root;
 
 int main(int argc, char** argv) {
-  ++argv, --argc; //skip over the program name argument
+  ++argv, --argc; //skip over the program name
   if(argc > 0){
     yyin = fopen(argv[0], "r");
     if(yyin == nullptr)

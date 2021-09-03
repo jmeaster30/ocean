@@ -44,7 +44,7 @@ extern Program* root;
 }
 
 %token ENDOFFILE 0 "end of file"
-%token <token> TYPE AUTO VOID FUNC
+%token <token> TYPE AUTO VOID FUNC OP
 %token <token> ENUM PACK VARIANT
 %token <token> STOP BREAK CONTINUE IF ELSE WHILE FOR IN BY
 %token <token> SWITCH RANGE DEFAULT
@@ -89,6 +89,7 @@ extern Program* root;
 %type <declaration> DEC
 %type <compound> CMPD
 %type <typelist> TYPE_LIST
+%type <token> OPERATOR
 
 %%
 
@@ -164,6 +165,9 @@ DEC : IDENTIFIER COLON VARTYPE { $$ = new VarDec($1, $3, nullptr); }
     | IDENTIFIER COLON PAREN_OPEN PARAMS PAREN_CLOSED ARROW PAREN_OPEN PARAMS PAREN_CLOSED CMPD {
           $$ = new FuncDec($1, $4, $8, $10);
     }
+    | OP ANGLE_OPEN OPERATOR ANGLE_CLOSED COLON PAREN_OPEN PARAMS PAREN_CLOSED ARROW PAREN_OPEN PARAMS PAREN_CLOSED CMPD {
+          $$ = new FuncDec($3, $7, $11, $13);
+    }
     | ENUM IDENTIFIER FENUM { $$ = new EnumDec($1, $2, $3); }
     | PACK IDENTIFIER FDEC { $$ = new PackDec($1, $2, $3); }
     | VARIANT IDENTIFIER FDEC { $$ = new VariantDec($1, $2, $3); }
@@ -179,6 +183,7 @@ DEC_LIST : DEC_LIST DEC SEMICOLON { $$ = $1; $$->push_back($2); }
          ;
 
 FENUM : BRACE_OPEN ENUM_LIST BRACE_CLOSED { $$ = $2; }
+      ;
 
 ENUM_LIST : ENUM_LIST IDENTIFIER COLON EXPR SEMICOLON { $$ = $1; $$->push_back(new VarDec($2, nullptr, $4)); }
           | ENUM_LIST IDENTIFIER COLON EXPR NEWLINE { $$ = $1; $$->push_back(new VarDec($2, nullptr, $4)); }
@@ -198,6 +203,21 @@ FPARAMS : FPARAMS COMMA PARAM { $$ = $1; $$->push_back($3); }
 
 PARAM : IDENTIFIER COLON VARTYPE { $$ = new Parameter($1, $3); }
       ;
+
+OPERATOR : LOGIC { $$ = $1; }
+         | BITWISE { $$ = $1; }
+         | EQUIV { $$ = $1; }
+         | RELAT { $$ = $1; }
+         | ANGLE_OPEN { $$ = $1; }
+         | ANGLE_CLOSED { $$ = $1; }
+         | SHIFT { $$ = $1; }
+         | ADD { $$ = $1; }
+         | MULT { $$ = $1; }
+         | RANGE { $$ = $1; }
+         | NOT { $$ = $1; }
+         | QUESTION { $$ = $1; }
+         | TILDE { $$ = $1; }
+         ;
 
 ASSIGNMENT : VAR ASSIGN EXPR { $$ = new ExprStmt(new Assignment($1, $2, $3)); }
            | EXPR { $$ = new ExprStmt($1); }
@@ -267,6 +287,7 @@ VARTYPE : TYPE { $$ = new BaseType($1, nullptr); }
         | VARTYPE CONST { $$ = new ConstType($1); }
         | VARTYPE TILDE { $$ = new PointerType($1); }
         | VARTYPE SQUARE_OPEN EXPR SQUARE_CLOSED { $$ = new ArrayType($1, $3); }
+        | VARTYPE SQUARE_OPEN SQUARE_CLOSED { $$ = new ArrayType($1, nullptr); }
         ;
 
 TYPE_LIST : TYPE_LIST COMMA VARTYPE { $$ = $1; $$->push_back($3); }

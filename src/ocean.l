@@ -49,6 +49,7 @@ int ProcessToken(const char* name, int token_parser_id, TokenType token_type, in
 "auto"     { return ProcessToken("auto",   AUTO, TokenType::Auto, 0); } 
 "void"     { return ProcessToken("void",   VOID, TokenType::Void, 0); }
 "func"     { return ProcessToken("func",   FUNC, TokenType::Func, 0); }
+"op"       { return ProcessToken("op",     OP,   TokenType::Op,   0); }
 
 "const"    { return ProcessToken("const",    CONST,    TokenType::Const, 0); }
 "enum"     { return ProcessToken("enum",     ENUM,     TokenType::Enum, 0); }
@@ -79,7 +80,7 @@ int ProcessToken(const char* name, int token_parser_id, TokenType token_type, in
 
   /******** MACRO / COMMENTS ********/
 \@.*$ { return ProcessToken("MACRO", MACRO, TokenType::Macro, 0); }
-\{("ASM")?\@[^\@]*\@+(?:[^\@\}][^\@]*\@+)*\} { return ProcessToken("MACRO", MACRO, TokenType::Macro, 0); }
+\{("asm"|"ast")?\@[^\@]*\@+(?:[^\@\}][^\@]*\@+)*\} { return ProcessToken("MACRO", MACRO, TokenType::Macro, 0); }
 
 "#".*$ { Drop(); } //just drop comments //return ProcessToken("COMMENT", COMMENT, 0); }
 \{\#[^\#]*\#+(?:[^\#\}][^\#]*\#+)*\} { Drop(); } //just drop comments

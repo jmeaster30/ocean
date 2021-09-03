@@ -1,1 +1,10 @@
-test: func<auto<T> -> T>
+pack Type {
+  a: i32
+  b: i32
+  op<+>:(left: Type, right: Type) -> (result: Type) {
+    result.a = left.a + right.a
+    result.b = left.b + right.b
+  }
+}
+
+yeah: Type = (a: 2, b: 3) + (a: 4, b: 5)
