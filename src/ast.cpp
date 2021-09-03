@@ -6,6 +6,8 @@
 
 std::string BaseType::getNodeType() { return "BaseType"; }
 
+std::string CustomType::getNodeType() { return "CustomType"; }
+
 std::string FuncType::getNodeType() { return "FuncType"; }
 
 std::string ConstType::getNodeType() { return "ConstType"; }
@@ -64,6 +66,8 @@ std::string BinaryExpr::getNodeType() { return "Binary"; }
 
 std::string UnaryExpr::getNodeType() { return "Unary"; }
 
+std::string Cast::getNodeType() { return "Cast"; }
+
 std::string IntValue::getNodeType() { return "Int"; }
 
 std::string HexValue::getNodeType() { return "Hex"; }
@@ -90,6 +94,13 @@ std::string BaseType::toString() {
   std::string results = "(BaseType: ";
   if (_type) results += _type->toString();
   if (_auto_name) results += " (Name: " + _auto_name->toString() + ")";
+  results += ")";
+  return results;
+}
+
+std::string CustomType::toString() {
+  std::string results = "(CustomType: ";
+  if (_type) results += _type->toString();
   results += ")";
   return results;
 }
@@ -385,6 +396,14 @@ std::string BinaryExpr::toString() {
 std::string UnaryExpr::toString() {
   std::string results = "(Unary: ";
   if (_op) results += "(Op: " + _op->toString() + ")";
+  if (_expr) results += " " + _expr->toString();
+  results += ")";
+  return results;
+}
+
+std::string Cast::toString() {
+  std::string results = "(Cast: ";
+  if (_type) results += _type->toString();
   if (_expr) results += " " + _expr->toString();
   results += ")";
   return results;

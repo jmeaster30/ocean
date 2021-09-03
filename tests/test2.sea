@@ -7,4 +7,4 @@ pack Type {
   }
 }
 
-yeah: Type = (a: 2, b: 3) + (a: 4, b: 5)
+yeah: Type = <Type>(a: <i32>2, b: 3) + (a: 4, b: 5)

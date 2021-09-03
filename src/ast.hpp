@@ -23,6 +23,24 @@ public:
   virtual std::string toString() = 0;
 };
 
+class Var : public Expression {
+public:
+  virtual std::string getNodeType() = 0;
+  virtual std::string toString() = 0;
+};
+
+class Variable : public Var {
+public:
+  Token* _name;
+  Variable* _var;
+
+  Variable(Token* name, Variable* var) :  
+    _name(name), _var(var) {}
+
+  std::string getNodeType();
+  std::string toString();
+};
+
 class VarType : public AstNode {
 public:
   virtual std::string getNodeType() = 0;
@@ -36,6 +54,16 @@ public:
 
   BaseType(Token* type, Token* auto_name) :
     _type(type), _auto_name(auto_name) {}
+
+  std::string getNodeType();
+  std::string toString();
+};
+
+class CustomType : public VarType {
+public:
+  Variable* _type;
+
+  CustomType(Variable* type) : _type(type){}
 
   std::string getNodeType();
   std::string toString();
@@ -304,24 +332,6 @@ public:
   std::string toString();
 };
 
-class Var : public Expression {
-public:
-  virtual std::string getNodeType() = 0;
-  virtual std::string toString() = 0;
-};
-
-class Variable : public Var {
-public:
-  Token* _name;
-  Variable* _var;
-
-  Variable(Token* name, Variable* var) :  
-    _name(name), _var(var) {}
-
-  std::string getNodeType();
-  std::string toString();
-};
-
 class MemberAccess : public Var {
 public:
   Var* _parent;
@@ -388,6 +398,18 @@ public:
   Expression* _expr;
 
   UnaryExpr(Token* op, Expression* expr) : _op(op), _expr(expr) {}
+
+  std::string getNodeType();
+  std::string toString();
+};
+
+class Cast : public Expression {
+public:
+  VarType* _type;
+  Expression* _expr;
+
+  Cast(VarType* type, Expression* expr) :
+    _type(type), _expr(expr) {}
 
   std::string getNodeType();
   std::string toString();

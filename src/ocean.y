@@ -81,7 +81,7 @@ extern Program* root;
 %type <declist> DEC_LIST FDEC ENUM_LIST FENUM OBJARGS FOBJARGS
 %type <paramlist> PARAMS FPARAMS
 %type <parameter> PARAM
-%type <expression> EXPR BITWISER EQUIVALENCE COMPARATIVE SHIFTER ADDITIVE MULTIPLICATIVE RANGER UNARY PRIMARY POSTFIX ARRAYVAL
+%type <expression> EXPR BITWISER EQUIVALENCE COMPARATIVE SHIFTER ADDITIVE MULTIPLICATIVE RANGER UNARY PRIMARY POSTFIX ARRAYVAL CAST
 %type <vartype> VARTYPE
 %type <var> VAR
 %type <nvar> NVAR
@@ -264,8 +264,12 @@ UNARY : NOT UNARY { $$ = new UnaryExpr($1, $2); }
       ;
 
 POSTFIX : POSTFIX QUESTION { $$ = new UnaryExpr($2, $1); }
-        | PRIMARY { $$ = $1; }
+        | CAST { $$ = $1; }
         ;
+
+CAST : ANGLE_OPEN VARTYPE ANGLE_CLOSED PRIMARY { $$ = new Cast($2, $4); }
+     | PRIMARY { $$ = $1; }
+     ;
 
 PRIMARY : VAR { $$ = $1; }
         | PAREN_OPEN EXPR PAREN_CLOSED { $$ = $2; }
@@ -283,7 +287,7 @@ VARTYPE : TYPE { $$ = new BaseType($1, nullptr); }
         | AUTO ANGLE_OPEN IDENTIFIER ANGLE_CLOSED { $$ = new BaseType($1, $3); }
         | VOID { $$ = new BaseType($1, nullptr); }
         | FUNC ANGLE_OPEN TYPE_LIST ARROW TYPE_LIST ANGLE_CLOSED { $$ = new FuncType($1, $3, $5); }
-        | IDENTIFIER { $$ = new BaseType($1, nullptr); }
+        | NVAR { $$ = new CustomType($1); }
         | VARTYPE CONST { $$ = new ConstType($1); }
         | VARTYPE TILDE { $$ = new PointerType($1); }
         | VARTYPE SQUARE_OPEN EXPR SQUARE_CLOSED { $$ = new ArrayType($1, $3); }
