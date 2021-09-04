@@ -182,7 +182,8 @@ FDEC : BRACE_OPEN DEC_LIST BRACE_CLOSED { $$ = $2; }
 DEC_LIST : DEC_LIST COMMA DEC { $$ = $1; $$->push_back($3); }
          | DEC_LIST NEWLINE DEC { $$ = $1; $$->push_back($3); }
          | DEC_LIST NEWLINE { $$ = $1; }
-         | { $$ = new std::vector<Declaration*>(); }
+         | NEWLINE DEC { $$ = new std::vector<Declaration*>(); $$->push_back($2); }
+         | DEC { $$ = new std::vector<Declaration*>(); $$->push_back($1); }
          ;
 
 FENUM : BRACE_OPEN ENUM_LIST BRACE_CLOSED { $$ = $2; }
@@ -193,7 +194,22 @@ ENUM_LIST : ENUM_LIST COMMA IDENTIFIER COLON EXPR { $$ = $1; $$->push_back(new V
           | ENUM_LIST COMMA IDENTIFIER { $$ = $1; $$->push_back(new VarDec($3, nullptr, nullptr)); }
           | ENUM_LIST NEWLINE IDENTIFIER { $$ = $1; $$->push_back(new VarDec($3, nullptr, nullptr)); }
           | ENUM_LIST NEWLINE { $$ = $1; }
-          | { $$ = new std::vector<Declaration*>(); }
+          | IDENTIFIER COLON EXPR { 
+               $$ = new std::vector<Declaration*>();
+               $$->push_back(new VarDec($1, nullptr, $3)); 
+          }
+          | IDENTIFIER {
+               $$ = new std::vector<Declaration*>();
+               $$->push_back(new VarDec($1, nullptr, nullptr)); 
+          }
+          | NEWLINE IDENTIFIER COLON EXPR { 
+               $$ = new std::vector<Declaration*>();
+               $$->push_back(new VarDec($2, nullptr, $4)); 
+          }
+          | NEWLINE IDENTIFIER {
+               $$ = new std::vector<Declaration*>();
+               $$->push_back(new VarDec($2, nullptr, nullptr)); 
+          }
           ;
 
 PARAMS : FPARAMS { $$ = $1; }
