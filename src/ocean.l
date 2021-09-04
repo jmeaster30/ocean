@@ -35,21 +35,17 @@ int ProcessToken(const char* name, int token_parser_id, TokenType token_type, in
 %%
 
   /******* KEYWORDS *********/
-"bool"     { return ProcessToken("bool",   TYPE, TokenType::Type, 0); }
-"byte"     { return ProcessToken("byte",   TYPE, TokenType::Type, 0); }
-"i16"      { return ProcessToken("i16",    TYPE, TokenType::Type, 0); }
-"i32"      { return ProcessToken("i32",    TYPE, TokenType::Type, 0); }
-"i64"      { return ProcessToken("i64",    TYPE, TokenType::Type, 0); }
-"s16"      { return ProcessToken("s16",    TYPE, TokenType::Type, 0); }
-"s32"      { return ProcessToken("s32",    TYPE, TokenType::Type, 0); }
-"s64"      { return ProcessToken("s64",    TYPE, TokenType::Type, 0); }
-"f16"      { return ProcessToken("f16",    TYPE, TokenType::Type, 0); }
-"f32"      { return ProcessToken("f32",    TYPE, TokenType::Type, 0); }
-"f64"      { return ProcessToken("f64",    TYPE, TokenType::Type, 0); }
-"auto"     { return ProcessToken("auto",   AUTO, TokenType::Auto, 0); } 
-"void"     { return ProcessToken("void",   VOID, TokenType::Void, 0); }
+"bool"             { return ProcessToken("Type", TYPE, TokenType::Type, 0); }
+"byte"             { return ProcessToken("Type", TYPE, TokenType::Type, 0); }
+"i16"|"i32"|"i64"  { return ProcessToken("Type", TYPE, TokenType::Type, 0); }
+"s16"|"s32"|"s64"  { return ProcessToken("Type", TYPE, TokenType::Type, 0); }
+"u16"|"u32"|"u64"  { return ProcessToken("Type", TYPE, TokenType::Type, 0); }
+"f16"|"f32"|"f64"  { return ProcessToken("Type", TYPE, TokenType::Type, 0); }
+
+"auto"     { return ProcessToken("auto",   AUTO, TokenType::Auto, 0); }
 "func"     { return ProcessToken("func",   FUNC, TokenType::Func, 0); }
 "op"       { return ProcessToken("op",     OP,   TokenType::Op,   0); }
+"cast"     { return ProcessToken("cast",   CAST, TokenType::Cast, 0); }
 
 "const"    { return ProcessToken("const",    CONST,    TokenType::Const, 0); }
 "enum"     { return ProcessToken("enum",     ENUM,     TokenType::Enum, 0); }

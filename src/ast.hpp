@@ -4,11 +4,15 @@
 #include <vector>
 
 #include "token.hpp"
+#include "symboltable.hpp"
 
 class AstNode {
 public:
+  //SymbolType* type = nullptr;
+
   virtual std::string getNodeType() = 0;
   virtual std::string toString() = 0;
+  //virtual void buildSymbolTable(SymbolTable* table) = 0;
 };
 
 class Statement : public AstNode {
@@ -184,6 +188,20 @@ public:
 
   FuncDec(Token* id, std::vector<Parameter*>* params, std::vector<Parameter*>* returns, CompoundStmt* body) :
     _id(id), _params(params), _returns(returns), _body(body) {}
+
+  std::string getNodeType();
+  std::string toString();
+};
+
+class CastFuncDec : public Declaration {
+public:
+  VarType* _casting_type;
+  std::vector<Parameter*>* _params;
+  std::vector<Parameter*>* _returns;
+  CompoundStmt* _body;
+
+  CastFuncDec(VarType* casting_type, std::vector<Parameter*>* params, std::vector<Parameter*>* returns, CompoundStmt* body) :
+    _casting_type(casting_type), _params(params), _returns(returns), _body(body) {}
 
   std::string getNodeType();
   std::string toString();

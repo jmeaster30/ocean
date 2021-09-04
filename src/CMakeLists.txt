@@ -8,6 +8,7 @@ add_compile_definitions(
 set(SOURCES
   main.cpp
   ast.cpp
+  symboltable.cpp
 )
 
 #find packages

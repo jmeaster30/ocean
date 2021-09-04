@@ -27,13 +27,13 @@ inline void debugf(const char* format...) {
 
 template<typename T>
 inline void tdebug(T message) {
-#ifdef DEBUG_TOKENS
+#if defined DEBUG_TOKENS and defined DEBUG_MESSAGES
   std::cout << message << std::endl;
 #endif
 }
 
 inline void tdebugf(const char* format...) {
-#ifdef DEBUG_TOKENS
+#if defined DEBUG_TOKENS and defined DEBUG_MESSAGES
   va_list argptr;
   va_start(argptr, format);
   
@@ -45,13 +45,13 @@ inline void tdebugf(const char* format...) {
 
 template<typename T>
 inline void adebug(T message) {
-#ifdef DEBUG_AST
+#if defined DEBUG_AST and defined DEBUG_MESSAGES
   std::cout << message << std::endl;
 #endif
 }
 
 inline void adebugf(const char* format...) {
-#ifdef DEBUG_AST
+#if defined DEBUG_AST and defined DEBUG_MESSAGES
   va_list argptr;
   va_start(argptr, format);
   

@@ -1,10 +1,11 @@
 pack Type {
   a: i32
   b: i32
-  op<+>:(left: Type, right: Type) -> (result: Type) {
-    result.a = left.a + right.a
-    result.b = left.b + right.b
+
+  cast<i32>:(this: Type) -> (result: i32) {
+    result = this.a + this.b
   }
 }
 
-yeah: Type = <Type>(a: <i32>2, b: 3) + (a: 4, b: 5)
+start: Type = <Type>(a: 2, b: 3)
+yeah: i32 = <i32>start

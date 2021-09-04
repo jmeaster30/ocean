@@ -44,7 +44,7 @@ extern Program* root;
 }
 
 %token ENDOFFILE 0 "end of file"
-%token <token> TYPE AUTO VOID FUNC OP
+%token <token> TYPE AUTO VOID FUNC OP CAST
 %token <token> ENUM PACK VARIANT
 %token <token> STOP BREAK CONTINUE IF ELSE WHILE FOR IN BY
 %token <token> SWITCH RANGE DEFAULT
@@ -81,7 +81,7 @@ extern Program* root;
 %type <declist> DEC_LIST FDEC ENUM_LIST FENUM OBJARGS FOBJARGS
 %type <paramlist> PARAMS FPARAMS
 %type <parameter> PARAM
-%type <expression> EXPR BITWISER EQUIVALENCE COMPARATIVE SHIFTER ADDITIVE MULTIPLICATIVE RANGER UNARY PRIMARY POSTFIX ARRAYVAL CAST
+%type <expression> EXPR BITWISER EQUIVALENCE COMPARATIVE SHIFTER ADDITIVE MULTIPLICATIVE RANGER UNARY PRIMARY POSTFIX ARRAYVAL CASTEXPR
 %type <vartype> VARTYPE
 %type <var> VAR
 %type <nvar> NVAR
@@ -167,6 +167,9 @@ DEC : IDENTIFIER COLON VARTYPE { $$ = new VarDec($1, $3, nullptr); }
     }
     | OP ANGLE_OPEN OPERATOR ANGLE_CLOSED COLON PAREN_OPEN PARAMS PAREN_CLOSED ARROW PAREN_OPEN PARAMS PAREN_CLOSED CMPD {
           $$ = new FuncDec($3, $7, $11, $13);
+    }
+    | CAST ANGLE_OPEN VARTYPE ANGLE_CLOSED COLON PAREN_OPEN PARAMS PAREN_CLOSED ARROW PAREN_OPEN PARAMS PAREN_CLOSED CMPD {
+          $$ = new CastFuncDec($3, $7, $11, $13); //this is a little goofy but I can't think of a better way to do it cause we want to maintain the ability to search up the type
     }
     | ENUM IDENTIFIER FENUM { $$ = new EnumDec($1, $2, $3); }
     | PACK IDENTIFIER FDEC { $$ = new PackDec($1, $2, $3); }
@@ -264,12 +267,12 @@ UNARY : NOT UNARY { $$ = new UnaryExpr($1, $2); }
       ;
 
 POSTFIX : POSTFIX QUESTION { $$ = new UnaryExpr($2, $1); }
-        | CAST { $$ = $1; }
+        | CASTEXPR { $$ = $1; }
         ;
 
-CAST : ANGLE_OPEN VARTYPE ANGLE_CLOSED PRIMARY { $$ = new Cast($2, $4); }
-     | PRIMARY { $$ = $1; }
-     ;
+CASTEXPR : ANGLE_OPEN VARTYPE ANGLE_CLOSED PRIMARY { $$ = new Cast($2, $4); }
+         | PRIMARY { $$ = $1; }
+         ;
 
 PRIMARY : VAR { $$ = $1; }
         | PAREN_OPEN EXPR PAREN_CLOSED { $$ = $2; }
@@ -285,7 +288,6 @@ PRIMARY : VAR { $$ = $1; }
 VARTYPE : TYPE { $$ = new BaseType($1, nullptr); }
         | AUTO { $$ = new BaseType($1, nullptr); }
         | AUTO ANGLE_OPEN IDENTIFIER ANGLE_CLOSED { $$ = new BaseType($1, $3); }
-        | VOID { $$ = new BaseType($1, nullptr); }
         | FUNC ANGLE_OPEN TYPE_LIST ARROW TYPE_LIST ANGLE_CLOSED { $$ = new FuncType($1, $3, $5); }
         | NVAR { $$ = new CustomType($1); }
         | VARTYPE CONST { $$ = new ConstType($1); }

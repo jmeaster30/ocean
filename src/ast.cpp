@@ -2,6 +2,9 @@
 
 #include <iostream>
 
+/** Symbol Table Functions **/
+
+
 /** NODE TYPE FUNCTIONS **/
 
 std::string BaseType::getNodeType() { return "BaseType"; }
@@ -27,6 +30,8 @@ std::string CompoundStmt::getNodeType() { return "Compound"; }
 std::string VarDec::getNodeType() { return "VarDec"; }
 
 std::string FuncDec::getNodeType() { return "FuncDec"; }
+
+std::string CastFuncDec::getNodeType() { return "CastFuncDec"; }
 
 std::string EnumDec::getNodeType() { return "EnumDec"; }
 
@@ -204,6 +209,28 @@ std::string VarDec::toString() {
 std::string FuncDec::toString() {
   std::string results = "(FuncDec: ";
   if (_id) results += "(Name: " + _id->toString() + ")";
+  if (_params) {
+    results += " (Params:";
+    for (auto param : *_params) {
+      results += " " + param->toString();
+    }
+    results += ")";
+  }
+  if (_returns) {
+    results += " (Returns:";
+    for (auto ret : *_returns) {
+      results += " " + ret->toString();
+    }
+    results += ")";
+  }
+  if (_body) results += " " + _body->toString();
+  results += ")";
+  return results;
+}
+
+std::string CastFuncDec::toString() {
+  std::string results = "(CastFuncDec: ";
+  if (_casting_type) results += "(Name: " + _casting_type->toString() + ")";
   if (_params) {
     results += " (Params:";
     for (auto param : *_params) {
