@@ -211,10 +211,11 @@ class EnumDec : public Declaration {
 public:
   Token* _start;
   Token* _id;
+  VarType* _base_type;
   std::vector<Declaration*>* _declist;
 
-  EnumDec(Token* start, Token* id, std::vector<Declaration*>* declist) :
-    _start(start), _id(id), _declist(declist) {}
+  EnumDec(Token* start, Token* id, VarType* base_type, std::vector<Declaration*>* declist) :
+    _start(start), _id(id), _base_type(base_type), _declist(declist) {}
 
   std::string getNodeType();
   std::string toString();

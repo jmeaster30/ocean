@@ -7,5 +7,9 @@ pack Type {
   }
 }
 
+enum MyEnum i32 {
+  a, b, c
+}
+
 start: Type = <Type>(a: 2, b: 3)
 yeah: i32 = <i32>start

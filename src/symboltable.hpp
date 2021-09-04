@@ -7,8 +7,8 @@
 enum SymType {
   Error, None, Unknown,
   Custom, Variant, Enum,
-  Func, Array, Void, 
-  Number, String, Boolean, Byte,
+  Func, Array, String,
+  Boolean, Byte,
   I16, I32, I64,
   S16, S32, S64,
   U16, U32, U64,
@@ -21,7 +21,7 @@ public:
   SymType sub_type = SymType::None; //used for enum amd for auto determined type
   std::string custom_type_name = "";
 
-  std::vector<SymbolType*>* param_types = {}; //will be used for arrays and variants also
+  std::vector<SymbolType*>* param_types = {}; //will be used for arrays, variants, function
   std::vector<SymbolType*>* return_types = {};
 
   bool assignable = false;
@@ -33,7 +33,7 @@ public:
 
 class CustomTypeEntry {
 public:
-  SymType type = SymType::Custom; //named auto types will have their type determined through here I believe
+  SymType type = SymType::Custom; //named auto types and enums will have their type determined through here I believe
   std::unordered_map<std::string, SymbolType*>* member_types = {};
 };
 
@@ -42,6 +42,7 @@ public:
   SymbolTable* parent_scope = {};
   std::vector<SymbolTable*>* sub_scopes = {};
 
+  std::string namespace_name = "";
   std::unordered_map<std::string, std::vector<SymbolType*>*>* current_scope = {};
   std::unordered_map<std::string, CustomTypeEntry*>* type_table = {};
 

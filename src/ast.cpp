@@ -253,6 +253,7 @@ std::string CastFuncDec::toString() {
 std::string EnumDec::toString() {
   std::string results = "(Enum: ";
   if (_id) results += "(Name: " + _id->toString() + ")";
+  if (_base_type) results += " " + _base_type->toString();
   if (_declist) {
     for (auto dec : *_declist) {
       results += " " + dec->toString();

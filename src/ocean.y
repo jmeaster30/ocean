@@ -44,7 +44,7 @@ extern Program* root;
 }
 
 %token ENDOFFILE 0 "end of file"
-%token <token> TYPE AUTO VOID FUNC OP CAST
+%token <token> TYPE AUTO FUNC OP CAST
 %token <token> ENUM PACK VARIANT
 %token <token> STOP BREAK CONTINUE IF ELSE WHILE FOR IN BY
 %token <token> SWITCH RANGE DEFAULT
@@ -171,7 +171,7 @@ DEC : IDENTIFIER COLON VARTYPE { $$ = new VarDec($1, $3, nullptr); }
     | CAST ANGLE_OPEN VARTYPE ANGLE_CLOSED COLON PAREN_OPEN PARAMS PAREN_CLOSED ARROW PAREN_OPEN PARAMS PAREN_CLOSED CMPD {
           $$ = new CastFuncDec($3, $7, $11, $13); //this is a little goofy but I can't think of a better way to do it cause we want to maintain the ability to search up the type
     }
-    | ENUM IDENTIFIER FENUM { $$ = new EnumDec($1, $2, $3); }
+    | ENUM IDENTIFIER VARTYPE FENUM { $$ = new EnumDec($1, $2, $3, $4); }
     | PACK IDENTIFIER FDEC { $$ = new PackDec($1, $2, $3); }
     | VARIANT IDENTIFIER FDEC { $$ = new VariantDec($1, $2, $3); }
     ;
@@ -179,8 +179,8 @@ DEC : IDENTIFIER COLON VARTYPE { $$ = new VarDec($1, $3, nullptr); }
 FDEC : BRACE_OPEN DEC_LIST BRACE_CLOSED { $$ = $2; }
      ;
 
-DEC_LIST : DEC_LIST DEC SEMICOLON { $$ = $1; $$->push_back($2); }
-         | DEC_LIST DEC NEWLINE { $$ = $1; $$->push_back($2); }
+DEC_LIST : DEC_LIST COMMA DEC { $$ = $1; $$->push_back($3); }
+         | DEC_LIST NEWLINE DEC { $$ = $1; $$->push_back($3); }
          | DEC_LIST NEWLINE { $$ = $1; }
          | { $$ = new std::vector<Declaration*>(); }
          ;
@@ -188,10 +188,10 @@ DEC_LIST : DEC_LIST DEC SEMICOLON { $$ = $1; $$->push_back($2); }
 FENUM : BRACE_OPEN ENUM_LIST BRACE_CLOSED { $$ = $2; }
       ;
 
-ENUM_LIST : ENUM_LIST IDENTIFIER COLON EXPR SEMICOLON { $$ = $1; $$->push_back(new VarDec($2, nullptr, $4)); }
-          | ENUM_LIST IDENTIFIER COLON EXPR NEWLINE { $$ = $1; $$->push_back(new VarDec($2, nullptr, $4)); }
-          | ENUM_LIST IDENTIFIER SEMICOLON { $$ = $1; $$->push_back(new VarDec($2, nullptr, nullptr)); }
-          | ENUM_LIST IDENTIFIER NEWLINE { $$ = $1; $$->push_back(new VarDec($2, nullptr, nullptr)); }
+ENUM_LIST : ENUM_LIST COMMA IDENTIFIER COLON EXPR { $$ = $1; $$->push_back(new VarDec($3, nullptr, $5)); }
+          | ENUM_LIST NEWLINE IDENTIFIER COLON EXPR { $$ = $1; $$->push_back(new VarDec($3, nullptr, $5)); }
+          | ENUM_LIST COMMA IDENTIFIER { $$ = $1; $$->push_back(new VarDec($3, nullptr, nullptr)); }
+          | ENUM_LIST NEWLINE IDENTIFIER { $$ = $1; $$->push_back(new VarDec($3, nullptr, nullptr)); }
           | ENUM_LIST NEWLINE { $$ = $1; }
           | { $$ = new std::vector<Declaration*>(); }
           ;
