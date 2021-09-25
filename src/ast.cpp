@@ -2,8 +2,48 @@
 
 #include <iostream>
 
-/** Symbol Table Functions **/
+/** VarType toCastString **/
+std::string BaseType::toCastString() {
+  return std::string(_type->lexeme.string_lex) + (_auto_name ? "-" + std::string(_auto_name->lexeme.string_lex) : "");
+}
 
+std::string CustomType::toCastString() {
+  return _type->toCastString();
+}
+
+std::string FuncType::toCastString() {
+  std::string params = "(";
+  for(int i = 0; i < _param_types->size(); i++) {
+    params += (*_param_types)[i]->toCastString();
+    if (i != _param_types->size() - 1)
+      params += "+";
+  }
+  params += ")";
+  std::string returns = "(";
+  for(int i = 0; i < _return_types->size(); i++) {
+    returns += (*_return_types)[i]->toCastString();
+    if (i != _return_types->size() - 1)
+      returns += "+";
+  }
+  returns += ")";
+  return "func" + params + returns;
+}
+
+std::string ConstType::toCastString() {
+  return _type->toCastString() + "-c";
+}
+
+std::string PointerType::toCastString() {
+  return _type->toCastString() + "-p";
+}
+
+std::string ArrayType::toCastString() {
+  return _type->toCastString() + "-a";
+}
+
+std::string Variable::toCastString() {
+  return std::string(_name->lexeme.string_lex) + ":" + _var->toCastString();
+}
 
 /** NODE TYPE FUNCTIONS **/
 

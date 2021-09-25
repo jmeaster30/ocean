@@ -2,12 +2,13 @@
 
 #include <string>
 #include <iostream>
+#include "type_helper.hpp"
 
 union TokenLexeme
 {
   bool bool_lex;
-  int int_lex;
-  float float_lex;
+  u_64 int_lex;
+  f_128 float_lex;
   char* string_lex;
 };
 
@@ -105,14 +106,14 @@ public:
 		colnum = cnum;
 	};
 
-  Token(TokenType t, int l, int lnum, int cnum) {
+  Token(TokenType t, u_64 l, int lnum, int cnum) {
 		type = t;
 		lexeme.int_lex = l;
 		linenum = lnum;
 		colnum = cnum;
 	};
 
-  Token(TokenType t, float l, int lnum, int cnum) {
+  Token(TokenType t, f_128 l, int lnum, int cnum) {
 		type = t;
 		lexeme.float_lex = l;
 		linenum = lnum;

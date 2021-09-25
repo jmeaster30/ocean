@@ -34,7 +34,15 @@ int main(int argc, char** argv) {
   }
 
   debug("This file contained valid ocean source code");
-  //program* main_root = root; //save the main root node of the ast so it doesn't get messed up by parsing other files
-  
+  Program* main_root = root; //save the main root node of the ast so it doesn't get messed up by parsing other files
+  SymbolTable* table = new SymbolTable(nullptr, "global");
+  auto final_type = main_root->buildSymbolTable(table);
+
+  if(final_type->type == SymType::Error) {
+    std::cout << "There were some errors from the type checking phase :(" << std::endl;
+  } else {
+    std::cout << "There were no type checking errors!" << std::endl;
+  }
+
   return 0;
 }

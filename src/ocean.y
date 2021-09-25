@@ -172,7 +172,7 @@ DEC : IDENTIFIER COLON VARTYPE { $$ = new VarDec($1, $3, nullptr); }
           $$ = new CastFuncDec($3, $7, $11, $13); //this is a little goofy but I can't think of a better way to do it cause we want to maintain the ability to search up the type
     }
     | ENUM IDENTIFIER VARTYPE FENUM { $$ = new EnumDec($1, $2, $3, $4); }
-    | PACK IDENTIFIER FDEC { $$ = new PackDec($1, $2, $3); }
+    | PACK IDENTIFIER VARTYPE FDEC { $$ = new PackDec($1, $2, $3, $4); }
     | VARIANT IDENTIFIER FDEC { $$ = new VariantDec($1, $2, $3); }
     ;
 

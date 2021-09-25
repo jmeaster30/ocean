@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "type_helper.hpp"
 #include "helper.hpp"
 
 #include <list>
@@ -40,7 +41,7 @@ int ProcessToken(const char* name, int token_parser_id, TokenType token_type, in
 "i16"|"i32"|"i64"  { return ProcessToken("Type", TYPE, TokenType::Type, 0); }
 "s16"|"s32"|"s64"  { return ProcessToken("Type", TYPE, TokenType::Type, 0); }
 "u16"|"u32"|"u64"  { return ProcessToken("Type", TYPE, TokenType::Type, 0); }
-"f16"|"f32"|"f64"  { return ProcessToken("Type", TYPE, TokenType::Type, 0); }
+"f32"|"f64"|"f128" { return ProcessToken("Type", TYPE, TokenType::Type, 0); }
 
 "auto"     { return ProcessToken("auto",   AUTO, TokenType::Auto, 0); }
 "func"     { return ProcessToken("func",   FUNC, TokenType::Func, 0); }
@@ -116,9 +117,9 @@ int ProcessToken(const char* name, int token_parser_id, TokenType token_type, in
 
   /******** VALUES **********/
 "true"|"false"         { return ProcessToken("BOOLVAL", BOOLVAL, TokenType::Boolean, 3); }
-"0x"([0-9A-F]{2})+     { return ProcessToken("HEXVAL",  HEXVAL,  TokenType::HexCode, 4); }
-\-?[0-9]+              { return ProcessToken("INTVAL",  INTVAL,  TokenType::Integer, 1); }
-\-?([0-9]*\.[0-9]+|[0-9]+\.[0-9]+)([eE][-+]?[0-9]+)? { return ProcessToken("FLOATVAL", FLOATVAL, TokenType::Float, 2); }
+"0x"[0-9A-F]+          { return ProcessToken("HEXVAL",  HEXVAL,  TokenType::HexCode, 4); }
+[0-9]+                 { return ProcessToken("INTVAL",  INTVAL,  TokenType::Integer, 1); }
+([0-9]*\.[0-9]+|[0-9]+\.[0-9]+) { return ProcessToken("FLOATVAL", FLOATVAL, TokenType::Float, 2); }
 
   /*add escaped quotes*/
 \$?(\"[^\"]*\"|\'[^\']*\')   { return ProcessToken("STRINGVAL",  STRINGVAL,  TokenType::String, 0); }
@@ -168,9 +169,9 @@ int ProcessToken(const char* name, int token_parser_id, TokenType token_type, in
   if(value_type == 0){
     token = new Token(token_type, strdup(yytext), line_number, column_number);
   }else if(value_type == 1){
-    token = new Token(token_type, atoi(yytext), line_number, column_number);
+    token = new Token(token_type, (u_64)strtoull(yytext, nullptr, 10), line_number, column_number);
   }else if(value_type == 2){
-    token = new Token(token_type, (float)atof(yytext), line_number, column_number);
+    token = new Token(token_type, (f_128)strtold(yytext, nullptr), line_number, column_number);
   }else if(value_type == 3){
     token = new Token(token_type, strcmp(yytext, "true") == 0, line_number, column_number);
   }else if(value_type == 4) { //hex value

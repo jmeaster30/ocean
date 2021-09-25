@@ -1,15 +1,11 @@
-pack Type {
-  a: i32
-  b: i32
-
-  cast<i32>:(this: Type) -> (result: i32) {
-    result = this.a + this.b
+fibonacci: (i: i32) -> (result: i32) {
+  if i == 1 || i == 0 {
+    result = 1
+  } else {
+    result = fibonacci(i - 1) + fibonacci(i - 2)
   }
 }
 
-enum MyEnum i32 {
-  a, id
+main: () -> (ret: i32) {
+  done: i32 = fibonacci(5)
 }
-
-start: Type = <Type>(a: 2, b: 3)
-yeah: i32 = <i32>start

@@ -9,6 +9,7 @@ set(SOURCES
   main.cpp
   ast.cpp
   symboltable.cpp
+  typechecker.cpp
 )
 
 #find packages
