@@ -45,6 +45,91 @@ std::string Variable::toCastString() {
   return std::string(_name->lexeme.string_lex) + ":" + _var->toCastString();
 }
 
+/** Create Error List **/
+void BaseType::getErrors(std::vector<std::string>* error_list) {
+
+}
+
+void CustomType::getErrors(std::vector<std::string>* error_list) {}
+
+void FuncType::getErrors(std::vector<std::string>* error_list) {}
+
+void ConstType::getErrors(std::vector<std::string>* error_list) {}
+
+void PointerType::getErrors(std::vector<std::string>* error_list) {}
+
+void ArrayType::getErrors(std::vector<std::string>* error_list) {}
+
+void Parameter::getErrors(std::vector<std::string>* error_list) {}
+
+void Program::getErrors(std::vector<std::string>* error_list) {}
+
+void Macro::getErrors(std::vector<std::string>* error_list) {}
+
+void CompoundStmt::getErrors(std::vector<std::string>* error_list) {}
+
+void VarDec::getErrors(std::vector<std::string>* error_list) {}
+
+void FuncDec::getErrors(std::vector<std::string>* error_list) {}
+
+void OpFuncDec::getErrors(std::vector<std::string>* error_list) {}
+
+void CastFuncDec::getErrors(std::vector<std::string>* error_list) {}
+
+void EnumDec::getErrors(std::vector<std::string>* error_list) {}
+
+void PackDec::getErrors(std::vector<std::string>* error_list) {}
+
+void VariantDec::getErrors(std::vector<std::string>* error_list) {}
+
+void IfStmt::getErrors(std::vector<std::string>* error_list) {}
+
+void SwitchCase::getErrors(std::vector<std::string>* error_list) {}
+
+void SwitchStmt::getErrors(std::vector<std::string>* error_list) {}
+
+void WhileStmt::getErrors(std::vector<std::string>* error_list) {}
+
+void ForStmt::getErrors(std::vector<std::string>* error_list) {}
+
+void ExprStmt::getErrors(std::vector<std::string>* error_list) {}
+
+void StopStmt::getErrors(std::vector<std::string>* error_list) {}
+
+void BreakStmt::getErrors(std::vector<std::string>* error_list) {}
+
+void ContinueStmt::getErrors(std::vector<std::string>* error_list) {}
+
+void Variable::getErrors(std::vector<std::string>* error_list) {}
+
+void MemberAccess::getErrors(std::vector<std::string>* error_list) {}
+
+void ArrayAccess::getErrors(std::vector<std::string>* error_list) {}
+
+void Call::getErrors(std::vector<std::string>* error_list) {}
+
+void Assignment::getErrors(std::vector<std::string>* error_list) {}
+
+void BinaryExpr::getErrors(std::vector<std::string>* error_list) {}
+
+void UnaryExpr::getErrors(std::vector<std::string>* error_list) {}
+
+void Cast::getErrors(std::vector<std::string>* error_list) {}
+
+void IntValue::getErrors(std::vector<std::string>* error_list) {}
+
+void HexValue::getErrors(std::vector<std::string>* error_list) {}
+
+void BoolValue::getErrors(std::vector<std::string>* error_list) {}
+
+void FloatValue::getErrors(std::vector<std::string>* error_list) {}
+
+void StringValue::getErrors(std::vector<std::string>* error_list) {}
+
+void ArrayValue::getErrors(std::vector<std::string>* error_list) {}
+
+void ObjectValue::getErrors(std::vector<std::string>* error_list) {}
+
 /** NODE TYPE FUNCTIONS **/
 
 std::string BaseType::getNodeType() { return "BaseType"; }
@@ -70,6 +155,8 @@ std::string CompoundStmt::getNodeType() { return "Compound"; }
 std::string VarDec::getNodeType() { return "VarDec"; }
 
 std::string FuncDec::getNodeType() { return "FuncDec"; }
+
+std::string OpFuncDec::getNodeType() { return "OpFuncDec"; }
 
 std::string CastFuncDec::getNodeType() { return "CastFuncDec"; }
 
@@ -133,7 +220,7 @@ std::string ObjectValue::getNodeType() { return "Object"; }
 //!     (but we shouldn't be converting the entire ast to a string very often if even more than once)
 //! However... I am not at the point of optimizing code and it seems like something I can do later
 //! This comment recognizing the issue will hold me accountable and I accept that my future self will
-//!s  be ashamed with me
+//! be ashamed with me
 
 std::string BaseType::toString() {
   std::string results = "(BaseType: ";
@@ -249,6 +336,28 @@ std::string VarDec::toString() {
 std::string FuncDec::toString() {
   std::string results = "(FuncDec: ";
   if (_id) results += "(Name: " + _id->toString() + ")";
+  if (_params) {
+    results += " (Params:";
+    for (auto param : *_params) {
+      results += " " + param->toString();
+    }
+    results += ")";
+  }
+  if (_returns) {
+    results += " (Returns:";
+    for (auto ret : *_returns) {
+      results += " " + ret->toString();
+    }
+    results += ")";
+  }
+  if (_body) results += " " + _body->toString();
+  results += ")";
+  return results;
+}
+
+std::string OpFuncDec::toString() {
+  std::string results = "(OpFuncDec: ";
+  if (_op) results += "(Op: " + _op->toString() + ")";
   if (_params) {
     results += " (Params:";
     for (auto param : *_params) {

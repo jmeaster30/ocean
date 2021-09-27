@@ -20,12 +20,14 @@ enum class SymType {
 };
 
 enum class ErrorType {
-  None, Redeclaration, NotFound, SizeParameterNotNumber,
+  None, UhOh, Redeclaration, NotFound, SizeParameterNotNumber,
   LhsRhsTypeMismatch, CastFuncMultipleParams, CastFuncMultipleReturns,
   CastFuncReturnTypeMismatch, UnexpectedType, RuntimeCaseCondition,
   NoCastExists, UnknownVariable, NoMemberVariables, TypeDoesNotHaveMember,
-  NotIterableType,
+  NotIterableType, DereferenceNonPointer, OpFuncParameterSizeMismatch
 };
+
+std::string ErrorString(ErrorType type);
 
 class Symbol { //these are variables
 public:

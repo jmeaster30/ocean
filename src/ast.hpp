@@ -13,6 +13,7 @@ public:
   virtual std::string getNodeType() = 0;
   virtual std::string toString() = 0;
   virtual Symbol* buildSymbolTable(SymbolTable* table) = 0;
+  virtual void getErrors(std::vector<std::string>* error_list) = 0;
 };
 
 class Statement : public AstNode {
@@ -20,6 +21,7 @@ public:
   virtual std::string getNodeType() = 0;
   virtual std::string toString() = 0;
   virtual Symbol* buildSymbolTable(SymbolTable* table) = 0;
+  virtual void getErrors(std::vector<std::string>* error_list) = 0;
 };
 
 class Expression : public AstNode {
@@ -27,6 +29,7 @@ public:
   virtual std::string getNodeType() = 0;
   virtual std::string toString() = 0;
   virtual Symbol* buildSymbolTable(SymbolTable* table) = 0;
+  virtual void getErrors(std::vector<std::string>* error_list) = 0;
 };
 
 class Var : public Expression {
@@ -34,6 +37,7 @@ public:
   virtual std::string getNodeType() = 0;
   virtual std::string toString() = 0;
   virtual Symbol* buildSymbolTable(SymbolTable* table) = 0;
+  virtual void getErrors(std::vector<std::string>* error_list) = 0;
 };
 
 class Variable : public Var {
@@ -48,6 +52,7 @@ public:
   std::string toString();
   Symbol* buildSymbolTable(SymbolTable* table);
   std::string toCastString();
+  void getErrors(std::vector<std::string>* error_list);
 };
 
 class VarType : public AstNode {
@@ -56,6 +61,7 @@ public:
   virtual std::string toString() = 0;
   virtual Symbol* buildSymbolTable(SymbolTable* table) = 0;
   virtual std::string toCastString() = 0;
+  virtual void getErrors(std::vector<std::string>* error_list) = 0;
 };
 
 class BaseType : public VarType {
@@ -70,6 +76,7 @@ public:
   std::string toString();
   Symbol* buildSymbolTable(SymbolTable* table);
   std::string toCastString();
+  void getErrors(std::vector<std::string>* error_list);
 };
 
 class CustomType : public VarType {
@@ -82,6 +89,7 @@ public:
   std::string toString();
   Symbol* buildSymbolTable(SymbolTable* table);
   std::string toCastString();
+  void getErrors(std::vector<std::string>* error_list);
 };
 
 class FuncType : public VarType {
@@ -97,6 +105,7 @@ public:
   std::string toString();
   Symbol* buildSymbolTable(SymbolTable* table);
   std::string toCastString();
+  void getErrors(std::vector<std::string>* error_list);
 };
 
 class ConstType : public VarType {
@@ -109,6 +118,7 @@ public:
   std::string toString();
   Symbol* buildSymbolTable(SymbolTable* table);
   std::string toCastString();
+  void getErrors(std::vector<std::string>* error_list);
 };
 
 class PointerType : public VarType {
@@ -121,6 +131,7 @@ public:
   std::string toString();
   Symbol* buildSymbolTable(SymbolTable* table);
   std::string toCastString();
+  void getErrors(std::vector<std::string>* error_list);
 };
 
 class ArrayType : public VarType {
@@ -135,6 +146,7 @@ public:
   std::string toString();
   Symbol* buildSymbolTable(SymbolTable* table);
   std::string toCastString();
+  void getErrors(std::vector<std::string>* error_list);
 };
 
 class Parameter : public AstNode {
@@ -148,6 +160,7 @@ public:
   std::string getNodeType();
   std::string toString();
   Symbol* buildSymbolTable(SymbolTable* table);
+  void getErrors(std::vector<std::string>* error_list);
 };
 
 class Program : public AstNode {
@@ -159,6 +172,7 @@ public:
   std::string getNodeType();
   std::string toString();
   Symbol* buildSymbolTable(SymbolTable* table);
+  void getErrors(std::vector<std::string>* error_list);
 };
 
 class Macro : public Statement {
@@ -170,6 +184,7 @@ public:
   std::string getNodeType();
   std::string toString();
   Symbol* buildSymbolTable(SymbolTable* table);
+  void getErrors(std::vector<std::string>* error_list);
 };
 
 class CompoundStmt : public Statement {
@@ -181,6 +196,7 @@ public:
   std::string getNodeType();
   std::string toString();
   Symbol* buildSymbolTable(SymbolTable* table);
+  void getErrors(std::vector<std::string>* error_list);
 };
 
 class Declaration : public Statement {
@@ -189,6 +205,7 @@ public:
   virtual std::string toString() = 0;
   virtual Symbol* buildSymbolTable(SymbolTable* table) = 0;
   virtual void buildVTable(VTable*, SymbolTable*) = 0;
+  virtual void getErrors(std::vector<std::string>* error_list) = 0;
 };
 
 class VarDec : public Declaration {
@@ -204,6 +221,7 @@ public:
   std::string toString();
   Symbol* buildSymbolTable(SymbolTable* table);
   void buildVTable(VTable*, SymbolTable*);
+  void getErrors(std::vector<std::string>* error_list);
 };
 
 class FuncDec : public Declaration {
@@ -220,6 +238,7 @@ public:
   std::string toString();
   Symbol* buildSymbolTable(SymbolTable* table);
   void buildVTable(VTable*, SymbolTable*);
+  void getErrors(std::vector<std::string>* error_list);
 };
 
 class CastFuncDec : public Declaration {
@@ -236,6 +255,24 @@ public:
   std::string toString();
   Symbol* buildSymbolTable(SymbolTable* table);
   void buildVTable(VTable*, SymbolTable*);
+  void getErrors(std::vector<std::string>* error_list);
+};
+
+class OpFuncDec : public Declaration {
+public:
+  Token* _op;
+  std::vector<Parameter*>* _params;
+  std::vector<Parameter*>* _returns;
+  CompoundStmt* _body;
+
+  OpFuncDec(Token* op, std::vector<Parameter*>* params, std::vector<Parameter*>* returns, CompoundStmt* body) :
+    _op(op), _params(params), _returns(returns), _body(body) {}
+
+  std::string getNodeType();
+  std::string toString();
+  Symbol* buildSymbolTable(SymbolTable* table);
+  void buildVTable(VTable*, SymbolTable*);
+  void getErrors(std::vector<std::string>* error_list);
 };
 
 class EnumDec : public Declaration {
@@ -252,6 +289,7 @@ public:
   std::string toString();
   Symbol* buildSymbolTable(SymbolTable* table);
   void buildVTable(VTable*, SymbolTable*);
+  void getErrors(std::vector<std::string>* error_list);
 };
 
 class PackDec : public Declaration {
@@ -268,6 +306,7 @@ public:
   std::string toString();
   Symbol* buildSymbolTable(SymbolTable* table);
   void buildVTable(VTable*, SymbolTable*);
+  void getErrors(std::vector<std::string>* error_list);
 };
 
 class VariantDec : public Declaration {
@@ -283,6 +322,7 @@ public:
   std::string toString();
   Symbol* buildSymbolTable(SymbolTable* table);
   void buildVTable(VTable*, SymbolTable*);
+  void getErrors(std::vector<std::string>* error_list);
 };
 
 class IfStmt : public Statement {
@@ -298,6 +338,7 @@ public:
   std::string getNodeType();
   std::string toString();
   Symbol* buildSymbolTable(SymbolTable* table);
+  void getErrors(std::vector<std::string>* error_list);
 };
 
 class SwitchCase : public AstNode {
@@ -311,6 +352,7 @@ public:
   std::string getNodeType();
   std::string toString();
   Symbol* buildSymbolTable(SymbolTable* table);
+  void getErrors(std::vector<std::string>* error_list);
 };
 
 class SwitchStmt : public Statement {
@@ -325,6 +367,7 @@ public:
   std::string getNodeType();
   std::string toString();
   Symbol* buildSymbolTable(SymbolTable* table);
+  void getErrors(std::vector<std::string>* error_list);
 };
 
 class WhileStmt : public Statement {
@@ -339,6 +382,7 @@ public:
   std::string getNodeType();
   std::string toString();
   Symbol* buildSymbolTable(SymbolTable* table);
+  void getErrors(std::vector<std::string>* error_list);
 };
 
 class ForStmt : public Statement {
@@ -355,6 +399,7 @@ public:
   std::string getNodeType();
   std::string toString();
   Symbol* buildSymbolTable(SymbolTable* table);
+  void getErrors(std::vector<std::string>* error_list);
 };
 
 class ExprStmt : public Statement {
@@ -366,6 +411,7 @@ public:
   std::string getNodeType();
   std::string toString();
   Symbol* buildSymbolTable(SymbolTable* table);
+  void getErrors(std::vector<std::string>* error_list);
 };
 
 class StopStmt : public Statement {
@@ -376,6 +422,7 @@ public:
   std::string getNodeType();
   std::string toString();
   Symbol* buildSymbolTable(SymbolTable* table);
+  void getErrors(std::vector<std::string>* error_list);
 };
 
 class BreakStmt : public Statement {
@@ -386,6 +433,7 @@ public:
   std::string getNodeType();
   std::string toString();
   Symbol* buildSymbolTable(SymbolTable* table);
+  void getErrors(std::vector<std::string>* error_list);
 };
 
 class ContinueStmt : public Statement {
@@ -396,6 +444,7 @@ public:
   std::string getNodeType();
   std::string toString();
   Symbol* buildSymbolTable(SymbolTable* table);
+  void getErrors(std::vector<std::string>* error_list);
 };
 
 class MemberAccess : public Var {
@@ -408,6 +457,7 @@ public:
   std::string getNodeType();
   std::string toString();
   Symbol* buildSymbolTable(SymbolTable* table);
+  void getErrors(std::vector<std::string>* error_list);
 };
 
 class ArrayAccess : public Var {
@@ -420,6 +470,7 @@ public:
   std::string getNodeType();
   std::string toString();
   Symbol* buildSymbolTable(SymbolTable* table);
+  void getErrors(std::vector<std::string>* error_list);
 };
 
 class Call : public Var {
@@ -433,6 +484,7 @@ public:
   std::string getNodeType();
   std::string toString();
   Symbol* buildSymbolTable(SymbolTable* table);
+  void getErrors(std::vector<std::string>* error_list);
 };
 
 class Assignment : public Expression {
@@ -447,6 +499,7 @@ public:
   std::string getNodeType();
   std::string toString();
   Symbol* buildSymbolTable(SymbolTable* table);
+  void getErrors(std::vector<std::string>* error_list);
 };
 
 class BinaryExpr : public Expression {
@@ -461,6 +514,7 @@ public:
   std::string getNodeType();
   std::string toString();
   Symbol* buildSymbolTable(SymbolTable* table);
+  void getErrors(std::vector<std::string>* error_list);
 };
 
 class UnaryExpr : public Expression {
@@ -473,6 +527,7 @@ public:
   std::string getNodeType();
   std::string toString();
   Symbol* buildSymbolTable(SymbolTable* table);
+  void getErrors(std::vector<std::string>* error_list);
 };
 
 class Cast : public Expression {
@@ -486,6 +541,7 @@ public:
   std::string getNodeType();
   std::string toString();
   Symbol* buildSymbolTable(SymbolTable* table);
+  void getErrors(std::vector<std::string>* error_list);
 };
 
 class IntValue : public Expression {
@@ -497,6 +553,7 @@ public:
   std::string getNodeType();
   std::string toString();
   Symbol* buildSymbolTable(SymbolTable* table);
+  void getErrors(std::vector<std::string>* error_list);
 };
 
 class HexValue : public Expression {
@@ -508,6 +565,7 @@ public:
   std::string getNodeType();
   std::string toString();
   Symbol* buildSymbolTable(SymbolTable* table);
+  void getErrors(std::vector<std::string>* error_list);
 };
 
 class BoolValue : public Expression {
@@ -519,6 +577,7 @@ public:
   std::string getNodeType();
   std::string toString();
   Symbol* buildSymbolTable(SymbolTable* table);
+  void getErrors(std::vector<std::string>* error_list);
 };
 
 class FloatValue : public Expression {
@@ -530,6 +589,7 @@ public:
   std::string getNodeType();
   std::string toString();
   Symbol* buildSymbolTable(SymbolTable* table);
+  void getErrors(std::vector<std::string>* error_list);
 };
 
 class StringValue : public Expression {
@@ -541,6 +601,7 @@ public:
   std::string getNodeType();
   std::string toString();
   Symbol* buildSymbolTable(SymbolTable* table);
+  void getErrors(std::vector<std::string>* error_list);
 };
 
 class ArrayValue : public Expression {
@@ -552,6 +613,7 @@ public:
   std::string getNodeType();
   std::string toString();
   Symbol* buildSymbolTable(SymbolTable* table);
+  void getErrors(std::vector<std::string>* error_list);
 };
 
 class ObjectValue : public Expression {
@@ -563,4 +625,5 @@ public:
   std::string getNodeType();
   std::string toString();
   Symbol* buildSymbolTable(SymbolTable* table);
+  void getErrors(std::vector<std::string>* error_list);
 };

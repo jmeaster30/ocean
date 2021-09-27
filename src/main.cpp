@@ -39,7 +39,12 @@ int main(int argc, char** argv) {
   auto final_type = main_root->buildSymbolTable(table);
 
   if(final_type->type == SymType::Error) {
-    std::cout << "There were some errors from the type checking phase :(" << std::endl;
+    auto error_list = new std::vector<std::string>();
+    main_root->getErrors(error_list);
+    std::cout << "There were " << error_list->size() << " errors :(" << std::endl; 
+    for (auto error : *error_list) {
+      std::cout << error << std::endl;
+    }
   } else {
     std::cout << "There were no type checking errors!" << std::endl;
   }

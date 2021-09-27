@@ -1,4 +1,5 @@
 #include "ast.hpp"
+#include "helper.hpp"
 #include <assert.h>
 
 SymType getSymTypeFromLexeme(std::string lexeme) {
@@ -33,8 +34,12 @@ void EnumDec::buildVTable(VTable* vtable, SymbolTable* table) {
 
 }
 
-void CastFuncDec::buildVTable(VTable* vtable, SymbolTable* table) {
+void OpFuncDec::buildVTable(VTable* vtable, SymbolTable* table) {
+  //this should also just add the operator function to the table and not the vtable
+}
 
+void CastFuncDec::buildVTable(VTable* vtable, SymbolTable* table) {
+  //this should actually just add the cast function to the table and not the vtable
 }
 
 void FuncDec::buildVTable(VTable* vtable, SymbolTable* table) {
@@ -53,11 +58,19 @@ Symbol* BaseType::buildSymbolTable(SymbolTable* table) {
   if (_type->type == TokenType::Auto && _auto_name != nullptr) {
     TypeEntry* autoType = new TypeEntry(_auto_name->lexeme.string_lex);
     autoType->type = SymType::Unknown;
-    table->addType(_auto_name->lexeme.string_lex, autoType);
+    auto t_result = table->addType(_auto_name->lexeme.string_lex, autoType);
+    if (t_result != nullptr) {
+      auto temp = symbol;
+      symbol = Symbol::createError(ErrorType::Redeclaration, "This auto type name is already another type or another anonymous type in this scope.");
+      symbol->node = this;
+      symbol->sub_type = temp;
+      return symbol;
+    }
 
     symbol->custom_type = autoType;
     symbol->custom_type_name = _auto_name->lexeme.string_lex;
   }
+  symbol->node = this;
   return symbol;
 }
 
@@ -66,13 +79,16 @@ Symbol* CustomType::buildSymbolTable(SymbolTable* table) {
   //TODO add namespacing here. maybe even allow you to pass a "Variable" type in here and do the namespacing in the symbol table functions
   auto found = table->getTypeEntry(_type->_name->lexeme.string_lex);
   if (found == nullptr) {
-    symbol->type = SymType::Error;
-    symbol->errorType = ErrorType::NotFound;
+    auto temp = Symbol::createError(ErrorType::NotFound, "Type not found");
+    temp->node = this;
+    symbol = temp;
+    return symbol;
   }
   symbol->type = found->type;
   symbol->sub_type = found->sub_type;
   symbol->custom_type = found;
   symbol->custom_type_name = found->name;
+  symbol->node = this;
   return symbol;
 }
 
@@ -90,25 +106,46 @@ Symbol* FuncType::buildSymbolTable(SymbolTable* table) {
   }
 
   symbol = Symbol::createFunction("", params, returns);
+  symbol->node = this;
   return symbol;
 }
 
 Symbol* ConstType::buildSymbolTable(SymbolTable* table) { 
   _type->buildSymbolTable(table);
+  if (_type->symbol->type == SymType::Error) {
+    symbol = Symbol::createError(ErrorType::None, "There is an error further down the tree.");
+    symbol->node = this;
+    return symbol;
+  }
+  
   symbol = _type->symbol;
   symbol->constant = true;
+  symbol->node = this;
   return symbol;
 }
 
 Symbol* PointerType::buildSymbolTable(SymbolTable* table) { 
   _type->buildSymbolTable(table);
+  if (_type->symbol->type == SymType::Error) {
+    symbol = Symbol::createError(ErrorType::None, "There is an error further down the tree.");
+    symbol->node = this;
+    return symbol;
+  }
+
   symbol = _type->symbol;
   symbol->pointer_redirection_level += 1;
+  symbol->node = this;
   return symbol;
 }
 
 Symbol* ArrayType::buildSymbolTable(SymbolTable* table) { 
   _type->buildSymbolTable(table);
+  if (_type->symbol->type == SymType::Error) {
+    symbol = Symbol::createError(ErrorType::None, "There is an error further down the tree.");
+    symbol->node = this;
+    return symbol;
+  }
+
   if (_array_length) _array_length->buildSymbolTable(table);
   if (_array_length && !_array_length->symbol->isNumber()) {
     symbol = Symbol::createError(ErrorType::SizeParameterNotNumber, "The size parameter of this array type is not an number.");
@@ -116,11 +153,17 @@ Symbol* ArrayType::buildSymbolTable(SymbolTable* table) {
   } else {
     symbol = Symbol::createArray("", _type->symbol);
   }
+  symbol->node = this;
   return symbol;
 }
 
 Symbol* Parameter::buildSymbolTable(SymbolTable* table) { 
   _type->buildSymbolTable(table);
+  if (_type->symbol->type == SymType::Error) {
+    symbol = Symbol::createError(ErrorType::None, "There is an error further down the tree.");
+    symbol->node = this;
+    return symbol;
+  }
   symbol = _type->symbol;
   symbol->name = _id->lexeme.string_lex;
   symbol->node = this;
@@ -128,11 +171,20 @@ Symbol* Parameter::buildSymbolTable(SymbolTable* table) {
 }
 
 Symbol* Program::buildSymbolTable(SymbolTable* table) {
+  Symbol* result = nullptr;
   for (auto stmt : *_stmts) {
-    stmt->buildSymbolTable(table);
+    auto s_result = stmt->buildSymbolTable(table);
+    if (s_result->type == SymType::Error && result == nullptr) {
+      result = Symbol::createError(ErrorType::None, "There is an error further down the tree");
+    }
   }
-  symbol = Symbol::createNone();
-  symbol->node = this;
+  if (result == nullptr) {
+    symbol = Symbol::createNone();
+    symbol->node = this;
+  } else {
+    symbol = result;
+    symbol->node = this;
+  }
   return symbol;
 }
 
@@ -152,11 +204,10 @@ Symbol* CompoundStmt::buildSymbolTable(SymbolTable* table) {
   }
   if (result == nullptr) {
     symbol = Symbol::createNone();
-    symbol->node = this;
   } else {
     symbol = result;
-    symbol->node = this;
   }
+  symbol->node = this;
   return symbol;
 }
 
@@ -165,7 +216,6 @@ Symbol* VarDec::buildSymbolTable(SymbolTable* table) {
   symbol = _type->symbol;
   symbol->assignable = true;
   symbol->name = _id->lexeme.string_lex;
-  symbol->node = this;
   auto result = table->addSymbol(_id->lexeme.string_lex, symbol);
   if (_expr) {
     _expr->buildSymbolTable(table); 
@@ -179,33 +229,34 @@ Symbol* VarDec::buildSymbolTable(SymbolTable* table) {
     symbol = Symbol::createError(ErrorType::Redeclaration, "This variable has already been declared");
     symbol->sub_type = result;
   }
+  symbol->node = this;
   return symbol;
 }
 
-Symbol* FuncDec::buildSymbolTable(SymbolTable* table) { 
+Symbol* FuncDec::buildSymbolTable(SymbolTable* table) {
+  auto child = table->createChildScope();
   auto params = new std::vector<Symbol*>();
   for (auto par : *_params) {
     par->buildSymbolTable(table);
     params->push_back(par->symbol);
+    child->addSymbol(par->symbol->name, par->symbol);
   }
 
   auto returns = new std::vector<Symbol*>();
   for (auto ret : *_returns) {
     ret->buildSymbolTable(table);
     returns->push_back(ret->symbol);
+    child->addSymbol(ret->symbol->name, ret->symbol);
   }
 
   symbol = Symbol::createFunction(_id->lexeme.string_lex, params, returns);
   symbol->node = this;
 
-  table->addSymbol(_id->lexeme.string_lex, symbol);
-  auto child = table->createChildScope();
-
-  for (auto par : *params) {
-    child->addSymbol(par->name, par);
-  }
-  for (auto ret : *returns) {
-    child->addSymbol(ret->name, ret);
+  auto func_sym = table->addSymbol(_id->lexeme.string_lex, symbol);
+  if (func_sym != nullptr) {
+    symbol = Symbol::createError(ErrorType::Redeclaration, "An operator function alrady exists for this operator and parameter types.");
+    symbol->node = this;
+    return symbol;
   }
 
   auto result = _body->buildSymbolTable(child);
@@ -219,11 +270,85 @@ Symbol* FuncDec::buildSymbolTable(SymbolTable* table) {
   return symbol;
 }
 
+Symbol* OpFuncDec::buildSymbolTable(SymbolTable* table) {
+  switch(_op->type) {
+    //one or two params
+    case TokenType::AddOp:
+      if (_params->size() < 1 || _params->size() > 2) {
+        symbol = Symbol::createError(ErrorType::OpFuncParameterSizeMismatch, "This operator function can only have one or two parameters.");
+      }
+      break;
+    //exactly one param
+    case TokenType::Not:
+    case TokenType::Question:
+    case TokenType::Tilde:
+      if (_params->size() != 1) {
+        symbol = Symbol::createError(ErrorType::OpFuncParameterSizeMismatch, "This operator function can only have one parameter.");
+      }
+      break;
+    //exactly two params
+    case TokenType::LogOp:
+    case TokenType::BitOp:
+    case TokenType::EqOp:
+    case TokenType::RelOp:
+    case TokenType::LeftAngle:
+    case TokenType::RightAngle:
+    case TokenType::Shift:
+    case TokenType::MultOp:
+    case TokenType::Range:
+      if (_params->size() != 2) {
+        symbol = Symbol::createError(ErrorType::OpFuncParameterSizeMismatch, "This operator function can only have two parameters.");
+      }
+      break;
+    default:
+      break;
+  }
+  if (symbol != nullptr) {
+    symbol->node = this;
+    return symbol;
+  }
+
+  auto child = table->createChildScope();
+
+  auto params = new std::vector<Symbol*>();
+  for(auto p : *_params) {
+    p->buildSymbolTable(table);
+    params->push_back(p->symbol);
+    child->addSymbol(p->symbol->name, p->symbol);
+  }
+
+  auto returns = new std::vector<Symbol*>();
+  for(auto r : *_returns) {
+    r->buildSymbolTable(table);
+    returns->push_back(r->symbol);
+    child->addSymbol(r->symbol->name, r->symbol);
+  }
+
+  symbol = Symbol::createFunction(_op->lexeme.string_lex, params, returns);
+  symbol->node = this;
+
+  auto func_sym = table->addSymbol(_op->lexeme.string_lex, symbol);
+  if (func_sym != nullptr) {
+    symbol = Symbol::createError(ErrorType::Redeclaration, "An operator function alrady exists for this operator and parameter types.");
+    symbol->node = this;
+    return symbol;
+  }
+
+  auto result = _body->buildSymbolTable(child);
+  if (result->type == SymType::Error) {
+    auto newError = Symbol::createError(ErrorType::None, "There was an error in the body of this function.");
+    newError->sub_type = symbol;
+    symbol = newError;
+    symbol->node = this;
+  }
+  return symbol;
+}
+
 Symbol* CastFuncDec::buildSymbolTable(SymbolTable* table) { 
   if (_params->size() != 1) {
     symbol = Symbol::createError(ErrorType::CastFuncMultipleParams, "A cast function can only have a single parameter.");
     symbol->node = this;
-    return symbol; //maybe don't return here
+    return symbol;
   }
 
   auto params = new std::vector<Symbol*>();
@@ -234,7 +359,7 @@ Symbol* CastFuncDec::buildSymbolTable(SymbolTable* table) {
   if (_returns->size() != 1) {
     symbol = Symbol::createError(ErrorType::CastFuncMultipleReturns, "A cast function can only have a single return.");
     symbol->node = this;
-    return symbol; //maybe don't return here
+    return symbol;
   }
 
   auto returns = new std::vector<Symbol*>();
@@ -332,7 +457,6 @@ Symbol* IfStmt::buildSymbolTable(SymbolTable* table) {
   _cond->buildSymbolTable(table);
   if (_cond->symbol->type != SymType::Boolean) {
     symbol = Symbol::createError(ErrorType::UnexpectedType, "The condition for if statements must evaluate to a boolean.");
-    //we don't need to return here since the condition shouldn't cause any changes in the branch bodies
   }
 
   auto result = _body->buildSymbolTable(table);
@@ -552,13 +676,134 @@ Symbol* Assignment::buildSymbolTable(SymbolTable* table) {
 }
 
 Symbol* BinaryExpr::buildSymbolTable(SymbolTable* table) { 
-  symbol = Symbol::createNone();
+  auto left = _left->buildSymbolTable(table);
+  auto right = _right->buildSymbolTable(table);
+  if (left->type == SymType::Error || right->type == SymType::Error) {
+    symbol = Symbol::createError(ErrorType::None, "There was an error furter down the tree.");
+    symbol->node = this;
+    return symbol;
+  }
+
+  switch(_op->type) {
+    case TokenType::EqOp:
+      if (Symbol::typeMatch(left, right)) {
+        symbol = Symbol::createBoolean();
+      } else {
+        symbol = Symbol::createError(ErrorType::UnexpectedType, "This operator does not have an implicit or explicit definition for the supplied types.");
+      }
+      break;
+    case TokenType::RelOp:
+    case TokenType::LeftAngle:
+    case TokenType::RightAngle:
+      if (left->isNumber() && right->isNumber()) {
+        symbol = Symbol::createBoolean();
+      } else {
+        symbol = Symbol::createError(ErrorType::UnexpectedType, "This operator does not have an implicit or explicit definition for the supplied types.");
+      }
+      break;
+    case TokenType::Shift:
+      if ((left->isNumber() || left->isBoolean() ||
+          (left->isArray() && left->sub_type->isNumber()) ||
+          (left->isArray() && left->sub_type->isBoolean())) &&
+          right->isNumber()) {
+        symbol = left->copy();
+      } else {
+        symbol = Symbol::createError(ErrorType::UnexpectedType, "This operator does not have an implicit or explicit definition for the supplied type.");
+      }
+      break;
+    case TokenType::LogOp:
+      if (left->isBoolean() && right->isBoolean()) {
+        symbol = Symbol::createBoolean();
+      } else {
+        symbol = Symbol::createError(ErrorType::UnexpectedType, "This operator does not have an implicit or explicit definition for the supplied type.");
+      }
+      break;
+    case TokenType::BitOp:
+      if (Symbol::typeMatch(left, right) &&
+          (left->isNumber() || left->isBoolean() ||
+          (left->isArray() && left->sub_type->isNumber()) ||
+          (left->isArray() && left->sub_type->isBoolean()))) {
+        symbol = left->copy();
+      } else {
+        symbol = Symbol::createError(ErrorType::UnexpectedType, "This operator does not have an implicit or explicit definition for the supplied type.");
+      }
+      break;
+    case TokenType::AddOp:
+      if (left->isNumber() && right->isNumber()) {
+        symbol = left->copy();
+      } else {
+        symbol = Symbol::createError(ErrorType::UnexpectedType, "This operator does not have an implicit or explicit definition for the supplied type.");
+      }
+      break;
+    case TokenType::MultOp:
+      if (left->isNumber() && right->isNumber()) {
+        symbol = left->copy();
+      } else {
+        symbol = Symbol::createError(ErrorType::UnexpectedType, "This operator does not have an implicit or explicit definition for the supplied type.");
+      }
+      break;
+    case TokenType::Range:
+      if (left->isNumber() && right->isNumber()) {
+        symbol = Symbol::createArray("", left->copy());
+      } else {
+        symbol = Symbol::createError(ErrorType::UnexpectedType, "This operator does not have an implicit or explicit definition for the supplied type.");
+      }
+      break;
+    default:
+      symbol = Symbol::createError(ErrorType::UhOh, "We should not have gotten this error. Unknown binary expression operator!!!!");
+      break;
+  }
+
   symbol->node = this;
   return symbol;
 }
 
 Symbol* UnaryExpr::buildSymbolTable(SymbolTable* table) {
-  symbol = Symbol::createNone();
+  auto result = _expr->buildSymbolTable(table);
+  if (result->type == SymType::Error) {
+    symbol = Symbol::createError(ErrorType::None, "There was an error further down the tree.");
+    symbol->node = this;
+    return symbol;
+  }
+
+  //TODO make this look up any operator overloaded functions
+  switch (_op->type) {
+    case TokenType::Not:
+      if (result->isBoolean()) {
+        symbol = result->copy();
+      } else {
+        symbol = Symbol::createError(ErrorType::UnexpectedType, "This operator does not have an implicit or explicit definition for the supplied type.");
+      }
+      break;
+    case TokenType::AddOp:
+      if (result->isNumber()) {
+        symbol = result->copy();
+      } else {
+        symbol = Symbol::createError(ErrorType::UnexpectedType, "This operator does not have an implicit or explicit definition for the supplied type.");
+      }
+      break;
+    case TokenType::Tilde: //binary not
+      if (result->isNumber() || result->isBoolean() ||
+          (result->isArray() && result->sub_type->isNumber()) ||
+          (result->isArray() && result->sub_type->isBoolean())) {
+        symbol = result->copy();
+      } else {
+        symbol = Symbol::createError(ErrorType::UnexpectedType, "This operator does not have an implicit or explicit definition for the supplied type.");
+      }
+      break;
+    case TokenType::Question:
+      symbol = result->copy();
+      if (symbol->pointer_redirection_level < 1) {
+        symbol = Symbol::createError(ErrorType::DereferenceNonPointer, "Cannot dereference a non-pointer.");
+      } else {
+        symbol->pointer_redirection_level -= 1;
+      }
+      break;
+    default:
+      symbol = Symbol::createError(ErrorType::UhOh, "We should not have gotten this error. Unknown unary expression operator!!!!");
+      break;
+  }
+
   symbol->node = this;
   return symbol;
 }

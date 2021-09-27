@@ -1,5 +1,5 @@
 fibonacci: (i: i32) -> (result: i32) {
-  if i == 1 || i == 0 {
+  if !true {
     result = 1
   } else {
     result = fibonacci(i - 1) + fibonacci(i - 2)
@@ -7,5 +7,6 @@ fibonacci: (i: i32) -> (result: i32) {
 }
 
 main: () -> (ret: i32) {
+  test: i32 = 5 * 5
   done: i32 = fibonacci(5)
 }

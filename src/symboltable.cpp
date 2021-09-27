@@ -1,5 +1,29 @@
 #include "symboltable.hpp"
 
+std::string ErrorString(ErrorType type) {
+  switch (type) {
+    case ErrorType::None: return "None";
+    case ErrorType::UhOh: return "Fatal Error!!";
+    case ErrorType::Redeclaration: return "Redeclaration";
+    case ErrorType::NotFound: return "Not Found";
+    case ErrorType::SizeParameterNotNumber: return "Size Parameter Not Number";
+    case ErrorType::LhsRhsTypeMismatch: return "Type Mismatch";
+    case ErrorType::CastFuncMultipleParams: return "Cast Function Multiple Params";
+    case ErrorType::CastFuncMultipleReturns: return "Cast Function Multiple Returns";
+    case ErrorType::CastFuncReturnTypeMismatch: return "Cast Function Return Type Mismatch";
+    case ErrorType::UnexpectedType: return "Unexpected Type";
+    case ErrorType::RuntimeCaseCondition: return "Runtime Determined Case Condition";
+    case ErrorType::NoCastExists: return "No Cast Exists";
+    case ErrorType::UnknownVariable: return "Unknown Variable";
+    case ErrorType::NoMemberVariables: return "No Member Variables";
+    case ErrorType::TypeDoesNotHaveMember: return "Type Does Not Have Member";
+    case ErrorType::NotIterableType: return "Type Is Not Iterable";
+    case ErrorType::DereferenceNonPointer: return "Cannot Dereference A Non-Pointer";
+    case ErrorType::OpFuncParameterSizeMismatch: return "Op Function Parameter Size Mismatch";
+    default: return "Unknown Error"; 
+  }
+}
+
 bool Symbol::operator==(Symbol other){
   if (type != other.type || 
       *sub_type != *other.sub_type ||
@@ -26,27 +50,35 @@ bool Symbol::operator!=(Symbol other){
 }
 
 bool Symbol::typeMatch(Symbol* first, Symbol* second) {
-  return false;
+  if (first == nullptr || second == nullptr) return false;
+  return (*first == *second) ||
+         (first->isNumber() && second->isNumber()) ||
+         (first->isBoolean() && second->isBoolean()) ||
+         (first->isArray() && second->isArray());
+  //TODO add the check for custom types (probably just checking the type entry pointer tbh
+  // Also need to make sure this works with auto types. I believe this will work for an auto type if it already had it type determined but not in the case of undetermined auto types quite yet
 }
 
 bool Symbol::isNumber() {
-  return type == SymType::I16 || type == SymType::I32 || type == SymType::I64 ||
+  return pointer_redirection_level == 0 &&
+        (type == SymType::I16 || type == SymType::I32 || type == SymType::I64 ||
          type == SymType::S16 || type == SymType::S32 || type == SymType::S64 ||
          type == SymType::U16 || type == SymType::U32 || type == SymType::U64 ||
          type == SymType::F32 || type == SymType::F64 || type == SymType::F128 ||
-         type == SymType::Byte || (sub_type && sub_type->isNumber());
+         type == SymType::Byte || (sub_type && sub_type->isNumber()));
 }
 
 bool Symbol::isBoolean() {
-  return type == SymType::Boolean || (sub_type && sub_type->isBoolean());
+  return pointer_redirection_level == 0 && (type == SymType::Boolean || (sub_type && sub_type->isBoolean()));
 }
 
 bool Symbol::isArray() {
-  return type == SymType::Array || type == SymType::String || (sub_type && sub_type->isArray());
+  return pointer_redirection_level == 0 && (type == SymType::Array || type == SymType::String || (sub_type && sub_type->isArray()));
 }
 
 Symbol* Symbol::copy() {
-  auto sym = new Symbol(name, type, sub_type->copy());
+  auto sub_copy = sub_type == nullptr ? nullptr : sub_type->copy();
+  auto sym = new Symbol(name, type, sub_copy);
   sym->custom_type_name = custom_type_name;
   sym->custom_type = custom_type;
 

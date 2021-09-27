@@ -166,7 +166,7 @@ DEC : IDENTIFIER COLON VARTYPE { $$ = new VarDec($1, $3, nullptr); }
           $$ = new FuncDec($1, $4, $8, $10);
     }
     | OP ANGLE_OPEN OPERATOR ANGLE_CLOSED COLON PAREN_OPEN PARAMS PAREN_CLOSED ARROW PAREN_OPEN PARAMS PAREN_CLOSED CMPD {
-          $$ = new FuncDec($3, $7, $11, $13);
+          $$ = new OpFuncDec($3, $7, $11, $13);
     }
     | CAST ANGLE_OPEN VARTYPE ANGLE_CLOSED COLON PAREN_OPEN PARAMS PAREN_CLOSED ARROW PAREN_OPEN PARAMS PAREN_CLOSED CMPD {
           $$ = new CastFuncDec($3, $7, $11, $13); //this is a little goofy but I can't think of a better way to do it cause we want to maintain the ability to search up the type

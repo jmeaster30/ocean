@@ -14,14 +14,16 @@ inline void debug(T message) {
 #endif
 }
 
-inline void debugf(const char* format...) {
-#ifdef DEBUG_MESSAGES
-  va_list argptr;
-  va_start(argptr, format);
-  
-  vprintf(format, argptr);
+inline void debugl() {
+  std::cout << std::endl;
+}
 
-  va_end(argptr);
+template<typename T, typename... Types>
+inline void debugl(T curr, Types... next) {
+#ifdef DEBUG_MESSAGES
+  std::cout << curr;
+
+  debugl(next...);
 #endif
 }
 
