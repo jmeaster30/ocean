@@ -357,7 +357,7 @@ public:
 
 class SwitchStmt : public Statement {
 public:
-  Token* _start;
+  Token* _start; // don't need this since there isn't any errors at this level
   Expression* _cond;
   std::vector<SwitchCase*>* _cases;
 
@@ -372,7 +372,7 @@ public:
 
 class WhileStmt : public Statement {
 public:
-  Token* _start;
+  Token* _start; //dont need
   Expression* _cond;
   CompoundStmt* _body;
 
@@ -387,7 +387,7 @@ public:
 
 class ForStmt : public Statement {
 public:
-  Token* _start;
+  Token* _start; //dont need
   Token* _id;
   Expression* _iter;
   Expression* _by;

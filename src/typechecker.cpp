@@ -105,6 +105,7 @@ Symbol* FuncType::buildSymbolTable(SymbolTable* table) {
     returns->push_back(ret->symbol);
   }
 
+  //TODO what if one of the returns or one of the params has an error in it's type?
   symbol = Symbol::createFunction("", params, returns);
   symbol->node = this;
   return symbol;
@@ -117,7 +118,7 @@ Symbol* ConstType::buildSymbolTable(SymbolTable* table) {
     symbol->node = this;
     return symbol;
   }
-  
+
   symbol = _type->symbol;
   symbol->constant = true;
   symbol->node = this;
@@ -212,13 +213,29 @@ Symbol* CompoundStmt::buildSymbolTable(SymbolTable* table) {
 }
 
 Symbol* VarDec::buildSymbolTable(SymbolTable* table) {
-  _type->buildSymbolTable(table);
+  auto t_result = _type->buildSymbolTable(table);
+  if (t_result->type == SymType::Error) {
+    symbol = Symbol::createError(ErrorType::None, "There is an error further down in the tree.");
+    symbol->node = this;
+    std::cout << "Type error >:(" << std::endl;
+    if (_expr) _expr->symbol = Symbol::createNone();
+    return symbol;
+  }
+
   symbol = _type->symbol;
   symbol->assignable = true;
   symbol->name = _id->lexeme.string_lex;
   auto result = table->addSymbol(_id->lexeme.string_lex, symbol);
   if (_expr) {
-    _expr->buildSymbolTable(table); 
+    auto e_result = _expr->buildSymbolTable(table);
+    if (e_result->type == SymType::Error) {
+      auto temp = Symbol::createError(ErrorType::None, "diublaiusdbf");
+      temp->sub_type = symbol;
+      temp->node = this;
+      symbol = temp;
+      return symbol;
+    }
+
     if (!Symbol::typeMatch(symbol, _expr->symbol)) {
       Symbol* orig = symbol;
       symbol = Symbol::createError(ErrorType::LhsRhsTypeMismatch, "The right hand side of the assignement does not have the same type as the left hand side");
@@ -239,14 +256,16 @@ Symbol* FuncDec::buildSymbolTable(SymbolTable* table) {
   for (auto par : *_params) {
     par->buildSymbolTable(table);
     params->push_back(par->symbol);
-    child->addSymbol(par->symbol->name, par->symbol);
+    if(par->symbol->type != SymType::Error)
+      child->addSymbol(par->symbol->name, par->symbol);
   }
 
   auto returns = new std::vector<Symbol*>();
   for (auto ret : *_returns) {
     ret->buildSymbolTable(table);
     returns->push_back(ret->symbol);
-    child->addSymbol(ret->symbol->name, ret->symbol);
+    if(ret->symbol->type != SymType::Error)
+      child->addSymbol(ret->symbol->name, ret->symbol);
   }
 
   symbol = Symbol::createFunction(_id->lexeme.string_lex, params, returns);
@@ -271,6 +290,23 @@ Symbol* FuncDec::buildSymbolTable(SymbolTable* table) {
 }
 
 Symbol* OpFuncDec::buildSymbolTable(SymbolTable* table) {
+  auto child = table->createChildScope();
+  auto params = new std::vector<Symbol*>();
+  for (auto par : *_params) {
+    par->buildSymbolTable(table);
+    params->push_back(par->symbol);
+    if(par->symbol->type != SymType::Error)
+      child->addSymbol(par->symbol->name, par->symbol);
+  }
+
+  auto returns = new std::vector<Symbol*>();
+  for (auto ret : *_returns) {
+    ret->buildSymbolTable(table);
+    returns->push_back(ret->symbol);
+    if(ret->symbol->type != SymType::Error)
+      child->addSymbol(ret->symbol->name, ret->symbol);
+  }
+
   switch(_op->type) {
     //one or two params
     case TokenType::AddOp:
@@ -308,22 +344,6 @@ Symbol* OpFuncDec::buildSymbolTable(SymbolTable* table) {
     return symbol;
   }
 
-  auto child = table->createChildScope();
-
-  auto params = new std::vector<Symbol*>();
-  for(auto p : *_params) {
-    p->buildSymbolTable(table);
-    params->push_back(p->symbol);
-    child->addSymbol(p->symbol->name, p->symbol);
-  }
-
-  auto returns = new std::vector<Symbol*>();
-  for(auto r : *_returns) {
-    r->buildSymbolTable(table);
-    returns->push_back(r->symbol);
-    child->addSymbol(r->symbol->name, r->symbol);
-  }
-
   symbol = Symbol::createFunction(_op->lexeme.string_lex, params, returns);
   symbol->node = this;
 
@@ -345,16 +365,28 @@ Symbol* OpFuncDec::buildSymbolTable(SymbolTable* table) {
 }
 
 Symbol* CastFuncDec::buildSymbolTable(SymbolTable* table) { 
+  auto child = table->createChildScope();
+  auto params = new std::vector<Symbol*>();
+  for (auto par : *_params) {
+    par->buildSymbolTable(table);
+    params->push_back(par->symbol);
+    if(par->symbol->type != SymType::Error)
+      child->addSymbol(par->symbol->name, par->symbol);
+  }
+
+  auto returns = new std::vector<Symbol*>();
+  for (auto ret : *_returns) {
+    ret->buildSymbolTable(table);
+    returns->push_back(ret->symbol);
+    if(ret->symbol->type != SymType::Error)
+      child->addSymbol(ret->symbol->name, ret->symbol);
+  }
+
   if (_params->size() != 1) {
     symbol = Symbol::createError(ErrorType::CastFuncMultipleParams, "A cast function can only have a single parameter.");
     symbol->node = this;
     return symbol;
   }
-
-  auto params = new std::vector<Symbol*>();
-  auto param = (*_params)[0];
-  param->buildSymbolTable(table);
-  params->push_back(param->symbol);
 
   if (_returns->size() != 1) {
     symbol = Symbol::createError(ErrorType::CastFuncMultipleReturns, "A cast function can only have a single return.");
@@ -362,14 +394,9 @@ Symbol* CastFuncDec::buildSymbolTable(SymbolTable* table) {
     return symbol;
   }
 
-  auto returns = new std::vector<Symbol*>();
-  auto ret = (*_returns)[0];
-  ret->buildSymbolTable(table);
-  returns->push_back(ret->symbol);
-
   _casting_type->buildSymbolTable(table);
   auto a = _casting_type->symbol;
-  auto b = ret->symbol;
+  auto b = (*returns)[0];
   if (!Symbol::typeMatch(a, b)) {
     symbol = Symbol::createError(ErrorType::CastFuncReturnTypeMismatch, "The casting type must match the return type of a cast function.");
     symbol->node = this;
@@ -387,11 +414,6 @@ Symbol* CastFuncDec::buildSymbolTable(SymbolTable* table) {
     symbol->node = this;
     return symbol;
   }
-
-  auto child = table->createChildScope();
-
-  child->addSymbol(param->symbol->name, param->symbol);
-  child->addSymbol(ret->symbol->name, ret->symbol);
 
   auto result = _body->buildSymbolTable(child);
   if (result->type == SymType::Error) {
@@ -461,7 +483,7 @@ Symbol* IfStmt::buildSymbolTable(SymbolTable* table) {
 
   auto result = _body->buildSymbolTable(table);
   if (result->type == SymType::Error) {
-    auto newError = Symbol::createError(ErrorType::None, "There was an error in the if block of this function.");
+    auto newError = Symbol::createError(ErrorType::None, "There was an error in the true branch of this if block.");
     newError->sub_type = symbol;
     symbol = newError;
   }
@@ -469,12 +491,12 @@ Symbol* IfStmt::buildSymbolTable(SymbolTable* table) {
   if (_elseBody) { 
     auto e_result = _elseBody->buildSymbolTable(table);
     if (e_result->type == SymType::Error) {
-      if (symbol->errorType != ErrorType::None) {
-        auto newError = Symbol::createError(ErrorType::None, "There was an error in the if block of this function.");
+      if (symbol->errorType == ErrorType::None) {
+        symbol->name = "There was an error in both the if and the else branches";
+      } else {
+        auto newError = Symbol::createError(ErrorType::None, "There was an error in the false branch of this if block.");
         newError->sub_type = symbol;
         symbol = newError;
-      } else {
-        symbol->name = "There was an error in both the if and the else branches";
       }
     }
   }
@@ -488,17 +510,26 @@ Symbol* IfStmt::buildSymbolTable(SymbolTable* table) {
 }
 
 Symbol* SwitchCase::buildSymbolTable(SymbolTable* table) { 
-  if (_case) _case->buildSymbolTable(table);
+  if (_case) {
+    auto result = _case->buildSymbolTable(table);
+    if (result->type == SymType::Error) {
+      symbol = Symbol::createError(ErrorType::None, "There was an error in the condition of this switch case");
+      symbol->node = this;
+      _body->symbol = Symbol::createNone();
+      return symbol;
+    }
+  }
 
   if (_case && !_case->symbol->computed) {
     symbol = Symbol::createError(ErrorType::RuntimeCaseCondition, "The case condition must be able to be evaluated at compile time. If you are doing calculations in the case condition make sure any variables are determined at compile-time.");
     symbol->node = this;
+    return symbol;
   }
 
   auto switchcase = table->createChildScope("");
   auto result = _body->buildSymbolTable(switchcase);
   if (result->type == SymType::Error) {
-    auto newError = Symbol::createError(ErrorType::None, "There was an error in the if block of this function.");
+    auto newError = Symbol::createError(ErrorType::None, "There was an error in the body of this case.");
     newError->sub_type = symbol;
     symbol = newError;
   }
@@ -508,7 +539,6 @@ Symbol* SwitchCase::buildSymbolTable(SymbolTable* table) {
   }
 
   symbol->node = this;
-
   return symbol;
 }
 
@@ -518,7 +548,7 @@ Symbol* SwitchStmt::buildSymbolTable(SymbolTable* table) {
   Symbol* result = nullptr;
   for (auto scase : *_cases) {
     auto c_result = scase->buildSymbolTable(table);
-    if (!Symbol::typeMatch(scase->symbol, _cond->symbol) && scase->symbol->type != SymType::Error) {
+    if (c_result->type != SymType::Error && !Symbol::typeMatch(scase->symbol, _cond->symbol)) {
       auto orig = scase->symbol;
       scase->symbol = Symbol::createError(ErrorType::UnexpectedType, "The case condition doesn't match the switch condition.");
       scase->symbol->sub_type = orig;
@@ -527,10 +557,6 @@ Symbol* SwitchStmt::buildSymbolTable(SymbolTable* table) {
     if (c_result->type == SymType::Error && result == nullptr) {
       auto result = Symbol::createError(ErrorType::None, "There was an error in one of the case statements");
       symbol = result;
-      auto temp = scase->symbol;
-      scase->symbol = Symbol::createError(ErrorType::None, "There was an error in this case statement");
-      scase->symbol->sub_type = temp;
-      scase->symbol->node = scase;
     }
   }
 
@@ -568,17 +594,27 @@ Symbol* WhileStmt::buildSymbolTable(SymbolTable* table) {
 }
 
 Symbol* ForStmt::buildSymbolTable(SymbolTable* table) {
-  _iter->buildSymbolTable(table);
-  if (!_iter->symbol->isArray()) {
-    symbol = Symbol::createError(ErrorType::UnexpectedType, "Iterator must be evaluate to an array type.");
+  auto i_result = _iter->buildSymbolTable(table);
+  auto b_result = _by ? _by->buildSymbolTable(table) : nullptr;
+
+  if (i_result->type == SymType::Error || (b_result != nullptr && b_result->type == SymType::Error)) {
+    symbol = Symbol::createError(ErrorType::None, "There was an error in the iterator or the by number");
     symbol->node = this;
+    _body->symbol = Symbol::createNone();
     return symbol;
   }
 
-  _by->buildSymbolTable(table);
-  if (!_by->symbol->isNumber()) {
+  if (!_iter->symbol->isArray()) {
+    symbol = Symbol::createError(ErrorType::UnexpectedType, "Iterator must be evaluate to an array type.");
+    symbol->node = this;
+    _body->symbol = Symbol::createNone();
+    return symbol;
+  }
+
+  if (_by != nullptr && !_by->symbol->isNumber()) {
     symbol = Symbol::createError(ErrorType::UnexpectedType, "By must evaluate to a number.");
     symbol->node = this;
+    _body->symbol = Symbol::createNone();
     return symbol;
   }
 
@@ -604,8 +640,11 @@ Symbol* ForStmt::buildSymbolTable(SymbolTable* table) {
 
 Symbol* ExprStmt::buildSymbolTable(SymbolTable* table) {
   _expr->buildSymbolTable(table);
-
-  symbol = Symbol::createNone();
+  if (_expr->symbol->type == SymType::Error) {
+    symbol = Symbol::createError(ErrorType::None, "There is an error further down the tree");
+  } else {
+    symbol = Symbol::createNone();
+  }
   symbol->node = this;
   return symbol;
 }
@@ -629,8 +668,14 @@ Symbol* Variable::buildSymbolTable(SymbolTable* table) {
 }
 
 Symbol* MemberAccess::buildSymbolTable(SymbolTable* table) {
-  _parent->buildSymbolTable(table);
-  if (_parent->symbol->custom_type == nullptr) {
+  auto result = _parent->buildSymbolTable(table);
+  if (result->type == SymType::Error) {
+    symbol = Symbol::createError(ErrorType::None, "There was an error in the parent of this member access");
+    symbol->node = this;
+    return symbol;  
+  }
+
+  if (result->custom_type == nullptr) {
     symbol = Symbol::createError(ErrorType::NoMemberVariables, "This variable has no member variables.");
   } else {
     auto member = _parent->symbol->custom_type->getMember(_id->lexeme.string_lex);
@@ -646,12 +691,18 @@ Symbol* MemberAccess::buildSymbolTable(SymbolTable* table) {
 }
 
 Symbol* ArrayAccess::buildSymbolTable(SymbolTable* table) {
-  _parent->buildSymbolTable(table);
-  _expr->buildSymbolTable(table);
+  auto p_result = _parent->buildSymbolTable(table);
+  auto e_result = _expr->buildSymbolTable(table);
 
-  if(_parent->symbol->type == SymType::Array) {
-    if (_expr->symbol->isNumber()) {
-      symbol = _parent->symbol->sub_type->copy();
+  if (p_result->type == SymType::Error || e_result->type == SymType::Error) {
+    symbol = Symbol::createError(ErrorType::None, "klasjdfhalskdj");
+    symbol->node = this;
+    return symbol;
+  }
+
+  if(p_result->type == SymType::Array) {
+    if (e_result->isNumber()) {
+      symbol = p_result->sub_type->copy();
     } else {
       symbol = Symbol::createError(ErrorType::UnexpectedType, "Indexes for an iterable type must be a number.");
     }
@@ -664,13 +715,13 @@ Symbol* ArrayAccess::buildSymbolTable(SymbolTable* table) {
 }
 
 Symbol* Call::buildSymbolTable(SymbolTable* table) {
-  symbol = Symbol::createNone();
+  symbol = Symbol::createError(ErrorType::UhOh, "Call typecheck not implemented");
   symbol->node = this;
   return symbol;
 }
 
 Symbol* Assignment::buildSymbolTable(SymbolTable* table) { 
-  symbol = Symbol::createNone();
+  symbol = Symbol::createError(ErrorType::UhOh, "Assignment typecheck not implemented");
   symbol->node = this;
   return symbol;
 }
@@ -777,6 +828,7 @@ Symbol* UnaryExpr::buildSymbolTable(SymbolTable* table) {
       break;
     case TokenType::AddOp:
       if (result->isNumber()) {
+        //TODO make this change unsigned numbers to signed numbers (but not backwards)
         symbol = result->copy();
       } else {
         symbol = Symbol::createError(ErrorType::UnexpectedType, "This operator does not have an implicit or explicit definition for the supplied type.");
@@ -809,8 +861,13 @@ Symbol* UnaryExpr::buildSymbolTable(SymbolTable* table) {
 }
 
 Symbol* Cast::buildSymbolTable(SymbolTable* table) {
-  _type->buildSymbolTable(table);
-  _expr->buildSymbolTable(table);
+  auto t_result = _type->buildSymbolTable(table);
+  auto e_result = _expr->buildSymbolTable(table);
+  if (t_result->type == SymType::Error || e_result->type == SymType::Error) {
+    symbol = Symbol::createError(ErrorType::None, "akshdfl");
+    symbol->node = this;
+    return symbol;
+  }
 
   if (!Symbol::typeMatch(_type->symbol, _expr->symbol)) {
     std::string castFunc = "cast-" + _type->toCastString();
@@ -865,21 +922,26 @@ Symbol* StringValue::buildSymbolTable(SymbolTable* table) {
 Symbol* ArrayValue::buildSymbolTable(SymbolTable* table) {
   Symbol* type = nullptr;
   bool valid = true;
+  bool error = false;
   for (auto elem : *_elements) {
-    elem->buildSymbolTable(table);
-    auto etype = elem->symbol;
-    if (type == nullptr) {
+    auto etype = elem->buildSymbolTable(table);
+    if (type == nullptr && etype->type != SymType::Error) {
       type = etype->copy();
+    } else if (etype->type == SymType::Error) {
+      error = true;
     } else if (!Symbol::typeMatch(etype, type)){
       valid = false;
     }
   }
 
-  if (valid) {
+  if (valid && !error) {
     symbol = Symbol::createArray("", type);
+  } else if (error) {
+    symbol = Symbol::createError(ErrorType::None, "asldkjfas");
   } else {
     symbol = Symbol::createError(ErrorType::UnexpectedType, "Each element of the array must evaluate to the same type.");
   }
+
   symbol->node = this;
   return symbol;
 }

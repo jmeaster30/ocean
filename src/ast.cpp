@@ -1,6 +1,7 @@
 #include "ast.hpp"
 
 #include <iostream>
+#include <sstream>
 
 /** VarType toCastString **/
 std::string BaseType::toCastString() {
@@ -47,88 +48,415 @@ std::string Variable::toCastString() {
 
 /** Create Error List **/
 void BaseType::getErrors(std::vector<std::string>* error_list) {
-
+  if (symbol->type == SymType::Error) {
+    std::stringstream ss;
+    if (symbol->errorType == ErrorType::None) {
+      //shouldn't happen since we don't do the type checking in the var
+      ss << "Error [] lower in tree from Custom Type node" << std::endl;
+    } else {
+      ss << "Error [ " <<  _type->linenum << ", " << _type->colnum << " ]: " << ErrorString(symbol->errorType) << std::endl;
+      ss << "\t" << symbol->name << std::endl;
+    }
+    error_list->push_back(ss.str());
+  }
 }
 
-void CustomType::getErrors(std::vector<std::string>* error_list) {}
+void CustomType::getErrors(std::vector<std::string>* error_list) {
+  if (symbol->type == SymType::Error) {
+    std::stringstream ss;
+    if (symbol->errorType == ErrorType::None) {
+      //shouldn't happen since we don't do the type checking in the var
+      ss << "Error [] lower in tree from Custom Type node" << std::endl;
+    } else {
+      ss << "Error [ " <<  _type->_name->linenum << ", " << _type->_name->colnum << " ]: " << ErrorString(symbol->errorType) << std::endl;
+      ss << "\t" << symbol->name << std::endl;
+    }
+    error_list->push_back(ss.str());
+  }
+}
 
-void FuncType::getErrors(std::vector<std::string>* error_list) {}
+void FuncType::getErrors(std::vector<std::string>* error_list) {
+  for (auto param : *_param_types) {
+    param->getErrors(error_list);
+  }
 
-void ConstType::getErrors(std::vector<std::string>* error_list) {}
+  for (auto ret : *_return_types) {
+    ret->getErrors(error_list);
+  }
+}
 
-void PointerType::getErrors(std::vector<std::string>* error_list) {}
+void ConstType::getErrors(std::vector<std::string>* error_list) {
+  if (symbol->type == SymType::Error) {
+    if (symbol->errorType == ErrorType::None) {
+      _type->getErrors(error_list);
+    } else {
+      std::stringstream ss;
+      ss << "Error : TypeChecker Issue :( ... Unhandled error in ConstType." << std::endl;
+      error_list->push_back(ss.str());
+    }
+  }
+}
 
-void ArrayType::getErrors(std::vector<std::string>* error_list) {}
+void PointerType::getErrors(std::vector<std::string>* error_list) {
+  if (symbol->type == SymType::Error) {
+    if (symbol->errorType == ErrorType::None) {
+      _type->getErrors(error_list);
+    } else {
+      std::stringstream ss;
+      ss << "Error : TypeChecker Issue :( ... Unhandled error in PointerType." << std::endl;
+      error_list->push_back(ss.str());
+    }
+  }
+}
 
-void Parameter::getErrors(std::vector<std::string>* error_list) {}
+void ArrayType::getErrors(std::vector<std::string>* error_list) {
+  if (symbol->type == SymType::Error) {
+    if (symbol->errorType == ErrorType::None) {
+      _type->getErrors(error_list);
+    } else {
+      std::stringstream ss;
+      ss << "Error [ " << "linenum" << ", " << "colnum" << " ]: " << ErrorString(symbol->errorType) << std::endl;
+      ss << "\t" << symbol->name << std::endl;
+      error_list->push_back(ss.str());
+    }
+  }
+}
 
-void Program::getErrors(std::vector<std::string>* error_list) {}
+void Parameter::getErrors(std::vector<std::string>* error_list) {
+  if (symbol->type == SymType::Error) {
+    if (symbol->errorType == ErrorType::None) {
+      _type->getErrors(error_list);
+    } else {
+      std::stringstream ss;
+      ss << "Error : TypeChecker Issue :( ... Unhandled error in Parameter." << std::endl;
+      error_list->push_back(ss.str());
+    }
+  }
+}
 
-void Macro::getErrors(std::vector<std::string>* error_list) {}
+void Program::getErrors(std::vector<std::string>* error_list) {
+  if (symbol->type == SymType::Error) {
+    if (symbol->errorType == ErrorType::None) {
+      for (auto stmt : *_stmts) {
+        stmt->getErrors(error_list);
+      }
+    } else {
+      std::stringstream ss;
+      ss << "Error : TypeChecker Issue :( ... Unhandled error in Program." << std::endl;
+      error_list->push_back(ss.str());
+    }
+  }
+}
 
-void CompoundStmt::getErrors(std::vector<std::string>* error_list) {}
+void Macro::getErrors(std::vector<std::string>* error_list) { /*NONE*/ }
 
-void VarDec::getErrors(std::vector<std::string>* error_list) {}
+void CompoundStmt::getErrors(std::vector<std::string>* error_list) {
+  if (symbol->type == SymType::Error) {
+    if (symbol->errorType == ErrorType::None) {
+      for (auto stmt : *_stmts) {
+        stmt->getErrors(error_list);
+      }
+    } else {
+      std::stringstream ss;
+      ss << "Error : TypeChecker Issue :( ... Unhandled error in CompoundStmt." << std::endl;
+      error_list->push_back(ss.str());
+    }
+  }
+}
 
-void FuncDec::getErrors(std::vector<std::string>* error_list) {}
+void VarDec::getErrors(std::vector<std::string>* error_list) {
+  if (symbol->type == SymType::Error) {
+    if (symbol->errorType == ErrorType::None) {
+      _type->getErrors(error_list);
+      std::cout << "here" << std::endl;
+      if (_expr) _expr->getErrors(error_list);
+    } else {
+      std::stringstream ss;
+      ss << "Error [ " << _id->linenum << ", " << _id->colnum << " ]: " << ErrorString(symbol->errorType) << std::endl;
+      ss << "\t" << symbol->name << std::endl;
+      error_list->push_back(ss.str());
+    }
+  }
+}
 
-void OpFuncDec::getErrors(std::vector<std::string>* error_list) {}
+void FuncDec::getErrors(std::vector<std::string>* error_list) {
+  //get parameter errors
+  for (auto param : *_params) {
+    param->getErrors(error_list);
+  }
 
-void CastFuncDec::getErrors(std::vector<std::string>* error_list) {}
+  for (auto ret : *_returns) {
+    ret->getErrors(error_list);
+  }
 
-void EnumDec::getErrors(std::vector<std::string>* error_list) {}
+  if (symbol->type == SymType::Error) {
+    if (symbol->errorType == ErrorType::None) {
+      _body->getErrors(error_list);
+    } else {
+      std::stringstream ss;
+      ss << "Error [ " << "linenum" << ", " << "colnum" << " ]: " << ErrorString(symbol->errorType) << std::endl;
+      ss << "\t" << symbol->name << std::endl;
+      error_list->push_back(ss.str());
+    }
+  }
+}
 
-void PackDec::getErrors(std::vector<std::string>* error_list) {}
+void OpFuncDec::getErrors(std::vector<std::string>* error_list) {
+  for (auto param : *_params) {
+    param->getErrors(error_list);
+  }
 
-void VariantDec::getErrors(std::vector<std::string>* error_list) {}
+  for (auto ret : *_returns) {
+    ret->getErrors(error_list);
+  }
 
-void IfStmt::getErrors(std::vector<std::string>* error_list) {}
+  if (symbol->type == SymType::Error) {
+    if (symbol->errorType == ErrorType::None) {
+      _body->getErrors(error_list);
+    } else {
+      std::stringstream ss;
+      ss << "Error [ " << "linenum" << ", " << "colnum" << " ]: " << ErrorString(symbol->errorType) << std::endl;
+      ss << "\t" << symbol->name << std::endl;
+      error_list->push_back(ss.str());
+    }
+  }
+}
 
-void SwitchCase::getErrors(std::vector<std::string>* error_list) {}
+void CastFuncDec::getErrors(std::vector<std::string>* error_list) {
+  for (auto param : *_params) {
+    param->getErrors(error_list);
+  }
 
-void SwitchStmt::getErrors(std::vector<std::string>* error_list) {}
+  for (auto ret : *_returns) {
+    ret->getErrors(error_list);
+  }
 
-void WhileStmt::getErrors(std::vector<std::string>* error_list) {}
+  if (symbol->type == SymType::Error) {
+    if (symbol->errorType == ErrorType::None) {
+      _body->getErrors(error_list);
+    } else {
+      std::stringstream ss;
+      ss << "Error [ " << "linenum" << ", " << "colnum" << " ]: " << ErrorString(symbol->errorType) << std::endl;
+      ss << "\t" << symbol->name << std::endl;
+      error_list->push_back(ss.str());
+    }
+  }
+}
 
-void ForStmt::getErrors(std::vector<std::string>* error_list) {}
+void EnumDec::getErrors(std::vector<std::string>* error_list) {/* oof */}
 
-void ExprStmt::getErrors(std::vector<std::string>* error_list) {}
+void PackDec::getErrors(std::vector<std::string>* error_list) {/* oof */}
 
-void StopStmt::getErrors(std::vector<std::string>* error_list) {}
+void VariantDec::getErrors(std::vector<std::string>* error_list) {/* oof */}
 
-void BreakStmt::getErrors(std::vector<std::string>* error_list) {}
+void IfStmt::getErrors(std::vector<std::string>* error_list) {
+  if (symbol->type == SymType::Error) {
+    if (symbol->errorType == ErrorType::None) {
+      _body->getErrors(error_list);
+      if(_elseBody) _elseBody->getErrors(error_list);
+    } else {
+      std::stringstream ss;
+      ss << "Error [ " << "linenum" << ", " << "colnum" << " ]: " << ErrorString(symbol->errorType) << std::endl;
+      ss << "\t" << symbol->name << std::endl;
+      error_list->push_back(ss.str());
+    }
+  }
+}
 
-void ContinueStmt::getErrors(std::vector<std::string>* error_list) {}
+void SwitchCase::getErrors(std::vector<std::string>* error_list) {
+  if (symbol->type == SymType::Error) {
+    if (symbol->errorType == ErrorType::None) {
+      if (_case) _case->getErrors(error_list);
+      _body->getErrors(error_list);
+    } else {
+      std::stringstream ss;
+      ss << "Error [ " << "linenum" << ", " << "colnum" << " ]: " << ErrorString(symbol->errorType) << std::endl;
+      ss << "\t" << symbol->name << std::endl;
+      error_list->push_back(ss.str());
+    }
+  }
+}
 
-void Variable::getErrors(std::vector<std::string>* error_list) {}
+void SwitchStmt::getErrors(std::vector<std::string>* error_list) {
+  _cond->getErrors(error_list);
+  
+  if (symbol->type == SymType::Error) {
+    if (symbol->errorType == ErrorType::None) {
+      for (auto scase : *_cases) {
+        scase->getErrors(error_list);
+      }
+    } else {
+      std::stringstream ss;
+      ss << "Error : TypeChecker Issue :( ... Unhandled error in SwitchStmt" << std::endl;
+      error_list->push_back(ss.str());
+    }
+  }
+}
 
-void MemberAccess::getErrors(std::vector<std::string>* error_list) {}
+void WhileStmt::getErrors(std::vector<std::string>* error_list) {
+  _cond->getErrors(error_list);
 
-void ArrayAccess::getErrors(std::vector<std::string>* error_list) {}
+  if (symbol->type == SymType::Error) {
+    if (symbol->errorType == ErrorType::None) {
+      _body->getErrors(error_list);
+    } else {
+      std::stringstream ss;
+      ss << "Error [ " << _start->linenum << ", " << _start->colnum << " ]: " << ErrorString(symbol->errorType) << std::endl;
+      ss << "\t" << symbol->name << std::endl;
+      error_list->push_back(ss.str());
+    }
+  }
+}
 
-void Call::getErrors(std::vector<std::string>* error_list) {}
+void ForStmt::getErrors(std::vector<std::string>* error_list) {
+  if (symbol->type == SymType::Error) {
+    if (symbol->errorType == ErrorType::None) {
+      _iter->getErrors(error_list);
+      if (_by) _by->getErrors(error_list);
+      _body->getErrors(error_list);
+    } else {
+      std::stringstream ss;
+      ss << "Error [ " << _start->linenum << ", " << _start->colnum << " ]: " << ErrorString(symbol->errorType) << std::endl;
+      ss << "\t" << symbol->name << std::endl;
+      error_list->push_back(ss.str());
+    }
+  }
+}
 
-void Assignment::getErrors(std::vector<std::string>* error_list) {}
+void ExprStmt::getErrors(std::vector<std::string>* error_list) {
+  if (symbol->type == SymType::Error) {
+    if (symbol->errorType == ErrorType::None) {
+      _expr->getErrors(error_list);
+    } else {
+      std::stringstream ss;
+      ss << "Error : TypeChecker Issue :( ... Unhandled error in ExprStmt" << std::endl;
+      error_list->push_back(ss.str());
+    }
+  }
+}
 
-void BinaryExpr::getErrors(std::vector<std::string>* error_list) {}
+void StopStmt::getErrors(std::vector<std::string>* error_list) {/* no freaking way */}
 
-void UnaryExpr::getErrors(std::vector<std::string>* error_list) {}
+void BreakStmt::getErrors(std::vector<std::string>* error_list) {/* no freaking way */}
+
+void ContinueStmt::getErrors(std::vector<std::string>* error_list) {/* no freaking way */}
+
+void Variable::getErrors(std::vector<std::string>* error_list) {
+  if (symbol->type == SymType::Error) {
+    if (symbol->errorType == ErrorType::None) {
+      error_list->push_back("Error : Found a none in the variable node :(");
+    } else {
+      std::stringstream ss;
+      ss << "Error [ " << _name->linenum << ", " << _name->colnum << " ]: " << ErrorString(symbol->errorType) << std::endl;
+      ss << "\t" << symbol->name << std::endl;
+      error_list->push_back(ss.str());
+    }
+  }
+}
+
+void MemberAccess::getErrors(std::vector<std::string>* error_list) {
+  if (symbol->type == SymType::Error) {
+    if (symbol->errorType == ErrorType::None) {
+      _parent->getErrors(error_list);
+    } else {
+      std::stringstream ss;
+      ss << "Error [ " << "linenum" << ", " << "colnum" << " ]: " << ErrorString(symbol->errorType) << std::endl;
+      ss << "\t" << symbol->name << std::endl;
+      error_list->push_back(ss.str());
+    }
+  }
+}
+
+void ArrayAccess::getErrors(std::vector<std::string>* error_list) {
+  if (symbol->type == SymType::Error) {
+    if (symbol->errorType == ErrorType::None) {
+      _parent->getErrors(error_list);
+    } else {
+      std::stringstream ss;
+      ss << "Error [ " << "linenum" << ", " << "colnum" << " ]: " << ErrorString(symbol->errorType) << std::endl;
+      ss << "\t" << symbol->name << std::endl;
+      error_list->push_back(ss.str());
+    }
+  }
+}
+
+void Call::getErrors(std::vector<std::string>* error_list) {
+  //TODO
+  std::stringstream ss;
+  ss << "Error ~ [ " << "linenum" << ", " << "colnum" << " ]: " << ErrorString(symbol->errorType) << std::endl;
+  ss << "\t" << symbol->name << std::endl;
+  error_list->push_back(ss.str());
+}
+
+void Assignment::getErrors(std::vector<std::string>* error_list) {
+  //TODO
+  std::stringstream ss;
+  ss << "Error ~ [ " << "linenum" << ", " << "colnum" << " ]: " << ErrorString(symbol->errorType) << std::endl;
+  ss << "\t" << symbol->name << std::endl;
+  error_list->push_back(ss.str());
+}
+
+void BinaryExpr::getErrors(std::vector<std::string>* error_list) {
+  if (symbol->type == SymType::Error) {
+    if (symbol->errorType == ErrorType::None) {
+      _left->getErrors(error_list);
+      _right->getErrors(error_list);
+    } else {
+      std::stringstream ss;
+      ss << "Error [ " << "linenum" << ", " << "colnum" << " ]: " << ErrorString(symbol->errorType) << std::endl;
+      ss << "\t" << symbol->name << std::endl;
+      error_list->push_back(ss.str());
+    }
+  }
+}
+
+void UnaryExpr::getErrors(std::vector<std::string>* error_list) {
+  if (symbol->type == SymType::Error) {
+    if (symbol->errorType == ErrorType::None) {
+      _expr->getErrors(error_list);
+    } else {
+      std::stringstream ss;
+      ss << "Error [ " << _op->linenum << ", " << _op->colnum << " ]: " << ErrorString(symbol->errorType) << std::endl;
+      ss << "\t" << symbol->name << std::endl;
+      error_list->push_back(ss.str());
+    }
+  }
+}
 
 void Cast::getErrors(std::vector<std::string>* error_list) {}
 
-void IntValue::getErrors(std::vector<std::string>* error_list) {}
+void IntValue::getErrors(std::vector<std::string>* error_list) {/* quit jokin */}
 
-void HexValue::getErrors(std::vector<std::string>* error_list) {}
+void HexValue::getErrors(std::vector<std::string>* error_list) {/* quit jokin */}
 
-void BoolValue::getErrors(std::vector<std::string>* error_list) {}
+void BoolValue::getErrors(std::vector<std::string>* error_list) {/* quit jokin */}
 
-void FloatValue::getErrors(std::vector<std::string>* error_list) {}
+void FloatValue::getErrors(std::vector<std::string>* error_list) {/* quit jokin */}
 
-void StringValue::getErrors(std::vector<std::string>* error_list) {}
+void StringValue::getErrors(std::vector<std::string>* error_list) {/* quit jokin */}
 
-void ArrayValue::getErrors(std::vector<std::string>* error_list) {}
+void ArrayValue::getErrors(std::vector<std::string>* error_list) {
+  if (symbol->type == SymType::Error) {
+    if (symbol->errorType == ErrorType::None) {
+      for (auto elem : *_elements) {
+        elem->getErrors(error_list);
+      }
+    } else {
+      std::stringstream ss;
+      ss << "Error [ " << "linenum" << ", " << "colnum" << " ]: " << ErrorString(symbol->errorType) << std::endl;
+      ss << "\t" << symbol->name << std::endl;
+      error_list->push_back(ss.str());
+    }
+  }
+}
 
-void ObjectValue::getErrors(std::vector<std::string>* error_list) {}
+void ObjectValue::getErrors(std::vector<std::string>* error_list) {
+  //TODO
+  std::stringstream ss;
+  ss << "Error [ " << "linenum" << ", " << "colnum" << " ]: " << ErrorString(symbol->errorType) << std::endl;
+  ss << "\t" << symbol->name << std::endl;
+  error_list->push_back(ss.str());
+}
 
 /** NODE TYPE FUNCTIONS **/
 
