@@ -26,7 +26,7 @@ std::string ErrorString(ErrorType type) {
 
 bool Symbol::operator==(Symbol other){
   if (type != other.type || 
-      *sub_type != *other.sub_type ||
+      (sub_type != nullptr && other.sub_type != nullptr && *sub_type != *other.sub_type) ||
       pointer_redirection_level != other.pointer_redirection_level ||
       custom_type_name != other.custom_type_name ||
       name != other.name) {
@@ -65,7 +65,11 @@ bool Symbol::isNumber() {
          type == SymType::S16 || type == SymType::S32 || type == SymType::S64 ||
          type == SymType::U16 || type == SymType::U32 || type == SymType::U64 ||
          type == SymType::F32 || type == SymType::F64 || type == SymType::F128 ||
-         type == SymType::Byte || (sub_type && sub_type->isNumber()));
+         type == SymType::Byte || (type != SymType::Array && sub_type && sub_type->isNumber())); //this thing feels weird but it is okay I guess
+  //This "type != SymType::Array" part is cause we use sub_type to tell what the elements of an array are which resulted in strings being evaluated as numbers since:
+  // String -> Array(Byte) -> Byte -> Number
+  //maybe have a "similar_type" instead of "sub_type" or maybe use "element_type" for arrays instead of "sub_type"
+  
 }
 
 bool Symbol::isBoolean() {
@@ -74,6 +78,41 @@ bool Symbol::isBoolean() {
 
 bool Symbol::isArray() {
   return pointer_redirection_level == 0 && (type == SymType::Array || type == SymType::String || (sub_type && sub_type->isArray()));
+}
+
+bool Symbol::isString() {
+  return pointer_redirection_level == 0 && (type == SymType::String || (type == SymType::Array && sub_type && sub_type->type == SymType::Byte) || (type != SymType::Array && sub_type && sub_type->isString()));
+}
+
+std::string Symbol::toString() {
+  switch(type) {
+    case SymType::Error: return "Error";
+    case SymType::None: return "None";
+    case SymType::Unknown: return "Unknown";
+    case SymType::Auto: return "Auto";
+    case SymType::Custom: return "Custom";
+    case SymType::Variant: return "Variant";
+    case SymType::Enum: return "Enum";
+    case SymType::Func: return "Func";
+    case SymType::Array: return "Array";
+    case SymType::String: return "String";
+    case SymType::Boolean: return "Boolean";
+    case SymType::Byte: return "Byte";
+    case SymType::I16: return "I16";
+    case SymType::I32: return "I32";
+    case SymType::I64: return "I64";
+    case SymType::S16: return "S16";
+    case SymType::S32: return "S32";
+    case SymType::S64: return "S64";
+    case SymType::U16: return "U16";
+    case SymType::U32: return "U32";
+    case SymType::U64: return "U64";
+    case SymType::F32: return "F32";
+    case SymType::F64: return "F64";
+    case SymType::F128: return "F128";
+    default: return "HHHHHH";
+  }
+  return ":(";
 }
 
 Symbol* Symbol::copy() {

@@ -34,7 +34,7 @@ public:
   std::string name = "";
 
   SymType type = SymType::Unknown;
-  Symbol* sub_type = {}; //used for enum amd for auto determined type
+  Symbol* sub_type = {};
   std::string custom_type_name = "";
   TypeEntry* custom_type = {};
 
@@ -58,8 +58,10 @@ public:
   bool isNumber();
   bool isBoolean();
   bool isArray();
+  bool isString();
 
   Symbol* copy();
+  std::string toString();
 
   //only type match / auto type handling
   static bool typeMatch(Symbol*, Symbol*);

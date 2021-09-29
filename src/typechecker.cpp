@@ -5,6 +5,7 @@
 SymType getSymTypeFromLexeme(std::string lexeme) {
   //This could be better
   SymType result = SymType::None;
+  if(lexeme == "string") result = SymType::String;
   if(lexeme == "bool") result = SymType::Boolean;
   if(lexeme == "byte") result = SymType::Byte;
   if(lexeme == "i16") result = SymType::I16;
@@ -753,20 +754,20 @@ Symbol* BinaryExpr::buildSymbolTable(SymbolTable* table) {
       }
       break;
     case TokenType::Shift:
-      if ((left->isNumber() || left->isBoolean() ||
+      if ((left->isNumber() ||
           (left->isArray() && left->sub_type->isNumber()) ||
           (left->isArray() && left->sub_type->isBoolean())) &&
           right->isNumber()) {
         symbol = left->copy();
       } else {
-        symbol = Symbol::createError(ErrorType::UnexpectedType, "This operator does not have an implicit or explicit definition for the supplied type.");
+        symbol = Symbol::createError(ErrorType::UnexpectedType, "This operator does not have an implicit or explicit definition for the supplied types.");
       }
       break;
     case TokenType::LogOp:
       if (left->isBoolean() && right->isBoolean()) {
         symbol = Symbol::createBoolean();
       } else {
-        symbol = Symbol::createError(ErrorType::UnexpectedType, "This operator does not have an implicit or explicit definition for the supplied type.");
+        symbol = Symbol::createError(ErrorType::UnexpectedType, "This operator does not have an implicit or explicit definition for the supplied types.");
       }
       break;
     case TokenType::BitOp:
@@ -776,28 +777,29 @@ Symbol* BinaryExpr::buildSymbolTable(SymbolTable* table) {
           (left->isArray() && left->sub_type->isBoolean()))) {
         symbol = left->copy();
       } else {
-        symbol = Symbol::createError(ErrorType::UnexpectedType, "This operator does not have an implicit or explicit definition for the supplied type.");
+        symbol = Symbol::createError(ErrorType::UnexpectedType, "This operator does not have an implicit or explicit definition for the supplied types.");
       }
       break;
     case TokenType::AddOp:
-      if (left->isNumber() && right->isNumber()) {
+      if ((left->isNumber() && right->isNumber()) ||
+          (left->isString() && right->isString())) {
         symbol = left->copy();
       } else {
-        symbol = Symbol::createError(ErrorType::UnexpectedType, "This operator does not have an implicit or explicit definition for the supplied type.");
+        symbol = Symbol::createError(ErrorType::UnexpectedType, "This operator does not have an implicit or explicit definition for the supplied types.");
       }
       break;
     case TokenType::MultOp:
       if (left->isNumber() && right->isNumber()) {
         symbol = left->copy();
       } else {
-        symbol = Symbol::createError(ErrorType::UnexpectedType, "This operator does not have an implicit or explicit definition for the supplied type.");
+        symbol = Symbol::createError(ErrorType::UnexpectedType, "This operator does not have an implicit or explicit definition for the supplied types.");
       }
       break;
     case TokenType::Range:
       if (left->isNumber() && right->isNumber()) {
         symbol = Symbol::createArray("", left->copy());
       } else {
-        symbol = Symbol::createError(ErrorType::UnexpectedType, "This operator does not have an implicit or explicit definition for the supplied type.");
+        symbol = Symbol::createError(ErrorType::UnexpectedType, "This operator does not have an implicit or explicit definition for the supplied types.");
       }
       break;
     default:

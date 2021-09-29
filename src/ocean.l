@@ -42,6 +42,7 @@ int ProcessToken(const char* name, int token_parser_id, TokenType token_type, in
 "s16"|"s32"|"s64"  { return ProcessToken("Type", TYPE, TokenType::Type, 0); }
 "u16"|"u32"|"u64"  { return ProcessToken("Type", TYPE, TokenType::Type, 0); }
 "f32"|"f64"|"f128" { return ProcessToken("Type", TYPE, TokenType::Type, 0); }
+"string"              { return ProcessToken("Type", TYPE, TokenType::Type, 0); }
 
 "auto"     { return ProcessToken("auto",   AUTO, TokenType::Auto, 0); }
 "func"     { return ProcessToken("func",   FUNC, TokenType::Func, 0); }

@@ -168,12 +168,13 @@ void VarDec::getErrors(std::vector<std::string>* error_list) {
   if (symbol->type == SymType::Error) {
     if (symbol->errorType == ErrorType::None) {
       _type->getErrors(error_list);
-      std::cout << "here" << std::endl;
       if (_expr) _expr->getErrors(error_list);
     } else {
       std::stringstream ss;
       ss << "Error [ " << _id->linenum << ", " << _id->colnum << " ]: " << ErrorString(symbol->errorType) << std::endl;
       ss << "\t" << symbol->name << std::endl;
+      ss << "\t" << "Left-Hand Side: " << _type->symbol->toString() << std::endl;
+      ss << "\t" << "Right-Hand Side: " << (_expr ? _expr->symbol->toString() : "There was no right-hand side :(") << std::endl;
       error_list->push_back(ss.str());
     }
   }
@@ -383,7 +384,7 @@ void ArrayAccess::getErrors(std::vector<std::string>* error_list) {
 void Call::getErrors(std::vector<std::string>* error_list) {
   //TODO
   std::stringstream ss;
-  ss << "Error ~ [ " << "linenum" << ", " << "colnum" << " ]: " << ErrorString(symbol->errorType) << std::endl;
+  ss << "Error [ " << "linenum" << ", " << "colnum" << " ]: " << ErrorString(symbol->errorType) << std::endl;
   ss << "\t" << symbol->name << std::endl;
   error_list->push_back(ss.str());
 }
@@ -391,7 +392,7 @@ void Call::getErrors(std::vector<std::string>* error_list) {
 void Assignment::getErrors(std::vector<std::string>* error_list) {
   //TODO
   std::stringstream ss;
-  ss << "Error ~ [ " << "linenum" << ", " << "colnum" << " ]: " << ErrorString(symbol->errorType) << std::endl;
+  ss << "Error [ " << "linenum" << ", " << "colnum" << " ]: " << ErrorString(symbol->errorType) << std::endl;
   ss << "\t" << symbol->name << std::endl;
   error_list->push_back(ss.str());
 }
@@ -403,8 +404,11 @@ void BinaryExpr::getErrors(std::vector<std::string>* error_list) {
       _right->getErrors(error_list);
     } else {
       std::stringstream ss;
-      ss << "Error [ " << "linenum" << ", " << "colnum" << " ]: " << ErrorString(symbol->errorType) << std::endl;
+      ss << "Error [ " << _op->linenum << ", " << _op->colnum << " ]: " << ErrorString(symbol->errorType) << std::endl;
       ss << "\t" << symbol->name << std::endl;
+      ss << "\t" << "Operator: " << _op->lexeme.string_lex << std::endl;
+      ss << "\t" << "Left-Hand Side: " << _left->symbol->toString() << std::endl;
+      ss << "\t" << "Right-Hand Side: " << _right->symbol->toString() << std::endl;
       error_list->push_back(ss.str());
     }
   }
