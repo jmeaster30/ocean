@@ -1,0 +1,31 @@
+isEven: func = (x: i64) -> (result: bool = x % 2 == 0)
+
+isEmpty: func = (x: string) -> (result: bool = x == "")
+
+collatz: func = (input: i64) -> (path: i64[]) {
+  loop input != 1 {
+    path.append(input)
+    if !input.isEven() {
+      input = input / 2
+    } else {
+      input = 3 * input + 1
+    }
+  }
+}
+
+while true {
+  print("Input a number: ")
+  userinput: string = input()
+  if !userinput.isEmpty() {
+    parsed: auto = userInput.parsei64   # the type here is optional i64
+    if parsed.has_value() {
+      result: auto = parsed.collatz()
+      println(result.size())
+      println(result)
+      break
+    }
+    println(`{userinput} is not an integer`)
+  } else {
+    println("not a number")
+  }
+}

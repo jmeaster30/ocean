@@ -1,14 +1,7 @@
 .vscode/*
-CMakeFiles/*
-*/CMakeFiles/*
-*.cmake
-*/Makefile
-Makefile
-CMakeCache.txt
 
-ocean
-src/ocean.tab.cpp
-src/ocean.tab.hpp
-src/lex.yy.cpp
+scratch/*
 
-*/*.output
+# Added by cargo
+
+/target
