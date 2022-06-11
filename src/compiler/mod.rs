@@ -1,45 +1,53 @@
+pub mod errors;
 pub mod lexer;
 pub mod parser;
-pub mod errors;
 
-use self::lexer::*;
 use self::errors::*;
+use self::lexer::*;
+use self::parser::ast::*;
 
 pub struct CompilationUnit {
   filename: String,
   file_content: String,
   //subunits: Vec<CompilationUnit>,
   tokens: TokenStack,
-  // ast
+  ast: Option<Program>,
   // symbol table
   errors: Vec<OceanError>,
 }
 
 impl CompilationUnit {
   pub fn new(filename: String, file_content: String) -> CompilationUnit {
-    CompilationUnit { 
-      filename, 
-      file_content, 
-      tokens: TokenStack::new(), 
-      errors: Vec::new()
+    CompilationUnit {
+      filename,
+      file_content,
+      tokens: TokenStack::new(),
+      ast: None,
+      errors: Vec::new(),
     }
   }
 
   pub fn compile(&mut self) {
     println!("{}", self.filename);
     // Lexical pass
-    (self.tokens, self.errors) = lex(self.file_content.clone());
+    let (tokens, mut lexical_errors) = lex(self.file_content.clone());
+    self.tokens = tokens;
+    self.errors.append(&mut lexical_errors);
+
+    for token in self.tokens.iter() {
+      token.print();
+      println!("");
+    }
+
     if !self.errors.is_empty() {
       self.print_errors();
-      return;
     }
 
     // Parser pass
     //(self.ast, self.errors) = parse(self.tokens);
-    if !self.errors.is_empty() {
-      self.print_errors();
-      return;
-    }
+    //if !self.errors.is_empty() {
+    //  self.print_errors();
+    //}
 
     // extra passes
     println!("Good :)");
@@ -48,6 +56,7 @@ impl CompilationUnit {
   pub fn print_errors(&self) {
     for error in &self.errors {
       display_error(self, error);
+      println!();
     }
   }
 }

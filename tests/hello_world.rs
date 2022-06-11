@@ -1,4 +1,4 @@
-pub use ocean::compiler::{compile};
+pub use ocean::compiler::compile;
 
 #[test]
 pub fn hello_world_test() {

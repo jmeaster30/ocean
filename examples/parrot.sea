@@ -1,0 +1,9 @@
+use std.io
+
+loop {
+  user_input: auto = readinput("> ")
+  match user_input {
+    value("quit") { break      }
+    value(x)      { println(x) }
+    null          { println()  }
+}

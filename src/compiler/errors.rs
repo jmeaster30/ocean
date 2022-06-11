@@ -1,5 +1,12 @@
-use crate::compiler::CompilationUnit;
 use super::lexer::Token;
+use super::parser::ast::ErrorStatement;
+use super::parser::span::Spanned;
+use crate::compiler::CompilationUnit;
+
+/*
+    this was taken from the SerentiyOS/jakt repo and
+    modified slightly to work how I wanted it to.
+*/
 
 #[derive(Debug)]
 pub enum Severity {
@@ -19,36 +26,53 @@ impl Severity {
 
   pub fn ansi_color_code(&self) -> String {
     match self {
-      Severity::Hint => "94".to_string(),  // Bright Blue
+      Severity::Hint => "94".to_string(),    // Bright Blue
       Severity::Warning => "33".to_string(), // Yellow
-      Severity::Error => "31".to_string(), // Red
+      Severity::Error => "31".to_string(),   // Red
     }
   }
 }
 
 pub enum OceanError {
   LexError(Severity, Token, String),
-  ParseError(Severity, String),
+  ParseError(ErrorStatement),
 }
 
-pub fn display_error (compilation_unit: &CompilationUnit, error: &OceanError) {
+pub fn display_error(compilation_unit: &CompilationUnit, error: &OceanError) {
   match error {
-    OceanError::LexError(severity, token, message) => {
-      display_message(severity, message.to_string(), token.start, token.end, compilation_unit)
-    }
-    OceanError::ParseError(severity, message) => {
-      println!("Parse error :(")
+    OceanError::LexError(severity, token, message) => display_message(
+      severity,
+      message.to_string(),
+      token.start,
+      token.end,
+      compilation_unit,
+    ),
+    OceanError::ParseError(error) => {
+      let (start_offset, end_offset) = error.get_span();
+      display_message(
+        &error.severity,
+        error.message.to_string(),
+        start_offset,
+        end_offset,
+        compilation_unit,
+      )
     }
   }
 }
 
-pub fn display_message (
+pub fn display_message(
   severity: &Severity,
   message: String,
-  start_offset: usize, end_offset: usize,
-  compilation_unit: &CompilationUnit
+  start_offset: usize,
+  end_offset: usize,
+  compilation_unit: &CompilationUnit,
 ) {
-  println!("{}: {}", severity.name(), message);
+  println!(
+    "\u{001b}[{};1m{}: \u{001b}[95;1m{}\u{001b}[0m",
+    severity.ansi_color_code(),
+    severity.name(),
+    message
+  );
 
   let file_contents = compilation_unit.file_content.as_bytes();
   let file_name = &compilation_unit.filename;
@@ -64,13 +88,14 @@ pub fn display_message (
     if start_offset >= line_spans[line_index].0 && start_offset <= line_spans[line_index].1 {
       let column_index = start_offset - line_spans[line_index].0;
       println!(
-        "{} \u{001b}[{}m{}:{}:{}\u{001b}[0m",
-        "-".repeat(width + 3),
+        "{}+----[\u{001b}[{}m{}:{}:{}\u{001b}[0m]----",
+        " ".repeat(width + 2),
         severity.ansi_color_code(),
         file_name,
         line_index + 1,
         column_index + 1
       );
+      println!("{}|", " ".repeat(width + 2));
       if line_index > 0 {
         print_source_line(
           &severity,
@@ -93,14 +118,11 @@ pub fn display_message (
       );
 
       print!(
-        "{}",
-        " ".repeat(start_offset - line_spans[line_index].0 + width + 4)
+        "{}|{}",
+        " ".repeat(width + 2),
+        " ".repeat(start_offset - line_spans[line_index].0 + 1)
       );
-      println!(
-        "\u{001b}[{}m^- {}\u{001b}[0m",
-        severity.ansi_color_code(),
-        message
-      );
+      println!("\u{001b}[{}m^- {}\u{001b}[0m", "96", message);
 
       while line_index < line_spans.len() && end_offset > line_spans[line_index].0 {
         line_index += 1;
@@ -124,7 +146,11 @@ pub fn display_message (
     }
   }
 
-  println!("\u{001b}[0m{}", "-".repeat(width + 3));
+  println!(
+    "\u{001b}[0m{}+-----{}-----",
+    " ".repeat(width + 2),
+    "-".repeat(compilation_unit.filename.len() + 4)
+  );
 }
 
 fn print_source_line(
@@ -155,13 +181,17 @@ fn print_source_line(
       || (start_offset == end_offset && index == start_offset)
     {
       // In the error span
-      print!("\u{001b}[{}m{}", severity.ansi_color_code(), c as char)
+      print!(
+        "\u{001b}[{}m{}\u{001b}[0m",
+        severity.ansi_color_code(),
+        c as char
+      )
     } else {
-      print!("\u{001b}[0m{}", c as char)
+      print!("{}", c as char)
     }
     index += 1;
   }
-  
+
   println!();
 }
 

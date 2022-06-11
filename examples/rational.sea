@@ -3,7 +3,7 @@ gcd: func = (a: i64, b: i64) -> (result: i64) {
   # If B=0 then GCD(a,b)=a since the Greatest Common Divisor of 0 and a is a.
   # Let R be the remainder of dividing A by B assuming A > B. (R = A % B)
   # Find GCD( B, R ) because GCD( A, B ) = GCD( B, R ). Use the above steps again.
-
+  
   loop a != 0 || b != 0 {
     new_a: i64 = b
     new_b: i64 = a % b
