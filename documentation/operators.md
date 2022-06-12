@@ -4,9 +4,9 @@
 | Symbols                        | Name           | Precedence | Associativity |
 |:------------------------------:|:--------------:|:----------:|:-------------:|
 | `()`                           | subexpression  | 0          | Left          |
-| `as`                           | cast           | 1          | Left          |
-| `.`, `[]`                      | access         | 2          | Left          |
-| `()`                           | call           | 3          | Left          |
+| `.`, `[]`                      | access         | 1          | Left          |
+| `()`                           | call           | 2          | Left          |
+| `as`                           | cast           | 3          | Left          |
 | `?`                            | postfix        | 4          | Right         |
 | `~`, `!`, `-`                  | prefix         | 5          | Right         |
 | `??`                           | default        | 6          | Left          |

@@ -9,11 +9,13 @@ doubled: i32[] = array >.* 2
 println(doubled)
 
 sum: func = (input: (auto T)[]) -> (result: T) {
-  result = 0;
+  result = 0
   for val in input {
     result += val
   }
 }
+
+total: auto = array.sum()
 
 # get number of odd numbers in array
 odd_count: auto = array >.% 2 >. sum

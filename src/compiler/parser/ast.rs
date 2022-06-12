@@ -764,11 +764,11 @@ impl OptionalType {
 }
 
 pub struct ParameterList {
-  pub params: Vec<Parameter>,
+  pub params: Vec<(Parameter, Option<Token>)>,
 }
 
 impl ParameterList {
-  pub fn new(params: Vec<Parameter>) -> Self {
+  pub fn new(params: Vec<(Parameter, Option<Token>)>) -> Self {
     Self { params }
   }
 }
@@ -776,29 +776,26 @@ impl ParameterList {
 pub struct Parameter {
   pub type_var: Option<TypeVar>,
   pub var_arg_token: Option<Token>,
-  pub comma: Option<Token>,
 }
 
 impl Parameter {
   pub fn new(
     type_var: Option<TypeVar>,
     var_arg_token: Option<Token>,
-    comma: Option<Token>,
   ) -> Self {
     Self {
       type_var,
       var_arg_token,
-      comma,
     }
   }
 }
 
 pub struct ReturnList {
-  pub returns: Vec<ReturnEntry>,
+  pub returns: Vec<(ReturnEntry, Option<Token>)>,
 }
 
 impl ReturnList {
-  pub fn new(returns: Vec<ReturnEntry>) -> Self {
+  pub fn new(returns: Vec<(ReturnEntry, Option<Token>)>) -> Self {
     Self { returns }
   }
 }
@@ -807,7 +804,6 @@ pub struct ReturnEntry {
   pub type_var: TypeVar,
   pub assignment: Option<Token>,
   pub expression: Option<Box<Expression>>,
-  pub comma: Option<Token>,
 }
 
 impl ReturnEntry {
@@ -815,13 +811,11 @@ impl ReturnEntry {
     type_var: TypeVar,
     assignment: Option<Token>,
     expression: Option<Box<Expression>>,
-    comma: Option<Token>,
   ) -> Self {
     Self {
       type_var,
       assignment,
       expression,
-      comma,
     }
   }
 }

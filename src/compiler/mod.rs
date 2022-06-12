@@ -5,6 +5,7 @@ pub mod parser;
 use self::errors::*;
 use self::lexer::*;
 use self::parser::ast::*;
+use self::parser::*;
 
 pub struct CompilationUnit {
   filename: String,
@@ -39,15 +40,14 @@ impl CompilationUnit {
       println!("");
     }
 
+    // Parser pass
+    let (ast, mut parse_errors) = parse(&mut self.tokens);
+    self.ast = ast;
+    self.errors.append(&mut parse_errors);
+
     if !self.errors.is_empty() {
       self.print_errors();
     }
-
-    // Parser pass
-    //(self.ast, self.errors) = parse(self.tokens);
-    //if !self.errors.is_empty() {
-    //  self.print_errors();
-    //}
 
     // extra passes
     println!("Good :)");
