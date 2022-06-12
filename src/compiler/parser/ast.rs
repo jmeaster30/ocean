@@ -169,9 +169,9 @@ impl EnumDeclaration {
 }
 
 pub struct EnumStorage {
-  left_paren: Token,
-  type_list: Vec<(Type, Option<Token>)>,
-  right_paren: Token,
+  pub left_paren: Token,
+  pub type_list: Vec<(Type, Option<Token>)>,
+  pub right_paren: Token,
 }
 
 impl EnumStorage {
@@ -275,8 +275,11 @@ pub struct IfStatement {
   pub condition: Expression,
   pub left_curly: Token,
   pub true_body: Vec<Statement>,
+  pub right_curly: Token,
   pub else_token: Option<Token>,
+  pub else_left_curly: Option<Token>,
   pub else_body: Vec<Statement>,
+  pub else_right_curly: Option<Token>,
 }
 
 impl IfStatement {
@@ -285,16 +288,22 @@ impl IfStatement {
     condition: Expression,
     left_curly: Token,
     true_body: Vec<Statement>,
+    right_curly: Token,
     else_token: Option<Token>,
+    else_left_curly: Option<Token>,
     else_body: Vec<Statement>,
+    else_right_curly: Option<Token>,
   ) -> Self {
     Self {
       if_token,
       condition,
       left_curly,
       true_body,
+      right_curly,
       else_token,
+      else_left_curly,
       else_body,
+      else_right_curly,
     }
   }
 }
