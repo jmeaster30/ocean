@@ -1,20 +1,17 @@
 pub mod errors;
 pub mod lexer;
 pub mod parser;
+pub mod passes;
 
 use self::errors::*;
 use self::lexer::*;
-use self::parser::ast::*;
-use self::parser::*;
+use self::passes::*;
 
 pub struct CompilationUnit {
   filename: String,
   file_content: String,
-  //subunits: Vec<CompilationUnit>,
-  tokens: TokenStack,
-  ast: Option<Program>,
-  // symbol table
-  errors: Vec<OceanError>,
+  dependencies: Vec<CompilationUnit>,
+  passes: Vec<Pass>,
 }
 
 impl CompilationUnit {
@@ -22,41 +19,59 @@ impl CompilationUnit {
     CompilationUnit {
       filename,
       file_content,
-      tokens: TokenStack::new(),
-      ast: None,
-      errors: Vec::new(),
+      dependencies: Vec::new(),
+      passes: Vec::new(),
     }
   }
 
   pub fn compile(&mut self) {
     println!("{}", self.filename);
-    // Lexical pass
-    let (tokens, mut lexical_errors) = lex(self.file_content.clone());
-    self.tokens = tokens;
-    self.errors.append(&mut lexical_errors);
 
-    for token in self.tokens.iter() {
-      token.print();
-      println!("");
+    let pass_list: Vec<(fn(&CompilationUnit) -> Pass, fn(&Pass) -> bool)> = vec![
+      (lexer_pass, |pass| {
+        println!("lex check");
+        match pass {
+          Pass::Lexer(tokens, _) => !tokens.is_empty(),
+          _ => false,
+        }
+      }),
+      (parser_pass, |pass| {
+        println!("parse check");
+        match pass {
+          Pass::Parser(Some(ast), _) => {
+            println!("{}", ast);
+            true
+          },
+          _ => false,
+        }
+      }),
+    ];
+
+    for (pass, success) in pass_list {
+      let pass_result = pass(&self);
+      if !success(&pass_result) {
+        self.passes.push(pass_result);
+        println!("fail");
+        break;
+      }
+      self.passes.push(pass_result);
     }
 
-    // Parser pass
-    let (ast, mut parse_errors) = parse(&mut self.tokens);
-    self.ast = ast;
-    self.errors.append(&mut parse_errors);
+    self.print_errors();
 
-    if !self.errors.is_empty() {
-      self.print_errors();
-    }
-
-    // extra passes
     println!("Good :)");
   }
 
   pub fn print_errors(&self) {
-    for error in &self.errors {
-      display_error(self, error);
-      println!();
+    for pass in &self.passes {
+      match pass {
+        Pass::Lexer(_, errors) | Pass::Parser(_, errors) => {
+          for error in errors {
+            display_error(self, &error)
+          }
+        }
+        _ => {}
+      }
     }
   }
 }

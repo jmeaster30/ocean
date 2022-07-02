@@ -1,4 +1,5 @@
 use super::errors::*;
+use std::fmt;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum TokenType {
@@ -25,6 +26,7 @@ pub enum TokenType {
   Arrow,
   Underscore,
   SemiColon,
+  Newline,
 }
 
 #[derive(Clone)]
@@ -44,75 +46,24 @@ impl Token {
       end,
     }
   }
+}
 
-  pub fn print(&self) {
-    print!(
+impl fmt::Display for Token {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    write!(
+      f,
       "<[{:?}] '{}' {} {}>",
       self.token_type, self.lexeme, self.start, self.end
-    );
+    )
   }
 }
 
-pub struct TokenStack {
-  token_vec: Vec<Token>,
-  index: usize,
-}
-
-impl TokenStack {
-  pub fn push(&mut self, token: Token) {
-    self.token_vec.push(token);
-  }
-
-  pub fn peek(&self) -> Token {
-    if self.index >= self.token_vec.len() {
-      Token::new(
-        TokenType::EndOfInput,
-        "EOI".to_string(),
-        usize::MAX,
-        usize::MAX,
-      )
-    } else {
-      self.token_vec[self.index].clone()
-    }
-  }
-
-  pub fn consume(&mut self) -> Token {
-    let t = if self.index >= self.token_vec.len() {
-      Token::new(
-        TokenType::EndOfInput,
-        "EOI".to_string(),
-        usize::MAX,
-        usize::MAX,
-      )
-    } else {
-      self.token_vec[self.index].clone()
-    };
-    self.index += 1;
-    t
-  }
-
-  pub fn is_empty(&self) -> bool {
-    self.token_vec.len() == self.index
-  }
-
-  pub fn iter(&self) -> Vec<Token> {
-    self.token_vec[self.index..self.token_vec.len()].to_vec()
-  }
-
-  pub fn new() -> TokenStack {
-    TokenStack {
-      token_vec: Vec::new(),
-      index: 0,
-    }
-  }
-}
-
-pub fn lex(input: String) -> (TokenStack, Vec<OceanError>) {
+pub fn lex(input: String) -> (Vec<Token>, Vec<OceanError>) {
   let input_length = input.len();
   let input_chars: Vec<_> = input.chars().collect(); // I understand both chars and this collect is not great but I am learning :)
   let mut lexeme = String::new(); //we probably don't need this here :/
   let mut index = 0;
-  let mut tokens = TokenStack::new();
+  let mut tokens = Vec::new();
   let mut errors = Vec::new();
   while index < input_length {
     let start_index = index;
@@ -214,7 +165,6 @@ pub fn lex(input: String) -> (TokenStack, Vec<OceanError>) {
             '\'' => {
               if delim == '\'' {
                 found_end = true;
-                index += 1;
                 break;
               } else {
                 lexeme.push_str(&n.to_string())
@@ -223,7 +173,6 @@ pub fn lex(input: String) -> (TokenStack, Vec<OceanError>) {
             '\"' => {
               if delim == '\"' {
                 found_end = true;
-                index += 1;
                 break;
               } else {
                 lexeme.push_str(&n.to_string())
@@ -232,7 +181,6 @@ pub fn lex(input: String) -> (TokenStack, Vec<OceanError>) {
             '`' => {
               if delim == '`' {
                 found_end = true;
-                index += 1;
                 break;
               } else {
                 lexeme.push_str(&n.to_string())
@@ -296,7 +244,7 @@ pub fn lex(input: String) -> (TokenStack, Vec<OceanError>) {
         //tokens.push(Token::new(TokenType::Comment, lexeme.clone(), start_index, index));
         lexeme.clear();
       }
-      '@' => {
+      /*'@' => {
         index += 1;
         let multiline = input_chars[index] == '@';
         let mut found_end = false;
@@ -344,13 +292,13 @@ pub fn lex(input: String) -> (TokenStack, Vec<OceanError>) {
         }
 
         lexeme.clear();
-      }
+      }*/
       ':' | '>' | '<' | '?' | '.' | '/' | ';' | '~' | '!' | '$' | '%' | '&' | '^' | '*' | '-'
       | '+' | '=' | '|' | '\\' | ',' => {
         let symbol_size = 5;
         let start = index;
         lexeme.push_str(&c.to_string());
-        while index < start + symbol_size - 1 && index < input_length {
+        while index < start + symbol_size - 1 && index < input_length - 1 {
           index += 1;
           let n = input_chars[index];
           match n {
@@ -385,6 +333,12 @@ pub fn lex(input: String) -> (TokenStack, Vec<OceanError>) {
           )),
           ";" => tokens.push(Token::new(
             TokenType::SemiColon,
+            lexeme.clone(),
+            start_index,
+            index,
+          )),
+          "." => tokens.push(Token::new(
+            TokenType::Dot,
             lexeme.clone(),
             start_index,
             index,
@@ -435,7 +389,13 @@ pub fn lex(input: String) -> (TokenStack, Vec<OceanError>) {
         start_index,
         index,
       )),
-      ' ' | '\t' | '\r' | '\n' => {}
+      '\n' => tokens.push(Token::new(
+        TokenType::Newline,
+        "\n".to_string(),
+        start_index,
+        index,
+      )),
+      ' ' | '\t' | '\r' => {}
       _ => errors.push(OceanError::LexError(
         Severity::Error,
         Token::new(TokenType::Error, c.to_string(), start_index, index),
@@ -444,5 +404,11 @@ pub fn lex(input: String) -> (TokenStack, Vec<OceanError>) {
     }
     index += 1;
   }
+  tokens.push(Token::new(
+    TokenType::EndOfInput,
+    "".to_string(),
+    index,
+    index,
+  ));
   (tokens, errors)
 }

@@ -8,7 +8,7 @@ use crate::compiler::CompilationUnit;
     modified slightly to work how I wanted it to.
 */
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum Severity {
   Hint,
   Warning,
@@ -34,12 +34,16 @@ impl Severity {
 }
 
 pub enum OceanError {
+  Base(Severity, String),
   LexError(Severity, Token, String),
   ParseError(ErrorStatement),
 }
 
 pub fn display_error(compilation_unit: &CompilationUnit, error: &OceanError) {
   match error {
+    OceanError::Base(severity, message) => {
+      display_message(severity, message.to_string(), 0, 0, compilation_unit)
+    }
     OceanError::LexError(severity, token, message) => display_message(
       severity,
       message.to_string(),

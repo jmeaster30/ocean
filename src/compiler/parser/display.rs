@@ -214,11 +214,21 @@ impl fmt::Display for IfStatement {
 
 impl fmt::Display for UseStatement {
   fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-    fmt.write_str("(UseStatement '")?;
+    fmt.write_str("(UseStatement")?;
     for token in &self.id_tokens {
-      fmt.write_str(format!("{}.", token.lexeme).as_str())?;
+      fmt.write_str(format!(" (Id {})", token.lexeme).as_str())?;
     }
-    fmt.write_str("')")?;
+    match &self.as_token {
+      Some(_) => {
+        fmt.write_str(" As")?;
+        match &self.alias_token {
+          Some(id) => fmt.write_str(format!(" (Id {})", id.lexeme).as_str())?,
+          None => {}
+        }
+      }
+      None => {}
+    }
+    fmt.write_str(")")?;
     Ok(())
   }
 }
@@ -317,7 +327,8 @@ impl fmt::Display for BinaryExpression {
 
 impl fmt::Display for PrefixExpression {
   fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-    fmt.write_str(format!("(PrefixExpression '{}' {})", self.operator.lexeme, self.rhs).as_str())?;
+    fmt
+      .write_str(format!("(PrefixExpression '{}' {})", self.operator.lexeme, self.rhs).as_str())?;
     Ok(())
   }
 }
@@ -423,10 +434,13 @@ impl fmt::Display for Type {
 impl fmt::Display for AutoType {
   fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
     fmt.write_str("(AutoType")?;
-    fmt.write_str(match &self.auto_name {
-      Some(x) => format!(" '{}')", x.lexeme),
-      None => ")".to_string(),
-    }.as_str())?;
+    fmt.write_str(
+      match &self.auto_name {
+        Some(x) => format!(" '{}')", x.lexeme),
+        None => ")".to_string(),
+      }
+      .as_str(),
+    )?;
     Ok(())
   }
 }
@@ -505,7 +519,7 @@ impl fmt::Display for Parameter {
       Some(x) => fmt.write_str(format!("(Parameter {})", x).as_str())?,
       None => match &self.var_arg_token {
         Some(x) => fmt.write_str(format!("(Parameter {})", x.lexeme).as_str())?,
-        None => {},
+        None => {}
       },
     };
     Ok(())

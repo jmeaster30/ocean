@@ -1,6 +1,7 @@
 use crate::compiler::errors::Severity;
 use crate::compiler::lexer::Token;
 
+#[derive(Clone)]
 pub struct Program {
   pub statements: Vec<Statement>,
 }
@@ -11,6 +12,7 @@ impl Program {
   }
 }
 
+#[derive(Clone)]
 pub enum Statement {
   Error(ErrorStatement),
   Macro(MacroStatement),
@@ -30,6 +32,7 @@ pub enum Statement {
   Expression(ExpressionStatement),
 }
 
+#[derive(Clone)]
 pub struct MacroStatement {
   pub token: Token,
 }
@@ -40,6 +43,7 @@ impl MacroStatement {
   }
 }
 
+#[derive(Clone)]
 pub struct ErrorStatement {
   pub message: String,
   pub severity: Severity,
@@ -56,6 +60,7 @@ impl ErrorStatement {
   }
 }
 
+#[derive(Clone)]
 pub struct ContinueStatement {
   pub token: Token,
 }
@@ -66,6 +71,7 @@ impl ContinueStatement {
   }
 }
 
+#[derive(Clone)]
 pub struct BreakStatement {
   pub token: Token,
 }
@@ -76,6 +82,7 @@ impl BreakStatement {
   }
 }
 
+#[derive(Clone)]
 pub struct ReturnStatement {
   pub token: Token,
 }
@@ -86,6 +93,7 @@ impl ReturnStatement {
   }
 }
 
+#[derive(Clone)]
 pub struct PackDecStatement {
   pub pack_token: Token,
   pub name_token: Token,
@@ -112,6 +120,7 @@ impl PackDecStatement {
   }
 }
 
+#[derive(Clone)]
 pub struct PackDeclaration {
   pub type_var: TypeVar,
   pub assignment: Option<Token>,
@@ -128,6 +137,7 @@ impl PackDeclaration {
   }
 }
 
+#[derive(Clone)]
 pub struct EnumDecStatement {
   pub enum_token: Token,
   pub name_token: Token,
@@ -154,6 +164,7 @@ impl EnumDecStatement {
   }
 }
 
+#[derive(Clone)]
 pub struct EnumDeclaration {
   pub identifier: Token,
   pub enum_storage: Option<EnumStorage>,
@@ -168,6 +179,7 @@ impl EnumDeclaration {
   }
 }
 
+#[derive(Clone)]
 pub struct EnumStorage {
   pub left_paren: Token,
   pub type_list: Vec<(Type, Option<Token>)>,
@@ -184,6 +196,7 @@ impl EnumStorage {
   }
 }
 
+#[derive(Clone)]
 pub struct VarDecStatement {
   pub type_var: TypeVar,
   pub assignment: Token,
@@ -207,6 +220,7 @@ impl VarDecStatement {
   }
 }
 
+#[derive(Clone)]
 pub struct CastStatement {
   pub cast_token: Token,
   pub function: Function,
@@ -221,6 +235,7 @@ impl CastStatement {
   }
 }
 
+#[derive(Clone)]
 pub struct MatchStatement {
   pub match_token: Token,
   pub match_condition: Expression,
@@ -247,6 +262,7 @@ impl MatchStatement {
   }
 }
 
+#[derive(Clone)]
 pub struct MatchEntry {
   pub match_expression: Expression,
   pub left_curly: Token,
@@ -270,6 +286,7 @@ impl MatchEntry {
   }
 }
 
+#[derive(Clone)]
 pub struct IfStatement {
   pub if_token: Token,
   pub condition: Expression,
@@ -308,20 +325,26 @@ impl IfStatement {
   }
 }
 
+#[derive(Clone)]
 pub struct UseStatement {
   pub use_token: Token,
   pub id_tokens: Vec<Token>,
+  pub as_token: Option<Token>,
+  pub alias_token: Option<Token>
 }
 
 impl UseStatement {
-  pub fn new(use_token: Token, id_tokens: Vec<Token>) -> Self {
+  pub fn new(use_token: Token, id_tokens: Vec<Token>, as_token: Option<Token>, alias_token: Option<Token>) -> Self {
     Self {
       use_token,
       id_tokens,
+      as_token,
+      alias_token
     }
   }
 }
 
+#[derive(Clone)]
 pub struct ForLoopStatement {
   pub loop_token: Token,
   pub iterator: Token,
@@ -354,6 +377,7 @@ impl ForLoopStatement {
   }
 }
 
+#[derive(Clone)]
 pub struct WhileStatement {
   pub loop_token: Token,
   pub condition: Expression,
@@ -380,6 +404,7 @@ impl WhileStatement {
   }
 }
 
+#[derive(Clone)]
 pub struct InfiniteLoopStatement {
   pub loop_token: Token,
   pub left_curly: Token,
@@ -403,6 +428,7 @@ impl InfiniteLoopStatement {
   }
 }
 
+#[derive(Clone)]
 pub struct ExpressionStatement {
   pub expression: Expression,
 }
@@ -413,6 +439,7 @@ impl ExpressionStatement {
   }
 }
 
+#[derive(Clone)]
 pub struct Function {
   pub param_left_paren: Token,
   pub param_list: ParameterList,
@@ -454,6 +481,7 @@ impl Function {
   }
 }
 
+#[derive(Clone)]
 pub enum Expression {
   Binary(BinaryExpression),
   Prefix(PrefixExpression),
@@ -466,6 +494,7 @@ pub enum Expression {
   FunctionCall(FunctionCall),
 }
 
+#[derive(Clone)]
 pub struct BinaryExpression {
   pub lhs: Box<Expression>,
   pub operator: Token,
@@ -478,6 +507,7 @@ impl BinaryExpression {
   }
 }
 
+#[derive(Clone)]
 pub struct PrefixExpression {
   pub operator: Token,
   pub rhs: Box<Expression>,
@@ -489,6 +519,7 @@ impl PrefixExpression {
   }
 }
 
+#[derive(Clone)]
 pub struct PostfixExpression {
   pub lhs: Box<Expression>,
   pub operator: Token,
@@ -500,6 +531,7 @@ impl PostfixExpression {
   }
 }
 
+#[derive(Clone)]
 pub struct MemberAccess {
   pub lhs: Box<Expression>,
   pub dot: Token,
@@ -512,6 +544,7 @@ impl MemberAccess {
   }
 }
 
+#[derive(Clone)]
 pub struct ArrayAccess {
   pub lhs: Box<Expression>,
   pub left_square: Token,
@@ -535,6 +568,7 @@ impl ArrayAccess {
   }
 }
 
+#[derive(Clone)]
 pub struct CastExpression {
   pub lhs: Box<Expression>,
   pub as_token: Token,
@@ -551,6 +585,7 @@ impl CastExpression {
   }
 }
 
+#[derive(Clone)]
 pub struct FunctionCall {
   pub target: Box<Expression>,
   pub left_paren: Token,
@@ -574,6 +609,7 @@ impl FunctionCall {
   }
 }
 
+#[derive(Clone)]
 pub enum Literal {
   Boolean(Token),
   Number(Token),
@@ -581,6 +617,7 @@ pub enum Literal {
   Array(ArrayLiteral),
 }
 
+#[derive(Clone)]
 pub struct ArrayLiteral {
   pub left_square: Token,
   pub args: Vec<(Box<Expression>, Option<Token>)>,
@@ -601,6 +638,7 @@ impl ArrayLiteral {
   }
 }
 
+#[derive(Clone)]
 pub struct TypeVar {
   pub var: Var,
   pub colon: Token,
@@ -617,6 +655,7 @@ impl TypeVar {
   }
 }
 
+#[derive(Clone)]
 pub struct Var {
   pub id: Token,
 }
@@ -627,6 +666,7 @@ impl Var {
   }
 }
 
+#[derive(Clone)]
 pub enum Type {
   Auto(AutoType),
   Comp(CompType),
@@ -638,6 +678,7 @@ pub enum Type {
   Optional(OptionalType),
 }
 
+#[derive(Clone)]
 pub struct AutoType {
   pub auto_token: Token,
   pub auto_name: Option<Token>,
@@ -652,6 +693,7 @@ impl AutoType {
   }
 }
 
+#[derive(Clone)]
 pub struct CompType {
   pub comp_token: Token,
   pub sub_type: Box<Type>,
@@ -666,6 +708,7 @@ impl CompType {
   }
 }
 
+#[derive(Clone)]
 pub struct SubType {
   pub left_paren: Token,
   pub sub_type: Box<Type>,
@@ -682,6 +725,7 @@ impl SubType {
   }
 }
 
+#[derive(Clone)]
 pub struct FuncType {
   pub func_token: Token,
   pub left_paren: Option<Token>,
@@ -711,6 +755,7 @@ impl FuncType {
   }
 }
 
+#[derive(Clone)]
 pub struct BaseType {
   pub base_token: Token,
 }
@@ -721,6 +766,7 @@ impl BaseType {
   }
 }
 
+#[derive(Clone)]
 pub struct LazyType {
   pub lazy_token: Token,
   pub sub_type: Box<Type>,
@@ -735,6 +781,7 @@ impl LazyType {
   }
 }
 
+#[derive(Clone)]
 pub struct RefType {
   pub ref_token: Token,
   pub sub_type: Box<Type>,
@@ -749,6 +796,7 @@ impl RefType {
   }
 }
 
+#[derive(Clone)]
 pub struct OptionalType {
   pub optional_token: Token,
   pub sub_type: Box<Type>,
@@ -763,6 +811,7 @@ impl OptionalType {
   }
 }
 
+#[derive(Clone)]
 pub struct ParameterList {
   pub params: Vec<(Parameter, Option<Token>)>,
 }
@@ -773,16 +822,14 @@ impl ParameterList {
   }
 }
 
+#[derive(Clone)]
 pub struct Parameter {
   pub type_var: Option<TypeVar>,
   pub var_arg_token: Option<Token>,
 }
 
 impl Parameter {
-  pub fn new(
-    type_var: Option<TypeVar>,
-    var_arg_token: Option<Token>,
-  ) -> Self {
+  pub fn new(type_var: Option<TypeVar>, var_arg_token: Option<Token>) -> Self {
     Self {
       type_var,
       var_arg_token,
@@ -790,6 +837,7 @@ impl Parameter {
   }
 }
 
+#[derive(Clone)]
 pub struct ReturnList {
   pub returns: Vec<(ReturnEntry, Option<Token>)>,
 }
@@ -800,6 +848,7 @@ impl ReturnList {
   }
 }
 
+#[derive(Clone)]
 pub struct ReturnEntry {
   pub type_var: TypeVar,
   pub assignment: Option<Token>,

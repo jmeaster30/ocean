@@ -174,10 +174,13 @@ impl Spanned for UseStatement {
     if self.id_tokens.is_empty() {
       return (self.use_token.start, self.use_token.end);
     }
-    (
-      self.use_token.start,
-      self.id_tokens[self.id_tokens.len() - 1].end,
-    )
+    match &self.alias_token {
+      Some(x) => (self.use_token.start, x.end),
+      None => (
+        self.use_token.start,
+        self.id_tokens[self.id_tokens.len() - 1].end,
+      )
+    }
   }
 }
 
