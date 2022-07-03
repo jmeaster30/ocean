@@ -116,18 +116,18 @@ impl Spanned for EnumStorage {
 
 impl Spanned for VarDecStatement {
   fn get_span(&self) -> (usize, usize) {
-    let (type_var_start, _) = self.type_var.get_span();
+    let let_start = self.let_token.start;
     match &self.expression {
       Some(x) => {
         let (_, expr_end) = x.get_span();
-        (type_var_start, expr_end)
+        (let_start, expr_end)
       }
       None => match &self.function {
         Some(x) => {
           let (_, func_end) = x.get_span();
-          (type_var_start, func_end)
+          (let_start, func_end)
         }
-        None => (type_var_start, self.assignment.end),
+        None => (let_start, self.assignment.end),
       },
     }
   }
@@ -179,7 +179,7 @@ impl Spanned for UseStatement {
       None => (
         self.use_token.start,
         self.id_tokens[self.id_tokens.len() - 1].end,
-      )
+      ),
     }
   }
 }
@@ -291,13 +291,29 @@ impl Spanned for Literal {
       Literal::Number(x) => (x.start, x.end),
       Literal::String(x) => (x.start, x.end),
       Literal::Array(x) => x.get_span(),
+      Literal::Tuple(x) => x.get_span(),
     }
+  }
+}
+
+impl Spanned for Tuple {
+  fn get_span(&self) -> (usize, usize) {
+    (self.left_paren.start, self.right_paren.end)
   }
 }
 
 impl Spanned for ArrayLiteral {
   fn get_span(&self) -> (usize, usize) {
     (self.left_square.start, self.right_square.end)
+  }
+}
+
+impl Spanned for Var {
+  fn get_span(&self) -> (usize, usize) {
+    match self {
+      Var::Typed(x) => x.get_span(),
+      Var::Untyped(x) => x.get_span(),
+    }
   }
 }
 
@@ -309,7 +325,7 @@ impl Spanned for TypeVar {
   }
 }
 
-impl Spanned for Var {
+impl Spanned for UntypedVar {
   fn get_span(&self) -> (usize, usize) {
     (self.id.start, self.id.end)
   }

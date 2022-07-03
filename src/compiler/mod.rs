@@ -41,7 +41,7 @@ impl CompilationUnit {
           Pass::Parser(Some(ast), _) => {
             println!("{}", ast);
             true
-          },
+          }
           _ => false,
         }
       }),

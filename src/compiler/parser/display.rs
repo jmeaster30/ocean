@@ -144,7 +144,7 @@ impl fmt::Display for VarDecStatement {
     fmt.write_str(
       format!(
         "(VarDecStatement {} '{}'{}{})",
-        self.type_var,
+        self.var,
         self.assignment.lexeme,
         match &self.expression {
           Some(x) => format!(" {}", x),
@@ -385,7 +385,19 @@ impl fmt::Display for Literal {
       Literal::Number(x) => fmt.write_str(format!("(Number '{}')", x.lexeme).as_str())?,
       Literal::String(x) => fmt.write_str(format!("(String '{}')", x.lexeme).as_str())?,
       Literal::Array(x) => x.fmt(fmt)?,
+      Literal::Tuple(x) => x.fmt(fmt)?,
     };
+    Ok(())
+  }
+}
+
+impl fmt::Display for Tuple {
+  fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+    fmt.write_str("(Tuple")?;
+    for (exp, _comma) in &self.contents {
+      fmt.write_str(format!(" {}", exp).as_str())?;
+    }
+    fmt.write_str(")")?;
     Ok(())
   }
 }
@@ -401,6 +413,15 @@ impl fmt::Display for ArrayLiteral {
   }
 }
 
+impl fmt::Display for Var {
+  fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+    match self {
+      Var::Typed(x) => x.fmt(fmt),
+      Var::Untyped(x) => x.fmt(fmt),
+    }
+  }
+}
+
 impl fmt::Display for TypeVar {
   fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
     fmt.write_str(format!("(TypeVar {} {})", self.var, self.var_type).as_str())?;
@@ -408,7 +429,7 @@ impl fmt::Display for TypeVar {
   }
 }
 
-impl fmt::Display for Var {
+impl fmt::Display for UntypedVar {
   fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
     fmt.write_str(format!("(Var {})", self.id.lexeme).as_str())?;
     Ok(())

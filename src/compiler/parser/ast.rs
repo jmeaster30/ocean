@@ -198,7 +198,8 @@ impl EnumStorage {
 
 #[derive(Clone)]
 pub struct VarDecStatement {
-  pub type_var: TypeVar,
+  pub let_token: Token,
+  pub var: Var,
   pub assignment: Token,
   pub expression: Option<Expression>,
   pub function: Option<Function>,
@@ -206,13 +207,15 @@ pub struct VarDecStatement {
 
 impl VarDecStatement {
   pub fn new(
-    type_var: TypeVar,
+    let_token: Token,
+    var: Var,
     assignment: Token,
     expression: Option<Expression>,
     function: Option<Function>,
   ) -> Self {
     Self {
-      type_var,
+      let_token,
+      var,
       assignment,
       expression,
       function,
@@ -330,16 +333,21 @@ pub struct UseStatement {
   pub use_token: Token,
   pub id_tokens: Vec<Token>,
   pub as_token: Option<Token>,
-  pub alias_token: Option<Token>
+  pub alias_token: Option<Token>,
 }
 
 impl UseStatement {
-  pub fn new(use_token: Token, id_tokens: Vec<Token>, as_token: Option<Token>, alias_token: Option<Token>) -> Self {
+  pub fn new(
+    use_token: Token,
+    id_tokens: Vec<Token>,
+    as_token: Option<Token>,
+    alias_token: Option<Token>,
+  ) -> Self {
     Self {
       use_token,
       id_tokens,
       as_token,
-      alias_token
+      alias_token,
     }
   }
 }
@@ -490,7 +498,7 @@ pub enum Expression {
   ArrayAccess(ArrayAccess),
   Cast(CastExpression),
   Literal(Literal),
-  Var(Var),
+  Var(UntypedVar),
   FunctionCall(FunctionCall),
 }
 
@@ -615,6 +623,28 @@ pub enum Literal {
   Number(Token),
   String(Token),
   Array(ArrayLiteral),
+  Tuple(Tuple),
+}
+
+#[derive(Clone)]
+pub struct Tuple {
+  pub left_paren: Token,
+  pub contents: Vec<(Box<Expression>, Option<Token>)>,
+  pub right_paren: Token,
+}
+
+impl Tuple {
+  pub fn new(
+    left_paren: Token,
+    contents: Vec<(Box<Expression>, Option<Token>)>,
+    right_paren: Token,
+  ) -> Self {
+    Self {
+      left_paren,
+      contents,
+      right_paren,
+    }
+  }
 }
 
 #[derive(Clone)]
@@ -639,14 +669,20 @@ impl ArrayLiteral {
 }
 
 #[derive(Clone)]
+pub enum Var {
+  Typed(TypeVar),
+  Untyped(UntypedVar),
+}
+
+#[derive(Clone)]
 pub struct TypeVar {
-  pub var: Var,
+  pub var: UntypedVar,
   pub colon: Token,
   pub var_type: Box<Type>,
 }
 
 impl TypeVar {
-  pub fn new(var: Var, colon: Token, var_type: Box<Type>) -> Self {
+  pub fn new(var: UntypedVar, colon: Token, var_type: Box<Type>) -> Self {
     Self {
       var,
       colon,
@@ -656,11 +692,11 @@ impl TypeVar {
 }
 
 #[derive(Clone)]
-pub struct Var {
+pub struct UntypedVar {
   pub id: Token,
 }
 
-impl Var {
+impl UntypedVar {
   pub fn new(id: Token) -> Self {
     Self { id }
   }
