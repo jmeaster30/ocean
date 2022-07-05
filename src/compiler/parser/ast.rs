@@ -712,6 +712,7 @@ pub enum Type {
   Lazy(LazyType),
   Ref(RefType),
   Optional(OptionalType),
+  Array(ArrayType)
 }
 
 #[derive(Clone)]
@@ -843,6 +844,25 @@ impl OptionalType {
     Self {
       optional_token,
       sub_type,
+    }
+  }
+}
+
+#[derive(Clone)]
+pub struct ArrayType {
+  pub base: Box<Type>,
+  pub left_square: Token,
+  pub sub_type: Box<Option<Type>>,
+  pub right_square: Token,
+}
+
+impl ArrayType {
+  pub fn new(base: Box<Type>, left_square: Token, sub_type: Box<Option<Type>>, right_square: Token) -> Self {
+    Self {
+      base,
+      left_square,
+      sub_type,
+      right_square,
     }
   }
 }

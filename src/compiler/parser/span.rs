@@ -342,6 +342,7 @@ impl Spanned for Type {
       Type::Lazy(x) => x.get_span(),
       Type::Ref(x) => x.get_span(),
       Type::Optional(x) => x.get_span(),
+      Type::Array(x) => x.get_span(),
     }
   }
 }
@@ -401,5 +402,12 @@ impl Spanned for OptionalType {
   fn get_span(&self) -> (usize, usize) {
     let (_, sub_type_end) = (*self.sub_type).get_span();
     (self.optional_token.start, sub_type_end)
+  }
+}
+
+impl Spanned for ArrayType {
+  fn get_span(&self) -> (usize, usize) {
+    let (base_type_start, _) = (*self.base).get_span();
+    (base_type_start, self.right_square.end)
   }
 }

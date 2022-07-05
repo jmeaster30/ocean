@@ -1,10 +1,12 @@
 pub mod ast;
 pub mod display;
 pub mod span;
+pub mod helpers;
 
 use crate::compiler::OceanError;
 use crate::compiler::{Token, TokenType};
 use ast::*;
+use helpers::*;
 
 #[derive(Clone)]
 pub enum AstStackSymbol {
@@ -22,6 +24,7 @@ pub enum AstStackSymbol {
   TypeVar(TypeVar),
   Var(Var),
   Type(Type),
+  OptType(Option<Type>),
   ParamList(ParameterList),
   Param(Parameter),
   ReturnList(ReturnList),
@@ -30,61 +33,23 @@ pub enum AstStackSymbol {
   ExprList(Vec<Expression>),
 }
 
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub enum AstState {
   StmtList,
-  FinishStmt,
-  StartUseIdList,
-  FollowUseIdList,
+  StmtFinalize,
+  UseStmtIdList,
+  UseStmtIdListFollow,
   UseStmtAlias,
-  FinalizeUseStmt,
-  StartPackDecStmtName,
-  StartPackDecStmtBody,
-  StartPackDecEntry,
-  PackDecColon,
-  StartPackDecType,
-  PackDecAutoTypeFollow,
-  PackDecTypeResolveTypeChain,
-  FinalizePackDecEntryTypeVar,
-  PackDecFollow,
-  FinishPackDecEntry,
-}
-
-pub struct AstStack {
-  stack: Vec<AstStackSymbol>,
-}
-
-impl AstStack {
-  fn new() -> Self {
-    AstStack { stack: Vec::new() }
-  }
-
-  fn peek(&self) -> Option<AstStackSymbol> {
-    if self.stack.is_empty() {
-      None
-    } else {
-      Some(self.stack[self.stack.len() - 1].clone())
-    }
-  }
-
-  fn push(&mut self, symbol: AstStackSymbol) {
-    self.stack.push(symbol);
-  }
-
-  fn pop(&mut self) -> Option<AstStackSymbol> {
-    if !self.stack.is_empty() {
-      self.stack.pop()
-    } else {
-      None
-    }
-  }
-
-  fn pop_panic(&mut self) -> Option<AstStackSymbol> {
-    if self.stack.is_empty() {
-      panic!("Ah crap I tried to pop an empty stack :(");
-    }
-    self.stack.pop()
-  }
+  UseStmtFinalize,
+  PackDecName,
+  PackDecStartEntryList,
+  PackDecEntry,
+  PackDecEntryFinalize,
+  PackDecFinalize,
+  TypeVar,
+  TypeVarColon,
+  TypeVarFinalize,
+  Type
 }
 
 
@@ -99,7 +64,7 @@ fn consume_optional_newline(tokens: &Vec<Token>, token_index: usize) -> usize {
 pub fn parse(tokens: &Vec<Token>) -> (Option<Program>, Vec<OceanError>) {
   let mut ast_stack = AstStack::new();
   let mut errors: Vec<OceanError> = Vec::new();
-  let mut state = AstState::StmtList;
+  let mut state_stack = StateStack::new();
   let mut token_index = 0;
   for token in tokens {
     println!("{}", token);
@@ -108,355 +73,226 @@ pub fn parse(tokens: &Vec<Token>) -> (Option<Program>, Vec<OceanError>) {
   println!("Start parse");
 
   ast_stack.push(AstStackSymbol::StmtList(Vec::new()));
+  state_stack.goto(AstState::StmtList);
 
   loop {
     let current_token = &tokens[token_index];
     let stack_top = ast_stack.peek();
+    let state = state_stack.current_state();
     match (state, stack_top, &current_token.token_type) {
-      // PARSE MAIN STATEMENT LIST
-      (AstState::StmtList, Some(AstStackSymbol::StmtList(contents)), TokenType::EndOfInput) => {
+      (Some(AstState::StmtList), Some(AstStackSymbol::StmtList(contents)), TokenType::EndOfInput) => {
         ast_stack.pop();
         ast_stack.push(AstStackSymbol::Program(Program::new(contents.to_vec())));
         break;
       }
-      // FIND STATEMENTS THAT START WITH KEYWORDS
-      (AstState::StmtList, Some(_), TokenType::Keyword) => {
+      (Some(AstState::StmtList), Some(_), TokenType::Keyword) => {
         if current_token.lexeme == "use" {
-          println!("found use!!!");
+          state_stack.push(AstState::UseStmtIdList);
           ast_stack.push(AstStackSymbol::Token(current_token.clone()));
           ast_stack.push(AstStackSymbol::IdList(Vec::new()));
           token_index += 1;
-          state = AstState::StartUseIdList;
-        } else if current_token.lexeme == "break" {
-          ast_stack.push(AstStackSymbol::Stmt(Statement::Break(BreakStatement::new(
-            current_token.clone(),
-          ))));
-          token_index += 1;
-          state = AstState::FinishStmt;
-        } else if current_token.lexeme == "continue" {
-          ast_stack.push(AstStackSymbol::Stmt(Statement::Continue(
-            ContinueStatement::new(current_token.clone()),
-          )));
-          token_index += 1;
-          state = AstState::FinishStmt;
-        } else if current_token.lexeme == "return" {
-          ast_stack.push(AstStackSymbol::Stmt(Statement::Return(
-            ReturnStatement::new(current_token.clone()),
-          )));
-          token_index += 1;
-          state = AstState::FinishStmt;
-        } else if current_token.lexeme == "enum" {
-          panic!("i don't know what an enum is");
         } else if current_token.lexeme == "pack" {
-          println!("Found pack :)");
           ast_stack.push(AstStackSymbol::Token(current_token.clone()));
           token_index += 1;
-          state = AstState::StartPackDecStmtName;
+          state_stack.push(AstState::PackDecName);
+        } else if current_token.lexeme == "break" {
+          ast_stack.push(AstStackSymbol::Stmt(Statement::Break(BreakStatement::new(current_token.clone()))));
+          token_index += 1;
+          state_stack.push(AstState::StmtFinalize);
+        } else if current_token.lexeme == "return" {
+          ast_stack.push(AstStackSymbol::Stmt(Statement::Return(ReturnStatement::new(current_token.clone()))));
+          token_index += 1;
+          state_stack.push(AstState::StmtFinalize);
+        } else if current_token.lexeme == "continue" {
+          ast_stack.push(AstStackSymbol::Stmt(Statement::Continue(ContinueStatement::new(current_token.clone()))));
+          token_index += 1;
+          state_stack.push(AstState::StmtFinalize);
         } else {
-          panic!("I am so scared about this keyword :O");
+          panic!("Unknown keyword {} :(", current_token);
         }
       }
-      // Consume newline tokens until next statement start
-      (AstState::StmtList, Some(_), TokenType::Newline) => token_index += 1,
-      (AstState::StmtList, _, _) => {
-        panic!("Unexpected token {}!!!!! state AstState::StmtList", current_token);
+      (Some(AstState::StmtList), Some(_), TokenType::Newline) => {
+        token_index = consume_optional_newline(tokens, token_index);
       }
-      // CONSUME END OF STATEMENT
-      (AstState::FinishStmt, Some(AstStackSymbol::Stmt(stmt)), TokenType::Newline) => {
+      (Some(AstState::StmtFinalize), Some(AstStackSymbol::Stmt(stmt)), TokenType::EndOfInput) | 
+      (Some(AstState::StmtFinalize), Some(AstStackSymbol::Stmt(stmt)), TokenType::Newline) => {
         ast_stack.pop();
-        match ast_stack.peek() {
-          Some(AstStackSymbol::StmtList(mut stmt_list)) => {
-            ast_stack.pop();
-            stmt_list.push(stmt);
-            ast_stack.push(AstStackSymbol::StmtList(stmt_list));
-            state = AstState::StmtList;
-          }
-          _ => panic!("ah crap when adding statement to statement list"),
-        }
         token_index += 1;
-      }
-      (AstState::FinishStmt, Some(AstStackSymbol::Stmt(stmt)), TokenType::EndOfInput) => {
-        ast_stack.pop();
-        match ast_stack.peek() {
-          Some(AstStackSymbol::StmtList(mut stmt_list)) => {
-            ast_stack.pop();
-            stmt_list.push(stmt);
-            ast_stack.push(AstStackSymbol::StmtList(stmt_list));
-            state = AstState::StmtList;
-          }
-          _ => panic!("ah crap when adding statement to statement list eoi"),
+        let mut stmt_list_sym = ast_stack.pop_panic();
+        match stmt_list_sym {
+          Some(AstStackSymbol::StmtList(mut contents)) => {
+            contents.push(stmt);
+            ast_stack.push(AstStackSymbol::StmtList(contents));
+            state_stack.pop();
+          },
+          _ => panic!("Stmt finalize stack busted"),
         }
       }
-      (AstState::FinishStmt, _, _) => {
-        panic!("Unexpected token {}!!!!! state AstState::FinishStmt", current_token);
-      }
-      // CONSUME IDENTIFIER LIST FOR USE STATEMENT
-      (AstState::StartUseIdList, Some(AstStackSymbol::IdList(mut contents)), TokenType::Identifier) => {
+
+      (Some(AstState::UseStmtIdList), Some(AstStackSymbol::IdList(mut contents)), TokenType::Identifier) => {
         ast_stack.pop();
         contents.push(current_token.clone());
         ast_stack.push(AstStackSymbol::IdList(contents));
+        state_stack.push(AstState::UseStmtIdListFollow);
         token_index += 1;
-        state = AstState::FollowUseIdList;
       }
-      (AstState::StartUseIdList, _, _) => {
-        panic!("Unexpected token {}!!!!! state AstState::StartUseIdList", current_token);
-      }
-      (AstState::FollowUseIdList, Some(AstStackSymbol::IdList(_)), TokenType::Dot) => {
+      (Some(AstState::UseStmtIdList), _, _) => panic!("Unexpected token {}!! expected identifier", current_token),
+      (Some(AstState::UseStmtIdListFollow), Some(AstStackSymbol::IdList(_)), TokenType::Dot) => {
         token_index += 1;
-        state = AstState::StartUseIdList;
+        state_stack.pop();
       }
-      (AstState::FollowUseIdList, Some(AstStackSymbol::IdList(_)), TokenType::Keyword) => {
+      (Some(AstState::UseStmtIdListFollow), Some(AstStackSymbol::IdList(contents)), TokenType::Keyword) => {
         if current_token.lexeme == "as" {
-          println!("found as!!!");
           ast_stack.push(AstStackSymbol::Token(current_token.clone()));
           token_index += 1;
-          state = AstState::UseStmtAlias;
+          state_stack.pop();
+          state_stack.goto(AstState::UseStmtAlias);
         } else {
-          panic!("unexpected keyword, expected 'as'"); // TODO ERROR
-        }
-      }
-      (AstState::FollowUseIdList, Some(AstStackSymbol::IdList(contents)), _) => {
-        ast_stack.pop();
-        match ast_stack.peek() {
-          Some(AstStackSymbol::Token(use_token)) => {
-            ast_stack.pop();
-            ast_stack.push(AstStackSymbol::Stmt(Statement::Use(UseStatement::new(
-              use_token, contents, None, None,
-            ))));
-            state = AstState::FinishStmt;
+          let mut id_list = ast_stack.pop_panic();
+          let mut use_token = ast_stack.pop_panic();
+          match (use_token, id_list) {
+            (Some(AstStackSymbol::Token(ut)), Some(AstStackSymbol::IdList(contents))) => {
+              ast_stack.push(AstStackSymbol::Stmt(Statement::Use(UseStatement::new(ut, contents, None, None))));
+            }
+            _ => panic!("Unexpected stack contents use no alias")
           }
-          _ => panic!("end use stmt next token newline"), // TODO ERROR
+          state_stack.pop();
+          state_stack.goto(AstState::StmtFinalize);
         }
       }
-      (AstState::FollowUseIdList, _, _) => {
-        panic!("Unexpected token {}!!!!! state AstState::FollowUseIdList", current_token);
+      (Some(AstState::UseStmtIdListFollow), Some(AstStackSymbol::IdList(_)), _) => {
+        let mut id_list = ast_stack.pop_panic();
+        let mut use_token = ast_stack.pop_panic();
+        match (use_token, id_list) {
+          (Some(AstStackSymbol::Token(ut)), Some(AstStackSymbol::IdList(contents))) => {
+            ast_stack.push(AstStackSymbol::Stmt(Statement::Use(UseStatement::new(ut, contents, None, None))));
+          }
+          _ => panic!("Unexpected stack contents use no alias 2")
+        }
+        state_stack.pop();
+        state_stack.goto(AstState::StmtFinalize);
       }
-      // PARSE USE STATEMENT ALIAS
-      (AstState::UseStmtAlias, Some(_), TokenType::Identifier) => {
+      (Some(AstState::UseStmtIdListFollow), _, _) => panic!("Unexpected token {}!! expected identifier", current_token),
+      (Some(AstState::UseStmtAlias), Some(_), TokenType::Identifier) => {
+        let mut as_token = ast_stack.pop_panic();
+        let mut id_list = ast_stack.pop_panic();
+        let mut use_token = ast_stack.pop_panic();
+        match (use_token, id_list, as_token) {
+          (Some(AstStackSymbol::Token(ut)), Some(AstStackSymbol::IdList(contents)), Some(AstStackSymbol::Token(at))) => {
+            ast_stack.push(AstStackSymbol::Stmt(Statement::Use(UseStatement::new(ut, contents, Some(at), Some(current_token.clone())))));
+          }
+          _ => panic!("Unexpected stack contents use no alias")
+        }
+        token_index += 1;
+        state_stack.goto(AstState::StmtFinalize);
+      }
+      (Some(AstState::UseStmtAlias), _, _) => panic!("Unexpected token {}!! expected identifier", current_token),
+      (Some(AstState::PackDecName), Some(_), TokenType::Identifier) => {
         ast_stack.push(AstStackSymbol::Token(current_token.clone()));
         token_index += 1;
-        state = AstState::FinalizeUseStmt;
+        token_index = consume_optional_newline(tokens, token_index);
+        state_stack.goto(AstState::PackDecStartEntryList);
       }
-      (AstState::UseStmtAlias, _, _) => {
-        panic!("Unexpected token {}!!!!! state AstState::UseStmtAlias", current_token);
-      }
-      (AstState::FinalizeUseStmt, Some(_), _) => {
-        // build up use statement
-        let alias_token = ast_stack.pop_panic();
-        let as_token = ast_stack.pop_panic();
-        let id_list = ast_stack.pop_panic();
-        let use_token = ast_stack.pop_panic();
-        match (use_token, id_list, as_token, alias_token) {
-          (
-            Some(AstStackSymbol::Token(ut)),
-            Some(AstStackSymbol::IdList(idl)),
-            Some(AstStackSymbol::Token(astk)),
-            Some(AstStackSymbol::Token(alt)),
-          ) => {
-            ast_stack.push(AstStackSymbol::Stmt(Statement::Use(UseStatement::new(
-              ut,
-              idl,
-              Some(astk),
-              Some(alt),
-            ))));
-            state = AstState::FinishStmt;
-          }
-          _ => panic!("AAAAAAAAAAAAAAAAA end aliased use stmt stack busted"),
-        }
-      }
-      (AstState::FinalizeUseStmt, _, _) => {
-        panic!("Unexpected token {}!!!!! state AstState::UseStmtAlias", current_token);
-      }
-      // DONE USE STATEMENT
-      // PACK DEC STATEMENT IDENTIFIER
-      (AstState::StartPackDecStmtName, Some(_), TokenType::Identifier) => {
-        ast_stack.push(AstStackSymbol::Token(current_token.clone()));
-        token_index += 1;
-        state = AstState::StartPackDecStmtBody;
-      }
-      (AstState::StartPackDecStmtName, _, _) => {
-        panic!(
-          "Unexpected token {} expected identifier",
-          current_token.clone()
-        );
-      }
-      (AstState::StartPackDecStmtBody, Some(_), TokenType::LCurly) => {
+      (Some(AstState::PackDecName), _, _) => panic!("Unexpected token {}!! expected identifier", current_token),
+      (Some(AstState::PackDecStartEntryList), Some(_), TokenType::LCurly) => {
         ast_stack.push(AstStackSymbol::Token(current_token.clone()));
         ast_stack.push(AstStackSymbol::PackDecList(Vec::new()));
         token_index += 1;
         token_index = consume_optional_newline(tokens, token_index);
-        state = AstState::StartPackDecEntry;
+        state_stack.goto(AstState::PackDecEntry);
       }
-      (AstState::StartPackDecEntry, Some(AstStackSymbol::PackDecList(_)), TokenType::RCurly) => {
-        let pdl = ast_stack.pop_panic();
-        let left_curly = ast_stack.pop_panic();
-        let name = ast_stack.pop_panic();
-        let pack_token = ast_stack.pop_panic();
-        match (pack_token, name, left_curly, pdl) {
-          (
-            Some(AstStackSymbol::Token(pt)),
-            Some(AstStackSymbol::Token(n)),
-            Some(AstStackSymbol::Token(lc)),
-            Some(AstStackSymbol::PackDecList(contents)),
-          ) => {
-            ast_stack.push(AstStackSymbol::Stmt(Statement::PackDec(
-              PackDecStatement::new(pt, n, lc, contents, current_token.clone()),
-            )));
-            token_index += 1;
-            state = AstState::FinishStmt;
-          }
-          (_, _, _, _) => panic!("pack dec stack busted"),
-        }
+      (Some(AstState::PackDecStartEntryList), _, _) => panic!("Unexpected token {}!! expected left curly", current_token),
+      (Some(AstState::PackDecEntry), Some(AstStackSymbol::PackDecList(_)), TokenType::Identifier) => {
+        state_stack.push(AstState::TypeVar);
       }
-      (AstState::StartPackDecEntry, Some(AstStackSymbol::PackDecList(_)), TokenType::Identifier) => {
-        ast_stack.push(AstStackSymbol::Token(current_token.clone()));
-        token_index += 1;
-        state = AstState::PackDecColon;
-      }
-      (AstState::StartPackDecEntry, Some(AstStackSymbol::PackDecList(_)), TokenType::Newline) => {
+      (Some(AstState::PackDecEntry), Some(AstStackSymbol::PackDecList(_)), TokenType::Newline) => {
         token_index = consume_optional_newline(tokens, token_index);
       }
-      (AstState::StartPackDecEntry, _, _) => {
-        panic!("Unexpected token {} expected identifier or right curly", current_token);
+      (Some(AstState::PackDecEntry), Some(AstStackSymbol::TypeVar(type_var)), TokenType::Newline) => {
+        ast_stack.pop();
+        ast_stack.push(AstStackSymbol::PackDec(PackDeclaration::new(type_var, None, None)));
+        state_stack.goto(AstState::PackDecEntryFinalize);
       }
-      (AstState::PackDecColon, Some(_), TokenType::Colon) => {
+      (Some(AstState::PackDecEntry), Some(AstStackSymbol::PackDecList(_)), TokenType::RCurly) => {
+        state_stack.goto(AstState::PackDecFinalize);
+      }
+      (Some(AstState::PackDecEntry), _, _) => panic!("PackDecEntry error {}", current_token),
+      (Some(AstState::PackDecEntryFinalize), Some(AstStackSymbol::PackDec(entry)), TokenType::Comma) |
+      (Some(AstState::PackDecEntryFinalize), Some(AstStackSymbol::PackDec(entry)), TokenType::Newline) => {
+        ast_stack.pop();
+        let pack_dec_list_sym = ast_stack.pop_panic();
+        match pack_dec_list_sym {
+          Some(AstStackSymbol::PackDecList(mut contents)) => {
+            contents.push(entry);
+            ast_stack.push(AstStackSymbol::PackDecList(contents));
+            state_stack.goto(AstState::PackDecEntry);
+            token_index += 1; //consumes newline or comma
+            token_index = consume_optional_newline(tokens, token_index);
+          }
+          _ => panic!("Pack dec finalize has busted stack"),
+        } 
+      }
+      (Some(AstState::PackDecEntryFinalize), Some(AstStackSymbol::PackDec(entry)), TokenType::RCurly) => {
+        ast_stack.pop();
+        let pack_dec_list_sym = ast_stack.pop_panic();
+        match pack_dec_list_sym {
+          Some(AstStackSymbol::PackDecList(mut contents)) => {
+            contents.push(entry);
+            ast_stack.push(AstStackSymbol::PackDecList(contents));
+            state_stack.goto(AstState::PackDecFinalize);
+          }
+          _ => panic!("Pack dec finalize has busted stack"),
+        } 
+      }
+      (Some(AstState::PackDecEntryFinalize), _, _) => panic!("unexpected pack dec entry finalize {}", current_token),
+      (Some(AstState::PackDecFinalize), Some(AstStackSymbol::PackDecList(contents)), TokenType::RCurly) => {
+        ast_stack.pop();
+        let left_curly_token = ast_stack.pop_panic();
+        let pack_name = ast_stack.pop_panic();
+        let pack_token = ast_stack.pop_panic();
+        match (pack_token, pack_name, left_curly_token) {
+          (Some(AstStackSymbol::Token(pt)), Some(AstStackSymbol::Token(name)), Some(AstStackSymbol::Token(lct))) => {
+            ast_stack.push(AstStackSymbol::Stmt(Statement::PackDec(PackDecStatement::new(pt, name, lct, contents, current_token.clone()))));
+            token_index += 1;
+            state_stack.goto(AstState::StmtFinalize);
+          }
+          _ => panic!("Unexpected stack contents!!!! pack dec finalize"),
+        }
+      }
+      (Some(AstState::PackDecFinalize), _, _) => panic!("Pack dec finalize mismove"),
+      (Some(AstState::TypeVar), Some(_), TokenType::Identifier) => {
         ast_stack.push(AstStackSymbol::Token(current_token.clone()));
         token_index += 1;
-        state = AstState::StartPackDecType;
+        state_stack.push(AstState::TypeVarColon);
       }
-      // pack dec entry type parsing!!!!!!!!!!!!!!!!!
-      (AstState::StartPackDecType, Some(_), TokenType::Type) => {
-        if current_token.lexeme == "auto" {
-          ast_stack.push(AstStackSymbol::Token(current_token.clone()));
-          token_index += 1;
-          state = AstState::PackDecAutoTypeFollow;
-        } else if current_token.lexeme == "func" {
-          panic!("function type parsing not done :(");
-        } else if current_token.lexeme == "comp"
-          || current_token.lexeme == "lazy"
-          || current_token.lexeme == "ref"
-          || current_token.lexeme == "optional"
-        {
-          ast_stack.push(AstStackSymbol::Token(current_token.clone()));
-          token_index += 1;
-        } else {
-          //base type
-          ast_stack.push(AstStackSymbol::Type(Type::Base(BaseType::new(
-            current_token.clone(),
-          ))));
-          token_index += 1;
-          state = AstState::PackDecTypeResolveTypeChain;
-          // TODO add new state for array types
-        }
+      (Some(AstState::TypeVar), Some(AstStackSymbol::Type(_)), _) => { // todo expand conditions here
+        state_stack.goto(AstState::TypeVarFinalize);
       }
-      (AstState::StartPackDecType, Some(_), TokenType::Identifier) => {
-        ast_stack.push(AstStackSymbol::Type(Type::Base(BaseType::new(
-          current_token.clone(),
-        ))));
+      (Some(AstState::TypeVar), _, _) => panic!("aw crap :("),
+      (Some(AstState::TypeVarColon), Some(_), TokenType::Colon) => {
+        ast_stack.push(AstStackSymbol::Token(current_token.clone()));
         token_index += 1;
-        state = AstState::PackDecTypeResolveTypeChain;
-        // TODO add new state for array types
+        state_stack.goto(AstState::Type);
       }
-      (AstState::StartPackDecType, _, _) => {
-        panic!("Unexpected token {} expected type or identifier", current_token);
-      }
-      // auto type
-      (AstState::PackDecAutoTypeFollow, Some(AstStackSymbol::Token(auto_token)), _) => {
-        ast_stack.pop();
-        if current_token.token_type == TokenType::Identifier {
-          ast_stack.push(AstStackSymbol::Type(Type::Auto(AutoType::new(
-            auto_token,
-            Some(current_token.clone()),
-          ))));
-          token_index += 1;
-        } else {
-          ast_stack.push(AstStackSymbol::Type(Type::Auto(AutoType::new(
-            auto_token, None,
-          ))));
-        }
-        state = AstState::PackDecTypeResolveTypeChain; // resolve typechain
-      }
-      (AstState::PackDecAutoTypeFollow, _, _) => panic!("I don't understand what happened here in state 11"),
-      // type modifier
-      (AstState::PackDecTypeResolveTypeChain, Some(AstStackSymbol::Type(base)), _) => {
-        ast_stack.pop();
-        match ast_stack.peek() {
-          Some(AstStackSymbol::Token(token)) => match token.token_type {
-            TokenType::Type => {
-              ast_stack.pop();
-              if token.lexeme == "comp" {
-                ast_stack.push(AstStackSymbol::Type(Type::Comp(CompType::new(token, Box::new(base)))));
-              } else if token.lexeme == "lazy" {
-                ast_stack.push(AstStackSymbol::Type(Type::Lazy(LazyType::new(token, Box::new(base)))));
-              } else if token.lexeme == "ref" {
-                ast_stack.push(AstStackSymbol::Type(Type::Ref(RefType::new(token, Box::new(base)))));
-              } else if token.lexeme == "optional" {
-                ast_stack.push(AstStackSymbol::Type(Type::Optional(OptionalType::new(
-                  token, Box::new(base),
-                ))));
-              } else {
-                panic!("unexpected type token. Expected a type modifier");
-              }
-            }
-            _ => {
-              ast_stack.push(AstStackSymbol::Type(base));
-              state = AstState::FinalizePackDecEntryTypeVar; // done
-            }
-          },
-          Some(_) => {
-            ast_stack.push(AstStackSymbol::Type(base));
-            state = AstState::FinalizePackDecEntryTypeVar; /* done */
-          }
-          None => {
-            panic!("Stack shouldn't be empty here at state AstState::PackDecTypeResolveTypeChain");
-          }
-        }
-      }
-      (AstState::FinalizePackDecEntryTypeVar, Some(AstStackSymbol::Type(found_type)), _) => {
+      (Some(AstState::TypeVarColon), _, _) => panic!("Unexpected token {}!! expected colon", current_token),
+      (Some(AstState::TypeVarFinalize), Some(AstStackSymbol::Type(x)), _) => {
         ast_stack.pop();
         let colon = ast_stack.pop_panic();
         let name = ast_stack.pop_panic();
         match (name, colon) {
-          (Some(AstStackSymbol::Token(n)), Some(AstStackSymbol::Token(c))) => {
-            if n.token_type == TokenType::Identifier && c.token_type == TokenType::Colon {
-              ast_stack.push(AstStackSymbol::TypeVar(TypeVar::new(
-                UntypedVar::new(n),
-                c,
-                Box::new(found_type),
-              )));
-            } else {
-              panic!("Unexpected stack layout 2 :( state AstState::FinalizePackDecEntryTypeVar");
-            }
+          (Some(AstStackSymbol::Token(name_token)), Some(AstStackSymbol::Token(colon_token))) => {
+            ast_stack.push(AstStackSymbol::TypeVar(TypeVar::new(UntypedVar::new(name_token), colon_token, Box::new(x))));
+            state_stack.pop();
           }
-          _ => panic!("unexpected stack layout :( state AstState::FinalizePackDecEntryTypeVar"),
-        }
-        state = AstState::PackDecFollow; // go to potential default assignment
-      }
-      (AstState::FinalizePackDecEntryTypeVar, _, _) => panic!("idk why i am here finalize pack dec entry type var {}", current_token),
-      (AstState::PackDecFollow, Some(AstStackSymbol::TypeVar(type_var)), TokenType::Newline)
-      | (AstState::PackDecFollow, Some(AstStackSymbol::TypeVar(type_var)), TokenType::RCurly) => {
-        ast_stack.pop();
-        ast_stack.push(AstStackSymbol::PackDec(PackDeclaration::new(
-          type_var, None, None,
-        )));
-        state = AstState::FinishPackDecEntry; // combine pack dec into the pack dec list
-      }
-      (AstState::PackDecFollow, _, _) => { panic!("Unexpected token {}. expected newline or right curly or default assignment", current_token); }
-      //Finalize pack dec list
-      (AstState::FinishPackDecEntry, Some(AstStackSymbol::PackDec(pack_dec)), _) => {
-        ast_stack.pop();
-        let pack_dec_list = ast_stack.pop_panic();
-        match pack_dec_list {
-          Some(AstStackSymbol::PackDecList(mut contents)) => {
-            contents.push(pack_dec);
-            ast_stack.push(AstStackSymbol::PackDecList(contents));
-            token_index = consume_optional_newline(tokens, token_index);
-            state = AstState::StartPackDecEntry;
-          }
-          _ => panic!("Unexpected stack layout :( finalize pack dec list"),
+          _ => panic!("busted type var finalize stack")
         }
       }
-      (AstState::FinishPackDecEntry, _, _) => panic!("aw crap:("),
+      (Some(AstState::TypeVarFinalize), _, _) => panic!("type var finalize error"),
+      (Some(AstState::Type), _, TokenType::Type) => {
+        ast_stack.push(AstStackSymbol::Type(Type::Base(BaseType::new(current_token.clone()))));
+        token_index += 1;
+        state_stack.pop();
+      }
       (_, _, _) => {
         panic!("Unknown case :(");
       }

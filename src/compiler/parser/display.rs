@@ -447,6 +447,7 @@ impl fmt::Display for Type {
       Type::Lazy(x) => x.fmt(fmt)?,
       Type::Ref(x) => x.fmt(fmt)?,
       Type::Optional(x) => x.fmt(fmt)?,
+      Type::Array(x) => x.fmt(fmt)?,
     };
     Ok(())
   }
@@ -520,6 +521,17 @@ impl fmt::Display for OptionalType {
   fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
     fmt.write_str(format!("(OptionalType {})", self.sub_type).as_str())?;
     Ok(())
+  }
+}
+
+impl fmt::Display for ArrayType {
+  fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+    fmt.write_str(format!("(ArrayType {}", self.base).as_str())?;
+    match &*self.sub_type {
+      Some(x) => fmt.write_str(format!(" (IndexType {})", x).as_str())?,
+      None => {},
+    }
+    fmt.write_str(")")
   }
 }
 
