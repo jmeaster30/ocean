@@ -562,6 +562,7 @@ pub fn parse(tokens: &Vec<Token>) -> (Option<Program>, Vec<OceanError>) {
       (Some(AstState::FuncTypeParamListStart), _, _) => panic!("func type param list start :("),
       (Some(AstState::FuncTypeParamList), Some(AstStackSymbol::TypeList(_)), TokenType::Colon) => {
         ast_stack.push(AstStackSymbol::Token(current_token.clone()));
+        ast_stack.push(AstStackSymbol::TypeList(Vec::new()));
         token_index += 1;
         state_stack.goto(AstState::FuncTypeReturnList);
       }
@@ -607,6 +608,9 @@ pub fn parse(tokens: &Vec<Token>) -> (Option<Program>, Vec<OceanError>) {
         }
       }
       (Some(AstState::FuncTypeParamListFollow), _, _) => panic!("unexpected token {} at func type param list follow", current_token),
+      (Some(AstState::FuncTypeReturnList), Some(AstStackSymbol::TypeList(_)), TokenType::RParen) => {
+        state_stack.goto(AstState::FuncTypeReturnListFollow);
+      }
       (Some(AstState::FuncTypeReturnList), Some(AstStackSymbol::TypeList(_)), _) => {
         state_stack.push(AstState::Type);
       }
@@ -646,7 +650,7 @@ pub fn parse(tokens: &Vec<Token>) -> (Option<Program>, Vec<OceanError>) {
       }
       (Some(AstState::FuncTypeReturnListFollow), _, _) => panic!("unexpected token {} at func type return list follow", current_token),
       (_, _, _) => {
-        panic!("Unknown case :(");
+        panic!("Unknown case :( {}", current_token);
       }
     };
   }
