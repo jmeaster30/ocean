@@ -529,7 +529,7 @@ impl fmt::Display for ArrayType {
     fmt.write_str(format!("(ArrayType {}", self.base).as_str())?;
     match &*self.sub_type {
       Some(x) => fmt.write_str(format!(" (IndexType {})", x).as_str())?,
-      None => {},
+      None => {}
     }
     fmt.write_str(")")
   }

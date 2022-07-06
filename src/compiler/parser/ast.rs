@@ -712,7 +712,7 @@ pub enum Type {
   Lazy(LazyType),
   Ref(RefType),
   Optional(OptionalType),
-  Array(ArrayType)
+  Array(ArrayType),
 }
 
 #[derive(Clone)]
@@ -857,7 +857,12 @@ pub struct ArrayType {
 }
 
 impl ArrayType {
-  pub fn new(base: Box<Type>, left_square: Token, sub_type: Box<Option<Type>>, right_square: Token) -> Self {
+  pub fn new(
+    base: Box<Type>,
+    left_square: Token,
+    sub_type: Box<Option<Type>>,
+    right_square: Token,
+  ) -> Self {
     Self {
       base,
       left_square,

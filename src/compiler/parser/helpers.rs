@@ -38,7 +38,7 @@ impl AstStack {
 }
 
 pub struct StateStack {
-  stack: Vec<AstState>
+  stack: Vec<AstState>,
 }
 
 impl StateStack {
@@ -85,6 +85,4 @@ impl StateStack {
     }
     print!("\n");
   }
-
 }
-
