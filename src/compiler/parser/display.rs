@@ -484,11 +484,11 @@ impl fmt::Display for SubType {
 impl fmt::Display for FuncType {
   fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
     fmt.write_str("(FuncType (ParamTypes")?;
-    for (param, _comma) in &self.param_types {
+    for param in &self.param_types {
       fmt.write_str(format!(" {}", param).as_str())?;
     }
     fmt.write_str(") (ReturnTypes")?;
-    for (return_type, _comma) in &self.return_types {
+    for return_type in &self.return_types {
       fmt.write_str(format!(" {}", return_type).as_str())?;
     }
     fmt.write_str("))")?;

@@ -766,9 +766,9 @@ impl SubType {
 pub struct FuncType {
   pub func_token: Token,
   pub left_paren: Option<Token>,
-  pub param_types: Vec<(Box<Type>, Option<Token>)>,
+  pub param_types: Vec<Box<Type>>,
   pub colon: Option<Token>,
-  pub return_types: Vec<(Box<Type>, Option<Token>)>,
+  pub return_types: Vec<Box<Type>>,
   pub right_paren: Option<Token>,
 }
 
@@ -776,9 +776,9 @@ impl FuncType {
   pub fn new(
     func_token: Token,
     left_paren: Option<Token>,
-    param_types: Vec<(Box<Type>, Option<Token>)>,
+    param_types: Vec<Box<Type>>,
     colon: Option<Token>,
-    return_types: Vec<(Box<Type>, Option<Token>)>,
+    return_types: Vec<Box<Type>>,
     right_paren: Option<Token>,
   ) -> Self {
     Self {

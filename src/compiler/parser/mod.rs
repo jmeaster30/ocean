@@ -24,6 +24,7 @@ pub enum AstStackSymbol {
   TypeVar(TypeVar),
   Var(Var),
   Type(Type),
+  TypeList(Vec<Box<Type>>),
   OptType(Option<Type>),
   ParamList(ParameterList),
   Param(Parameter),
@@ -54,6 +55,13 @@ pub enum AstState {
   BaseTypeFollowEnd,
   TypeChainResolve,
   AutoTypeFollow,
+  FuncTypeParamListStart,
+  FuncTypeParamList,
+  FuncTypeParamListFollow,
+  FuncTypeReturnList,
+  FuncTypeReturnListFollow,
+
+
   SubType,
 }
 
@@ -386,7 +394,9 @@ pub fn parse(tokens: &Vec<Token>) -> (Option<Program>, Vec<OceanError>) {
           ast_stack.push(AstStackSymbol::Token(current_token.clone()));
           token_index += 1;
         } else if current_token.lexeme == "func" {
-          panic!("function type not done :(")
+          ast_stack.push(AstStackSymbol::Token(current_token.clone()));
+          token_index += 1;
+          state_stack.goto(AstState::FuncTypeParamListStart);
         } else {
           ast_stack.push(AstStackSymbol::Type(Type::Base(BaseType::new(
             current_token.clone(),
@@ -397,6 +407,13 @@ pub fn parse(tokens: &Vec<Token>) -> (Option<Program>, Vec<OceanError>) {
       }
       (Some(AstState::Type), _, TokenType::LParen) => {
         state_stack.goto(AstState::SubType);
+      }
+      (Some(AstState::Type), _, TokenType::Identifier) => {
+        ast_stack.push(AstStackSymbol::Type(Type::Base(BaseType::new(
+          current_token.clone(),
+        ))));
+        token_index += 1;
+        state_stack.goto(AstState::BaseTypeFollow)
       }
       (Some(AstState::SubType), _, TokenType::LParen) => {
         ast_stack.push(AstStackSymbol::Token(current_token.clone()));
@@ -531,6 +548,103 @@ pub fn parse(tokens: &Vec<Token>) -> (Option<Program>, Vec<OceanError>) {
           }
         }
       }
+      (Some(AstState::FuncTypeParamListStart), Some(_), TokenType::LParen) => {
+        ast_stack.push(AstStackSymbol::Token(current_token.clone()));
+        ast_stack.push(AstStackSymbol::TypeList(Vec::new()));
+        token_index += 1;
+        state_stack.goto(AstState::FuncTypeParamList);
+      }
+      (Some(AstState::FuncTypeParamListStart), Some(AstStackSymbol::Token(func_keyword)), _) => {
+        ast_stack.pop();
+        ast_stack.push(AstStackSymbol::Type(Type::Func(FuncType::new(func_keyword, None, Vec::new(), None, Vec::new(), None))));
+        state_stack.goto(AstState::BaseTypeFollow);
+      }
+      (Some(AstState::FuncTypeParamListStart), _, _) => panic!("func type param list start :("),
+      (Some(AstState::FuncTypeParamList), Some(AstStackSymbol::TypeList(_)), TokenType::Colon) => {
+        ast_stack.push(AstStackSymbol::Token(current_token.clone()));
+        token_index += 1;
+        state_stack.goto(AstState::FuncTypeReturnList);
+      }
+      (Some(AstState::FuncTypeParamList), Some(AstStackSymbol::TypeList(_)), _) => {
+        state_stack.push(AstState::Type);
+      }
+      (Some(AstState::FuncTypeParamList), Some(AstStackSymbol::Type(param_type)), _) => {
+        ast_stack.pop();
+        let type_list_sym = ast_stack.pop_panic();
+        match type_list_sym {
+          Some(AstStackSymbol::TypeList(mut contents)) => {
+            contents.push(Box::new(param_type));
+            ast_stack.push(AstStackSymbol::TypeList(contents));
+            state_stack.goto(AstState::FuncTypeParamListFollow);
+          }
+          _ => panic!("busted state stack func type param list after type"),
+        }
+      }
+      (Some(AstState::FuncTypeParamList), _, _) => {
+        panic!("unexpected token {} at func type param list", current_token);
+      }
+      (Some(AstState::FuncTypeParamListFollow), _, TokenType::Comma) => {
+        token_index += 1;
+        state_stack.goto(AstState::FuncTypeParamList);
+      }
+      (Some(AstState::FuncTypeParamListFollow), _, TokenType::Colon) => {
+        ast_stack.push(AstStackSymbol::Token(current_token.clone()));
+        ast_stack.push(AstStackSymbol::TypeList(Vec::new()));
+        token_index += 1;
+        state_stack.goto(AstState::FuncTypeReturnList);
+      }
+      (Some(AstState::FuncTypeParamListFollow), Some(AstStackSymbol::TypeList(type_list)), TokenType::RParen) => {
+        ast_stack.pop();
+        let left_paren_sym = ast_stack.pop_panic();
+        let func_keyword_sym = ast_stack.pop_panic();
+        match (func_keyword_sym, left_paren_sym) {
+          (Some(AstStackSymbol::Token(func_keyword)), Some(AstStackSymbol::Token(left_paren))) => {
+            ast_stack.push(AstStackSymbol::Type(Type::Func(FuncType::new(func_keyword, Some(left_paren), type_list, None, Vec::new(), Some(current_token.clone())))));
+            token_index += 1;
+            state_stack.goto(AstState::BaseTypeFollow);
+          }
+          _ => panic!("wacked out stack")
+        }
+      }
+      (Some(AstState::FuncTypeParamListFollow), _, _) => panic!("unexpected token {} at func type param list follow", current_token),
+      (Some(AstState::FuncTypeReturnList), Some(AstStackSymbol::TypeList(_)), _) => {
+        state_stack.push(AstState::Type);
+      }
+      (Some(AstState::FuncTypeReturnList), Some(AstStackSymbol::Type(param_type)), _) => {
+        ast_stack.pop();
+        let type_list_sym = ast_stack.pop_panic();
+        match type_list_sym {
+          Some(AstStackSymbol::TypeList(mut contents)) => {
+            contents.push(Box::new(param_type));
+            ast_stack.push(AstStackSymbol::TypeList(contents));
+            state_stack.goto(AstState::FuncTypeReturnListFollow);
+          }
+          _ => panic!("busted state stack func type return list after type"),
+        }
+      }
+      (Some(AstState::FuncTypeReturnList), _, _) => {
+        panic!("unexpected token {} at func type return list", current_token);
+      }
+      (Some(AstState::FuncTypeReturnListFollow), _, TokenType::Comma) => {
+        token_index += 1;
+        state_stack.goto(AstState::FuncTypeReturnList);
+      }
+      (Some(AstState::FuncTypeReturnListFollow), Some(AstStackSymbol::TypeList(type_list)), TokenType::RParen) => {
+        ast_stack.pop();
+        let colon_sym = ast_stack.pop_panic();
+        let param_type_list_sym = ast_stack.pop_panic();
+        let left_paren_sym = ast_stack.pop_panic();
+        let func_keyword_sym = ast_stack.pop_panic();
+        match (func_keyword_sym, left_paren_sym, param_type_list_sym, colon_sym) {
+          (Some(AstStackSymbol::Token(func_keyword)), Some(AstStackSymbol::Token(left_paren)), Some(AstStackSymbol::TypeList(param_types)), Some(AstStackSymbol::Token(colon))) => {
+            ast_stack.push(AstStackSymbol::Type(Type::Func(FuncType::new(func_keyword, Some(left_paren), param_types, Some(colon), type_list, Some(current_token.clone())))));
+            token_index += 1;
+            state_stack.goto(AstState::BaseTypeFollow);
+          }
+          _ => panic!("wacked out stack")
+        }
+      }
+      (Some(AstState::FuncTypeReturnListFollow), _, _) => panic!("unexpected token {} at func type return list follow", current_token),
       (_, _, _) => {
         panic!("Unknown case :(");
       }

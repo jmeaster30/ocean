@@ -1,0 +1,6 @@
+use std.io as io
+
+let morph = 
+  (value: auto T, callback: func(T:T)) 
+  -> 
+  (result: T = callback(value))
