@@ -54,6 +54,7 @@ pub enum AstState {
   BaseTypeFollowEnd,
   TypeChainResolve,
   AutoTypeFollow,
+  SubType,
 }
 
 fn consume_optional_newline(tokens: &Vec<Token>, token_index: usize) -> usize {
@@ -307,7 +308,7 @@ pub fn parse(tokens: &Vec<Token>) -> (Option<Program>, Vec<OceanError>) {
             ast_stack.push(AstStackSymbol::PackDecList(contents));
             state_stack.goto(AstState::PackDecFinalize);
           }
-          _ => panic!("Pack dec finalize has busted stack"),
+          _ => panic!("Pack dec finalize has busted stack rcurly"),
         }
       }
       (Some(AstState::PackDecEntryFinalize), _, _) => {
@@ -338,13 +339,12 @@ pub fn parse(tokens: &Vec<Token>) -> (Option<Program>, Vec<OceanError>) {
         }
       }
       (Some(AstState::PackDecFinalize), _, _) => panic!("Pack dec finalize mismove"),
-      (Some(AstState::TypeVar), Some(_), TokenType::Identifier) => {
+      (Some(AstState::TypeVar), Some(AstStackSymbol::PackDecList(_)), TokenType::Identifier) => {
         ast_stack.push(AstStackSymbol::Token(current_token.clone()));
         token_index += 1;
         state_stack.push(AstState::TypeVarColon);
       }
       (Some(AstState::TypeVar), Some(AstStackSymbol::Type(_)), _) => {
-        // todo expand conditions here
         state_stack.goto(AstState::TypeVarFinalize);
       }
       (Some(AstState::TypeVar), _, _) => panic!("aw crap :("),
@@ -389,12 +389,39 @@ pub fn parse(tokens: &Vec<Token>) -> (Option<Program>, Vec<OceanError>) {
           panic!("function type not done :(")
         } else {
           ast_stack.push(AstStackSymbol::Type(Type::Base(BaseType::new(
-            current_token.clone()
+            current_token.clone(),
           ))));
           token_index += 1;
           state_stack.goto(AstState::BaseTypeFollow)
         }
       }
+      (Some(AstState::Type), _, TokenType::LParen) => {
+        state_stack.goto(AstState::SubType);
+      }
+      (Some(AstState::SubType), _, TokenType::LParen) => {
+        ast_stack.push(AstStackSymbol::Token(current_token.clone()));
+        token_index += 1;
+      }
+      (Some(AstState::SubType), Some(AstStackSymbol::Type(sub_type)), TokenType::RParen) => {
+        ast_stack.pop();
+        let left_paren_sym = ast_stack.pop_panic();
+        match left_paren_sym {
+          Some(AstStackSymbol::Token(left_paren)) => {
+            ast_stack.push(AstStackSymbol::Type(Type::Sub(SubType::new(
+              left_paren,
+              Box::new(sub_type),
+              current_token.clone(),
+            ))));
+            token_index += 1;
+            state_stack.goto(AstState::BaseTypeFollow);
+          }
+          _ => panic!(":("),
+        }
+      }
+      (Some(AstState::SubType), _, TokenType::Type) => {
+        state_stack.push(AstState::Type);
+      }
+      (Some(AstState::SubType), _, _) => panic!("aw crap :( subtype"),
       (Some(AstState::AutoTypeFollow), Some(AstStackSymbol::Token(auto_token)), _) => {
         ast_stack.pop();
         if current_token.token_type == TokenType::Identifier {
@@ -425,17 +452,26 @@ pub fn parse(tokens: &Vec<Token>) -> (Option<Program>, Vec<OceanError>) {
       (Some(AstState::BaseTypeFollow), _, _) => {
         panic!("whoops :(");
       }
-      (Some(AstState::BaseTypeFollowEnd), Some(AstStackSymbol::OptType(opt_type)), TokenType::RSquare) => {
+      (
+        Some(AstState::BaseTypeFollowEnd),
+        Some(AstStackSymbol::OptType(opt_type)),
+        TokenType::RSquare,
+      ) => {
         ast_stack.pop();
         let left_square_sym = ast_stack.pop_panic();
         let base_type_sym = ast_stack.pop_panic();
         match (base_type_sym, left_square_sym) {
           (Some(AstStackSymbol::Type(base_type)), Some(AstStackSymbol::Token(left_square))) => {
-            ast_stack.push(AstStackSymbol::Type(Type::Array(ArrayType::new(Box::new(base_type), left_square, Box::new(opt_type), current_token.clone()))));
+            ast_stack.push(AstStackSymbol::Type(Type::Array(ArrayType::new(
+              Box::new(base_type),
+              left_square,
+              Box::new(opt_type),
+              current_token.clone(),
+            ))));
             token_index += 1;
             state_stack.goto(AstState::TypeChainResolve);
           }
-          _ => panic!("busted stack base type follow end")
+          _ => panic!("busted stack base type follow end"),
         }
       }
       (Some(AstState::BaseTypeFollowEnd), Some(AstStackSymbol::Type(x)), TokenType::RSquare) => {
@@ -445,7 +481,7 @@ pub fn parse(tokens: &Vec<Token>) -> (Option<Program>, Vec<OceanError>) {
             ast_stack.pop();
             ast_stack.push(AstStackSymbol::OptType(Some(x)));
           }
-          _ => panic!("Unexpected case base type follow end")
+          _ => panic!("Unexpected case base type follow end"),
         }
       }
       (Some(AstState::BaseTypeFollowEnd), Some(AstStackSymbol::OptType(x)), TokenType::Type) => {
