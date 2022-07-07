@@ -739,6 +739,10 @@ pub fn parse(tokens: &Vec<Token>) -> (Option<Program>, Vec<OceanError>) {
           _ => panic!("union dec storage follow error")
         }
       }
+      (Some(AstState::UnionDecStorageFollow), Some(AstStackSymbol::TypeList(type_list)), TokenType::Comma) => {
+        token_index += 1;
+        state_stack.goto(AstState::UnionDecStorage);
+      }
       (Some(AstState::UnionDecStorageFollow), _, _) => panic!("whoops :("),
       (
         Some(AstState::UnionDecEntryFinalize),
