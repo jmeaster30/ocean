@@ -24,7 +24,7 @@ impl Spanned for Statement {
       Statement::Break(x) => x.get_span(),
       Statement::Return(x) => x.get_span(),
       Statement::PackDec(x) => x.get_span(),
-      Statement::EnumDec(x) => x.get_span(),
+      Statement::UnionDec(x) => x.get_span(),
       Statement::VarDec(x) => x.get_span(),
       Statement::Cast(x) => x.get_span(),
       Statement::Match(x) => x.get_span(),
@@ -90,27 +90,20 @@ impl Spanned for PackDeclaration {
   }
 }
 
-impl Spanned for EnumDecStatement {
+impl Spanned for UnionDecStatement {
   fn get_span(&self) -> (usize, usize) {
-    (self.enum_token.start, self.close_brace.end)
+    (self.union_token.start, self.close_brace.end)
   }
 }
 
-impl Spanned for EnumDeclaration {
+impl Spanned for UnionDeclaration {
   fn get_span(&self) -> (usize, usize) {
-    match &self.enum_storage {
+    match &self.right_paren {
       Some(x) => {
-        let (_, enum_end) = x.get_span();
-        (self.identifier.start, enum_end)
+        (self.identifier.start, x.end)
       }
       None => (self.identifier.start, self.identifier.end),
     }
-  }
-}
-
-impl Spanned for EnumStorage {
-  fn get_span(&self) -> (usize, usize) {
-    (self.left_paren.start, self.right_paren.end)
   }
 }
 

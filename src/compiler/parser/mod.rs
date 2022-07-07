@@ -16,8 +16,8 @@ pub enum AstStackSymbol {
   Stmt(Statement),
   PackDec(PackDeclaration),
   PackDecList(Vec<PackDeclaration>),
-  EnumDec(EnumDeclaration),
-  EnumStore(EnumStorage),
+  UnionDec(UnionDeclaration),
+  UnionDecList(Vec<UnionDeclaration>),
   MatchEntry(MatchEntry),
   Expr(Expression),
   Literal(Literal),
@@ -60,9 +60,16 @@ pub enum AstState {
   FuncTypeParamListFollow,
   FuncTypeReturnList,
   FuncTypeReturnListFollow,
-
-
   SubType,
+  UnionDecName,
+  UnionDecStartEntryList,
+  UnionDecEntry,
+  UnionDecStorageStart,
+  UnionDecStorage,
+  UnionDecStorageFollow,
+  UnionDecStorageEnd,
+  UnionDecEntryFinalize,
+  UnionDecFinalize,
 }
 
 fn consume_optional_newline(tokens: &Vec<Token>, token_index: usize) -> usize {
@@ -111,6 +118,10 @@ pub fn parse(tokens: &Vec<Token>) -> (Option<Program>, Vec<OceanError>) {
           ast_stack.push(AstStackSymbol::Token(current_token.clone()));
           token_index += 1;
           state_stack.push(AstState::PackDecName);
+        } else if current_token.lexeme == "union" {
+          ast_stack.push(AstStackSymbol::Token(current_token.clone()));
+          token_index += 1;
+          state_stack.push(AstState::UnionDecName);
         } else if current_token.lexeme == "break" {
           ast_stack.push(AstStackSymbol::Stmt(Statement::Break(BreakStatement::new(
             current_token.clone(),
@@ -649,6 +660,153 @@ pub fn parse(tokens: &Vec<Token>) -> (Option<Program>, Vec<OceanError>) {
         }
       }
       (Some(AstState::FuncTypeReturnListFollow), _, _) => panic!("unexpected token {} at func type return list follow", current_token),
+      (Some(AstState::UnionDecName), Some(_), TokenType::Identifier) => {
+        ast_stack.push(AstStackSymbol::Token(current_token.clone()));
+        token_index += 1;
+        token_index = consume_optional_newline(tokens, token_index);
+        state_stack.goto(AstState::UnionDecStartEntryList);
+      }
+      (Some(AstState::UnionDecName), _, _) => {
+        panic!("Unexpected token {}!! expected identifier", current_token)
+      }
+      (Some(AstState::UnionDecStartEntryList), Some(_), TokenType::LCurly) => {
+        ast_stack.push(AstStackSymbol::Token(current_token.clone()));
+        ast_stack.push(AstStackSymbol::UnionDecList(Vec::new()));
+        token_index += 1;
+        token_index = consume_optional_newline(tokens, token_index);
+        state_stack.goto(AstState::UnionDecEntry);
+      }
+      (Some(AstState::UnionDecStartEntryList), _, _) => {
+        panic!("Unexpected token {}!! expected left curly", current_token)
+      }
+      (
+        Some(AstState::UnionDecEntry),
+        Some(AstStackSymbol::UnionDecList(_)),
+        TokenType::Identifier,
+      ) => {
+        ast_stack.push(AstStackSymbol::Token(current_token.clone()));
+        token_index += 1;
+        state_stack.goto(AstState::UnionDecStorageStart)
+      }
+      (Some(AstState::UnionDecEntry), Some(AstStackSymbol::UnionDecList(_)), TokenType::Newline) => {
+        token_index = consume_optional_newline(tokens, token_index);
+      }
+      (Some(AstState::UnionDecEntry), Some(AstStackSymbol::UnionDecList(_)), TokenType::RCurly) => {
+        state_stack.goto(AstState::UnionDecFinalize);
+      }
+      (Some(AstState::UnionDecEntry), _, _) => panic!("UnionDecEntry error {}", current_token),
+      (Some(AstState::UnionDecStorageStart), Some(_), TokenType::LParen) => {
+        ast_stack.push(AstStackSymbol::Token(current_token.clone()));
+        ast_stack.push(AstStackSymbol::TypeList(Vec::new()));
+        token_index += 1;
+        state_stack.goto(AstState::UnionDecStorage);
+      }
+      (Some(AstState::UnionDecStorageStart), Some(AstStackSymbol::Token(dec_entry_id)), TokenType::Comma) |
+      (Some(AstState::UnionDecStorageStart), Some(AstStackSymbol::Token(dec_entry_id)), TokenType::Newline) => {
+        ast_stack.pop();
+        ast_stack.push(AstStackSymbol::UnionDec(UnionDeclaration::new(dec_entry_id, None, Vec::new(), None)));
+        state_stack.goto(AstState::UnionDecEntryFinalize);
+      }
+      (Some(AstState::UnionDecStorageStart), _, _) => panic!("aw crap no paren {}", current_token),
+      (Some(AstState::UnionDecStorage), Some(AstStackSymbol::TypeList(_)), TokenType::RParen) => {
+        state_stack.goto(AstState::UnionDecStorageEnd);
+      }
+      (Some(AstState::UnionDecStorage), Some(AstStackSymbol::TypeList(_)), _) => {
+        state_stack.push(AstState::Type);
+      }
+      (Some(AstState::UnionDecStorage), Some(AstStackSymbol::Type(found_type)), _) => {
+        ast_stack.pop();
+        let type_list_sym = ast_stack.pop_panic();
+        match type_list_sym {
+          Some(AstStackSymbol::TypeList(mut contents)) => {
+            contents.push(Box::new(found_type));
+            ast_stack.push(AstStackSymbol::TypeList(contents));
+            state_stack.goto(AstState::UnionDecStorageFollow);
+          } 
+          _ => panic!("stack bust union dec storage")
+        }
+      }
+      (Some(AstState::UnionDecStorageFollow), Some(AstStackSymbol::TypeList(type_list)), TokenType::RParen) => {
+        ast_stack.pop();
+        let left_paren_sym = ast_stack.pop_panic();
+        let name_sym = ast_stack.pop_panic();
+        match (name_sym, left_paren_sym) {
+          (Some(AstStackSymbol::Token(name)), Some(AstStackSymbol::Token(left_paren))) => {
+            ast_stack.push(AstStackSymbol::UnionDec(UnionDeclaration::new(name, Some(left_paren), type_list, Some(current_token.clone()))));
+            token_index += 1;
+            state_stack.goto(AstState::UnionDecEntryFinalize);
+          }
+          _ => panic!("union dec storage follow error")
+        }
+      }
+      (Some(AstState::UnionDecStorageFollow), _, _) => panic!("whoops :("),
+      (
+        Some(AstState::UnionDecEntryFinalize),
+        Some(AstStackSymbol::UnionDec(entry)),
+        TokenType::Comma,
+      )
+      | (
+        Some(AstState::UnionDecEntryFinalize),
+        Some(AstStackSymbol::UnionDec(entry)),
+        TokenType::Newline,
+      ) => {
+        ast_stack.pop();
+        let union_dec_list_sym = ast_stack.pop_panic();
+        match union_dec_list_sym {
+          Some(AstStackSymbol::UnionDecList(mut contents)) => {
+            contents.push(entry);
+            ast_stack.push(AstStackSymbol::UnionDecList(contents));
+            state_stack.goto(AstState::UnionDecEntry);
+            token_index += 1; //consumes newline or comma
+            token_index = consume_optional_newline(tokens, token_index);
+          }
+          _ => panic!("Union dec finalize has busted stack"),
+        }
+      }
+      (
+        Some(AstState::UnionDecEntryFinalize),
+        Some(AstStackSymbol::UnionDec(entry)),
+        TokenType::RCurly,
+      ) => {
+        ast_stack.pop();
+        let union_dec_list_sym = ast_stack.pop_panic();
+        match union_dec_list_sym {
+          Some(AstStackSymbol::UnionDecList(mut contents)) => {
+            contents.push(entry);
+            ast_stack.push(AstStackSymbol::UnionDecList(contents));
+            state_stack.goto(AstState::UnionDecFinalize);
+          }
+          _ => panic!("Union dec finalize has busted stack rcurly"),
+        }
+      }
+      (Some(AstState::UnionDecEntryFinalize), _, _) => {
+        panic!("unexpected union dec entry finalize {}", current_token)
+      }
+      (
+        Some(AstState::UnionDecFinalize),
+        Some(AstStackSymbol::UnionDecList(contents)),
+        TokenType::RCurly,
+      ) => {
+        ast_stack.pop();
+        let left_curly_token = ast_stack.pop_panic();
+        let union_name = ast_stack.pop_panic();
+        let union_token = ast_stack.pop_panic();
+        match (union_token, union_name, left_curly_token) {
+          (
+            Some(AstStackSymbol::Token(ut)),
+            Some(AstStackSymbol::Token(name)),
+            Some(AstStackSymbol::Token(lct)),
+          ) => {
+            ast_stack.push(AstStackSymbol::Stmt(Statement::UnionDec(
+              UnionDecStatement::new(ut, name, lct, contents, current_token.clone()),
+            )));
+            token_index += 1;
+            state_stack.goto(AstState::StmtFinalize);
+          }
+          _ => panic!("Unexpected stack contents!!!! union dec finalize"),
+        }
+      }
+      (Some(AstState::UnionDecFinalize), _, _) => panic!("Pack dec finalize mismove"),
       (_, _, _) => {
         panic!("Unknown case :( {}", current_token);
       }

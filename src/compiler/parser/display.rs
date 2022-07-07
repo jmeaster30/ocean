@@ -21,7 +21,7 @@ impl fmt::Display for Statement {
       Statement::Break(x) => x.fmt(fmt),
       Statement::Return(x) => x.fmt(fmt),
       Statement::PackDec(x) => x.fmt(fmt),
-      Statement::EnumDec(x) => x.fmt(fmt),
+      Statement::UnionDec(x) => x.fmt(fmt),
       Statement::VarDec(x) => x.fmt(fmt),
       Statement::Cast(x) => x.fmt(fmt),
       Statement::Match(x) => x.fmt(fmt),
@@ -99,40 +99,29 @@ impl fmt::Display for PackDeclaration {
   }
 }
 
-impl fmt::Display for EnumDecStatement {
+impl fmt::Display for UnionDecStatement {
   fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-    fmt.write_str("(EnumDecStatement ")?;
+    fmt.write_str("(UnionDecStatement ")?;
     fmt.write_str(format!("(Name '{}')", self.name_token.lexeme).as_str())?;
-    for pack_dec in &self.enum_declarations {
-      fmt.write_str(format!(" {}", pack_dec.to_string()).as_str())?;
+    for union_dec in &self.union_declarations {
+      fmt.write_str(format!(" {}", union_dec.to_string()).as_str())?;
     }
     fmt.write_str(")")?;
     Ok(())
   }
 }
 
-impl fmt::Display for EnumDeclaration {
+impl fmt::Display for UnionDeclaration {
   fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
     fmt.write_str(
       format!(
-        "(EnumDec '{}'{})",
+        "(UnionDec '{}'",
         self.identifier.lexeme,
-        match &self.enum_storage {
-          Some(x) => format!(" {}", x),
-          None => "".to_string(),
-        }
       )
       .as_str(),
     )?;
-    Ok(())
-  }
-}
-
-impl fmt::Display for EnumStorage {
-  fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-    fmt.write_str("(TypeList")?;
-    for (enum_type, _comma) in &self.type_list {
-      fmt.write_str(format!(" {}", enum_type).as_str())?;
+    for union_type in &self.type_list {
+      fmt.write_str(format!(" {}", union_type).as_str())?;
     }
     fmt.write_str(")")?;
     Ok(())

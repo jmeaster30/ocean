@@ -20,7 +20,7 @@ pub enum Statement {
   Break(BreakStatement),
   Return(ReturnStatement),
   PackDec(PackDecStatement),
-  EnumDec(EnumDecStatement),
+  UnionDec(UnionDecStatement),
   VarDec(VarDecStatement),
   Cast(CastStatement),
   Match(MatchStatement),
@@ -138,57 +138,44 @@ impl PackDeclaration {
 }
 
 #[derive(Clone)]
-pub struct EnumDecStatement {
-  pub enum_token: Token,
+pub struct UnionDecStatement {
+  pub union_token: Token,
   pub name_token: Token,
   pub open_brace: Token,
-  pub enum_declarations: Vec<EnumDeclaration>,
+  pub union_declarations: Vec<UnionDeclaration>,
   pub close_brace: Token,
 }
 
-impl EnumDecStatement {
+impl UnionDecStatement {
   pub fn new(
-    enum_token: Token,
+    union_token: Token,
     name_token: Token,
     open_brace: Token,
-    enum_declarations: Vec<EnumDeclaration>,
+    union_declarations: Vec<UnionDeclaration>,
     close_brace: Token,
   ) -> Self {
     Self {
-      enum_token,
+      union_token,
       name_token,
       open_brace,
-      enum_declarations,
+      union_declarations,
       close_brace,
     }
   }
 }
 
 #[derive(Clone)]
-pub struct EnumDeclaration {
+pub struct UnionDeclaration {
   pub identifier: Token,
-  pub enum_storage: Option<EnumStorage>,
+  pub left_paren: Option<Token>,
+  pub type_list: Vec<Box<Type>>,
+  pub right_paren: Option<Token>
 }
 
-impl EnumDeclaration {
-  pub fn new(identifier: Token, enum_storage: Option<EnumStorage>) -> Self {
+impl UnionDeclaration {
+  pub fn new(identifier: Token, left_paren: Option<Token>, type_list: Vec<Box<Type>>, right_paren: Option<Token>) -> Self {
     Self {
       identifier,
-      enum_storage,
-    }
-  }
-}
-
-#[derive(Clone)]
-pub struct EnumStorage {
-  pub left_paren: Token,
-  pub type_list: Vec<(Type, Option<Token>)>,
-  pub right_paren: Token,
-}
-
-impl EnumStorage {
-  pub fn new(left_paren: Token, type_list: Vec<(Type, Option<Token>)>, right_paren: Token) -> Self {
-    Self {
       left_paren,
       type_list,
       right_paren,
