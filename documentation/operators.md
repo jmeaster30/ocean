@@ -1,26 +1,26 @@
 # Operators
 
 ## Precedence Table
-| Symbols                        | Name           | Precedence | Associativity |
-|:------------------------------:|:--------------:|:----------:|:-------------:|
-| `()`                           | subexpression  | 0          | Left          |
-| `.`, `[]`                      | access         | 1          | Left          |
-| `()`                           | call           | 2          | Left          |
-| `as`                           | cast           | 3          | Left          |
-| `?`                            | postfix        | 4          | Right         |
-| `~`, `!`, `-`                  | prefix         | 5          | Right         |
-| `??`                           | default        | 6          | Left          |
-| `..`                           | range          | 7          | Right         |
-| `++`, `--`                     | array          | 8          | Left          |
-| `>.`, `>.{op}`                 | map            | 9          | Left          |
-| `*`, `/`, `%`, `//`            | multiplicative | 10         | Left          |
-| `+`, `-`                       | additive       | 11         | Left          |
-| `^`, `\|`, `&`                 | bitwise        | 12         | Left          |
-| `^^`, `\|\|`, `&&`             | logical        | 13         | Right         |
-| `<<`, `>>`                     | shift          | 14         | Left          |
-| `<`, `>`, `<=`, `>=`           | comparison     | 15         | Left          |
-| `==`, `!=`                     | equality       | 16         | Left          |
-| `=`, `{op}=`                   | assignment     | 17         | Left          |
+| Symbols              | Name           | Precedence | Associativity |
+|:--------------------:|:--------------:|:----------:|:-------------:|
+| `()`                 | subexpression  | 0          | Left          |
+| `.`, `[]`            | access         | 1          | Left          |
+| `()`                 | call           | 2          | Left          |
+| `as`                 | cast           | 3          | Left          |
+| `?`                  | postfix        | 4          | Right         |
+| `~`, `!`, `-`        | prefix         | 5          | Right         |
+| `??`                 | default        | 6          | Left          |
+| `..`, `..<`, `..=`   | range          | 7          | Right         |
+| `++`, `--`           | array          | 8          | Left          |
+| `>.`                 | map            | 9          | Left          |
+| `*`, `/`, `%`, `//`  | multiplicative | 10         | Left          |
+| `+`, `-`             | additive       | 11         | Left          |
+| `^`, `\|`, `&`       | bitwise        | 12         | Left          |
+| `^^`, `\|\|`, `&&`   | logical        | 13         | Right         |
+| `<<`, `>>`           | shift          | 14         | Left          |
+| `<`, `>`, `<=`, `>=` | comparison     | 15         | Left          |
+| `==`, `!=`           | equality       | 16         | Left          |
+| `=`, `{op}=`         | assignment     | 17         | Left          |
 
 ## Member
 

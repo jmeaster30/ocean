@@ -274,52 +274,169 @@ pub fn lex(input: String) -> (Vec<Token>, Vec<OceanError>) {
         }
         lexeme.clear();
       }
-      ':' | '>' | '<' | '?' | '.' | '/' | ';' | '~' | '!' | '$' | '%' | '&' | '^' | '*' | '-'
-      | '+' | '=' | '|' | '\\' | ',' => {
-        let symbol_size = 5;
-        let start = index;
+      '.' => {
         lexeme.push_str(&c.to_string());
-        while index < start + symbol_size - 1 && index < input_length - 1 {
+        if index < input_length - 1 {
           index += 1;
-          let n = input_chars[index];
-          match n {
-            ':' | '>' | '<' | '?' | '.' | '/' | ';' | '~' | '!' | '$' | '%' | '&' | '^' | '*'
-            | '-' | '+' | '=' | '|' | '\\' | ',' => lexeme.push_str(&n.to_string()),
-            _ => {
-              index -= 1;
-              break;
+          match input_chars[index] {
+            '.' => {
+              lexeme.push_str(&input_chars[index].to_string());
+              if index < input_length - 1 {
+                index += 1;
+                match input_chars[index] {
+                  '<' | '=' => {
+                    lexeme.push_str(&input_chars[index].to_string());
+                  },
+                  _ => {
+                    index -= 1;
+                  }
+                }
+              } else {
+
+                index += 1;
+              }
             }
+            _ => { index -= 1; }
           }
         }
 
-        //check all the other things it could be
         match lexeme.as_str() {
-          "," => tokens.push(Token::new(
-            TokenType::Comma,
-            lexeme.clone(),
-            start_index,
-            index,
-          )),
-          ":" => tokens.push(Token::new(
-            TokenType::Colon,
-            lexeme.clone(),
-            start_index,
-            index,
-          )),
-          "->" => tokens.push(Token::new(
-            TokenType::Arrow,
-            lexeme.clone(),
-            start_index,
-            index,
-          )),
-          ";" => tokens.push(Token::new(
-            TokenType::SemiColon,
-            lexeme.clone(),
-            start_index,
-            index,
-          )),
           "." => tokens.push(Token::new(
             TokenType::Dot,
+            lexeme.clone(),
+            start_index,
+            index,
+          )),
+          _ => tokens.push(Token::new(
+            TokenType::Symbol,
+            lexeme.clone(),
+            start_index,
+            index,
+          ))
+        }
+        lexeme.clear();
+      }
+      ':' => tokens.push(Token::new(
+        TokenType::Colon,
+        ":".to_string(),
+        start_index,
+        index,
+      )),
+      ',' => tokens.push(Token::new(
+        TokenType::Comma,
+        ",".to_string(),
+        start_index,
+        index,
+      )),
+      ';' => tokens.push(Token::new(
+        TokenType::SemiColon,
+        ";".to_string(),
+        start_index,
+        index,
+      )),
+      '>' => {
+        lexeme.push_str(&c.to_string());
+        if index < input_length - 1 {
+          index += 1;
+          match input_chars[index] {
+            '.' => lexeme.push_str(&input_chars[index].to_string()),
+            '>' => lexeme.push_str(&input_chars[index].to_string()),
+            '=' => lexeme.push_str(&input_chars[index].to_string()),
+            _ => { index -= 1; }
+          }
+        }
+        tokens.push(Token::new(
+          TokenType::Symbol,
+          lexeme.clone(),
+          start_index,
+          index,
+        ));
+        lexeme.clear();
+      } 
+      '<' => {
+        lexeme.push_str(&c.to_string());
+        if index < input_length - 1 {
+          index += 1;
+          match input_chars[index] {
+            ':' => lexeme.push_str(&input_chars[index].to_string()),
+            '<' => lexeme.push_str(&input_chars[index].to_string()),
+            '=' => lexeme.push_str(&input_chars[index].to_string()),
+            _ => { index -= 1; }
+          }
+        }
+        tokens.push(Token::new(
+          TokenType::Symbol,
+          lexeme.clone(),
+          start_index,
+          index,
+        ));
+        lexeme.clear();
+      }
+      '?' => {
+        lexeme.push_str(&c.to_string());
+        if index < input_length - 1 {
+          index += 1;
+          match input_chars[index] {
+            '?' => lexeme.push_str(&input_chars[index].to_string()),
+            _ => { index -= 1; }
+          }
+        }
+        tokens.push(Token::new(
+          TokenType::Symbol,
+          lexeme.clone(),
+          start_index,
+          index,
+        ));
+        lexeme.clear();
+      }
+      '/' => {
+        lexeme.push_str(&c.to_string());
+        if index < input_length - 1 {
+          index += 1;
+          match input_chars[index] {
+            '/' => lexeme.push_str(&input_chars[index].to_string()),
+            _ => { index -= 1; }
+          }
+        }
+        tokens.push(Token::new(
+          TokenType::Symbol,
+          lexeme.clone(),
+          start_index,
+          index,
+        ));
+        lexeme.clear();
+      }
+      '+' => {
+        lexeme.push_str(&c.to_string());
+        if index < input_length - 1 {
+          index += 1;
+          match input_chars[index] {
+            '+' => lexeme.push_str(&input_chars[index].to_string()),
+            _ => { index -= 1; }
+          }
+        }
+        tokens.push(Token::new(
+          TokenType::Symbol,
+          lexeme.clone(),
+          start_index,
+          index,
+        ));
+        lexeme.clear();
+      }
+      '-' => {
+        lexeme.push_str(&c.to_string());
+        if index < input_length - 1 {
+          index += 1;
+          match input_chars[index] {
+            '>' => lexeme.push_str(&input_chars[index].to_string()),
+            '-' => lexeme.push_str(&input_chars[index].to_string()),
+            _ => { index -= 1; }
+          }
+        }
+
+        match lexeme.as_str() {
+          "->" => tokens.push(Token::new(
+            TokenType::Arrow,
             lexeme.clone(),
             start_index,
             index,
@@ -334,6 +451,109 @@ pub fn lex(input: String) -> (Vec<Token>, Vec<OceanError>) {
 
         lexeme.clear();
       }
+      '^' => {
+        lexeme.push_str(&c.to_string());
+        if index < input_length - 1 {
+          index += 1;
+          match input_chars[index] {
+            '^' => lexeme.push_str(&input_chars[index].to_string()),
+            _ => { index -= 1; }
+          }
+        }
+        tokens.push(Token::new(
+          TokenType::Symbol,
+          lexeme.clone(),
+          start_index,
+          index,
+        ));
+        lexeme.clear();
+      }
+      '|' => {
+        lexeme.push_str(&c.to_string());
+        if index < input_length - 1 {
+          index += 1;
+          match input_chars[index] {
+            '|' => lexeme.push_str(&input_chars[index].to_string()),
+            _ => { index -= 1; }
+          }
+        }
+        tokens.push(Token::new(
+          TokenType::Symbol,
+          lexeme.clone(),
+          start_index,
+          index,
+        ));
+        lexeme.clear();
+      }
+      '&' => {
+        lexeme.push_str(&c.to_string());
+        if index < input_length - 1 {
+          index += 1;
+          match input_chars[index] {
+            '&' => lexeme.push_str(&input_chars[index].to_string()),
+            _ => { index -= 1; }
+          }
+        }
+        tokens.push(Token::new(
+          TokenType::Symbol,
+          lexeme.clone(),
+          start_index,
+          index,
+        ));
+        lexeme.clear();
+      }
+      '=' => {
+        lexeme.push_str(&c.to_string());
+        if index < input_length - 1 {
+          index += 1;
+          match input_chars[index] {
+            '=' => lexeme.push_str(&input_chars[index].to_string()),
+            _ => { index -= 1; }
+          }
+        }
+        tokens.push(Token::new(
+          TokenType::Symbol,
+          lexeme.clone(),
+          start_index,
+          index,
+        ));
+        lexeme.clear();
+      }
+      '!' => {
+        lexeme.push_str(&c.to_string());
+        if index < input_length - 1 {
+          index += 1;
+          match input_chars[index] {
+            '=' => lexeme.push_str(&input_chars[index].to_string()),
+            _ => { index -= 1; }
+          }
+        }
+        tokens.push(Token::new(
+          TokenType::Symbol,
+          lexeme.clone(),
+          start_index,
+          index,
+        ));
+        lexeme.clear();
+      }
+      '*' => tokens.push(Token::new(
+        TokenType::Symbol,
+        "*".to_string(),
+        start_index,
+        index,
+      )),
+      '~' => tokens.push(Token::new(
+        TokenType::Symbol,
+        "~".to_string(),
+        start_index,
+        index,
+      )),
+      '%' => tokens.push(Token::new(
+        TokenType::Symbol,
+        "%".to_string(),
+        start_index,
+        index,
+      )),
       '(' => tokens.push(Token::new(
         TokenType::LParen,
         "(".to_string(),

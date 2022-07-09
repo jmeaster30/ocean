@@ -31,7 +31,12 @@ impl CompilationUnit {
       (lexer_pass, |pass| {
         println!("lex check");
         match pass {
-          Pass::Lexer(tokens, _) => !tokens.is_empty(),
+          Pass::Lexer(tokens, _) => {
+            for token in tokens {
+              println!("{}", token);
+            }
+            !tokens.is_empty()
+          }
           _ => false,
         }
       }),

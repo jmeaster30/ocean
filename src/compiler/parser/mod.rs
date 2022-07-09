@@ -76,6 +76,12 @@ pub enum AstState {
   Expression,
   ArrayLiteralContents,
   ArrayLiteralContentsFollow,
+  Primary,
+  PrimaryFollow,
+  MemberAccess,
+  ArrayAccess,
+  Prefix, 
+  PrefixContents,
 
 }
 
@@ -95,9 +101,6 @@ pub fn parse(tokens: &Vec<Token>, start_index: Option<usize>) -> (Option<Program
     Some(x) => x,
     None => 0
   };
-  for token in tokens {
-    println!("{}", token);
-  }
 
   println!("Start parse");
 
@@ -882,15 +885,36 @@ pub fn parse(tokens: &Vec<Token>, start_index: Option<usize>) -> (Option<Program
         panic!("expr stmt error :(");
       }
 
+      (Some(AstState::Expression), _, TokenType::RParen) |
+      (Some(AstState::Expression), _, TokenType::RSquare) |
+      (Some(AstState::Expression), _, TokenType::Comma) |
       (Some(AstState::Expression), _, TokenType::Newline) => {
         state_stack.pop();
       }
+
+      (Some(AstState::Expression), _, TokenType::LSquare) |
+      (Some(AstState::Expression), _, TokenType::Identifier) |
+      (Some(AstState::Expression), _, TokenType::Number) |
+      (Some(AstState::Expression), _, TokenType::String) |
+      (Some(AstState::Expression), _, TokenType::InterpolatedString) |
+      (Some(AstState::Expression), _, TokenType::Keyword) => {
+        state_stack.push(AstState::Primary);
+      }
+      (Some(AstState::Expression), _, TokenType::Symbol) => {
+        state_stack.push(AstState::Prefix);
+      }
       
-      (Some(AstState::Expression), _, TokenType::LSquare) => {
+      (Some(AstState::Primary), _, TokenType::RParen) |
+      (Some(AstState::Primary), _, TokenType::RSquare) |
+      (Some(AstState::Primary), _, TokenType::Comma) |
+      (Some(AstState::Primary), _, TokenType::Newline) => {
+        state_stack.pop();
+      }
+      (Some(AstState::Primary), _, TokenType::LSquare) => {
         token_index += 1;
         ast_stack.push(AstStackSymbol::Token(current_token.clone()));
         ast_stack.push(AstStackSymbol::ExprList(Vec::new()));
-        state_stack.push(AstState::ArrayLiteralContents);
+        state_stack.goto(AstState::ArrayLiteralContents);
       }
       (Some(AstState::ArrayLiteralContents), Some(AstStackSymbol::ExprList(_)), TokenType::Newline) => {
         token_index = consume_optional_newline(tokens, token_index);
@@ -927,64 +951,122 @@ pub fn parse(tokens: &Vec<Token>, start_index: Option<usize>) -> (Option<Program
           Some(AstStackSymbol::Token(left_square)) => {
             token_index += 1;
             ast_stack.push(AstStackSymbol::Expr(Expression::Literal(Literal::Array(ArrayLiteral::new(left_square, contents, current_token.clone())))));
-            state_stack.pop();
+            state_stack.goto(AstState::PrimaryFollow);
           }
           _ => panic!("panic array literal contents follow stack bad")
         }
       }
       (Some(AstState::ArrayLiteralContentsFollow), x, _) => {
-        println!("here => {}", current_token);
-        match x {
-          Some(y) => match y {
-            AstStackSymbol::Token(_) => todo!(),
-            AstStackSymbol::Program(_) => todo!(),
-            AstStackSymbol::StmtList(_) => todo!(),
-            AstStackSymbol::Stmt(_) => todo!(),
-            AstStackSymbol::PackDec(_) => todo!(),
-            AstStackSymbol::PackDecList(_) => todo!(),
-            AstStackSymbol::UnionDec(_) => todo!(),
-            AstStackSymbol::UnionDecList(_) => todo!(),
-            AstStackSymbol::MatchEntry(_) => todo!(),
-            AstStackSymbol::Expr(_) => todo!(),
-            AstStackSymbol::ExprList(_) => todo!(),
-            AstStackSymbol::TypeVar(_) => todo!(),
-            AstStackSymbol::Var(_) => todo!(),
-            AstStackSymbol::Type(_) => todo!(),
-            AstStackSymbol::TypeList(_) => todo!(),
-            AstStackSymbol::OptType(_) => todo!(),
-            AstStackSymbol::ParamList(_) => todo!(),
-            AstStackSymbol::Param(_) => todo!(),
-            AstStackSymbol::ReturnList(_) => todo!(),
-            AstStackSymbol::ReturnEntry(_) => todo!(),
-            AstStackSymbol::IdList(_) => todo!(),
-        },
-          None => todo!(),
-        }
+        panic!("unexpected array literal contents follow {}", current_token);
       }
-      (Some(AstState::Expression), _, TokenType::Identifier) => {
+      (Some(AstState::Primary), _, TokenType::Identifier) => {
         token_index += 1;
         ast_stack.push(AstStackSymbol::Expr(Expression::Var(UntypedVar::new(current_token.clone()))));
-        state_stack.pop();
+        state_stack.goto(AstState::PrimaryFollow);
       }
-      (Some(AstState::Expression), _, TokenType::Number) => {
+      (Some(AstState::Primary), _, TokenType::Number) => {
         token_index += 1;
         ast_stack.push(AstStackSymbol::Expr(Expression::Literal(Literal::Number(current_token.clone()))));
-        state_stack.pop();
+        state_stack.goto(AstState::PrimaryFollow);
       }
-      (Some(AstState::Expression), _, TokenType::InterpolatedString) |
-      (Some(AstState::Expression), _, TokenType::String) => {
+      (Some(AstState::Primary), _, TokenType::InterpolatedString) |
+      (Some(AstState::Primary), _, TokenType::String) => {
         token_index += 1;
         ast_stack.push(AstStackSymbol::Expr(Expression::Literal(Literal::String(current_token.clone()))));
-        state_stack.pop();
+        state_stack.goto(AstState::PrimaryFollow);
       }
-      (Some(AstState::Expression), _, TokenType::Keyword) => {
+      (Some(AstState::Primary), _, TokenType::Keyword) => {
         if current_token.lexeme == "true" || current_token.lexeme == "false" {
           token_index += 1;
           ast_stack.push(AstStackSymbol::Expr(Expression::Literal(Literal::Boolean(current_token.clone()))));
-          state_stack.pop();
+          state_stack.goto(AstState::PrimaryFollow);
         } else {
           panic!("Did not expected this keyword in an expression {} :(", current_token);
         }
+      }
+      (Some(AstState::PrimaryFollow), Some(AstStackSymbol::Expr(expression)), TokenType::Symbol) => {
+        if current_token.lexeme == "?" {
+          ast_stack.pop();
+          ast_stack.push(AstStackSymbol::Expr(Expression::Postfix(PostfixExpression::new(Box::new(expression), current_token.clone()))));
+          token_index += 1;
+          state_stack.pop();
+        } else if  current_token.lexeme == "." {
+          panic!("member access");
+        } else {
+          state_stack.pop();
+        }
+      }
+      (Some(AstState::PrimaryFollow), _, TokenType::Dot) => {
+        ast_stack.push(AstStackSymbol::Token(current_token.clone()));
+        state_stack.goto(AstState::MemberAccess);
+        token_index += 1;
+      }
+      (Some(AstState::PrimaryFollow), _, TokenType::LSquare) => {
+        ast_stack.push(AstStackSymbol::Token(current_token.clone()));
+        state_stack.goto(AstState::ArrayAccess);
+        token_index += 1;
+      }
+      (Some(AstState::PrimaryFollow), _, _) => {
+        state_stack.pop();
+      }
+      (Some(AstState::ArrayAccess), Some(AstStackSymbol::Expr(expression)), TokenType::RSquare) => {
+        ast_stack.pop();
+        let lsq_sym = ast_stack.pop_panic();
+        let expr_sym = ast_stack.pop_panic();
+        match (expr_sym, lsq_sym) {
+          (Some(AstStackSymbol::Expr(lhs_expr)), Some(AstStackSymbol::Token(lsq))) => {
+            ast_stack.push(AstStackSymbol::Expr(Expression::ArrayAccess(ArrayAccess::new(Box::new(lhs_expr), lsq, Box::new(expression), current_token.clone()))));
+            token_index += 1;
+            state_stack.goto(AstState::PrimaryFollow);
+          }
+          _ => panic!("bad array access stack")
+        }
+      }
+      (Some(AstState::ArrayAccess), Some(AstStackSymbol::Expr(_)), _) => panic!("aa bad"),
+      (Some(AstState::ArrayAccess), Some(AstStackSymbol::Token(_)), _) => {
+        state_stack.push(AstState::Expression);
+      } 
+      (Some(AstState::MemberAccess), Some(AstStackSymbol::Token(dot)), TokenType::Identifier) => {
+        ast_stack.pop();
+        let expr_sym = ast_stack.pop_panic();
+        match expr_sym {
+          Some(AstStackSymbol::Expr(expression)) => {
+            ast_stack.push(AstStackSymbol::Expr(Expression::Member(MemberAccess::new(Box::new(expression), dot, current_token.clone()))));
+            token_index += 1;
+            state_stack.goto(AstState::PrimaryFollow);
+          }
+          _ => panic!("could not find an expression to match the member access"),
+        }
+      }
+      (Some(AstState::MemberAccess), _, _) => {
+        panic!("unexpected token in member access")
+      }
+      (Some(AstState::Prefix), Some(AstStackSymbol::Expr(expression)), _) => {
+        ast_stack.pop();
+        let operator_sym = ast_stack.pop_panic();
+        match operator_sym {
+          Some(AstStackSymbol::Token(operator)) => {
+            ast_stack.push(AstStackSymbol::Expr(Expression::Prefix(PrefixExpression::new(operator, Box::new(expression)))));
+            state_stack.pop();
+          }
+          _ => panic!("Did not find prefix operator")
+        }
+      }
+      (Some(AstState::Prefix), _, TokenType::Symbol) => {
+        if current_token.lexeme == "~" || current_token.lexeme == "!" || current_token.lexeme == "-" {
+          ast_stack.push(AstStackSymbol::Token(current_token.clone()));
+          token_index += 1;
+          state_stack.push(AstState::PrefixContents);
+        } else {
+          panic!("Unexpected symbol {}", current_token);
+        }
+      }
+      
+      (Some(AstState::PrefixContents), _, TokenType::Symbol) => {
+        state_stack.goto(AstState::Prefix);
+      }
+      (Some(AstState::PrefixContents), _, _) => {
+        state_stack.goto(AstState::Primary);
       }
 
       //* END EXPRESSION SECTION
