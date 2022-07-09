@@ -1,5 +1,5 @@
 .vscode/*
-
+tests/*
 scratch/*
 
 # Added by cargo

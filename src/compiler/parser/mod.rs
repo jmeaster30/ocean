@@ -279,7 +279,7 @@ pub fn parse(tokens: &Vec<Token>) -> (Option<Program>, Vec<OceanError>) {
       (
         Some(AstState::PackDecEntry),
         Some(AstStackSymbol::TypeVar(type_var)),
-        TokenType::Newline,
+        _,
       ) => {
         ast_stack.pop();
         ast_stack.push(AstStackSymbol::PackDec(PackDeclaration::new(
@@ -429,6 +429,10 @@ pub fn parse(tokens: &Vec<Token>) -> (Option<Program>, Vec<OceanError>) {
       (Some(AstState::SubType), _, TokenType::LParen) => {
         ast_stack.push(AstStackSymbol::Token(current_token.clone()));
         token_index += 1;
+        token_index = consume_optional_newline(tokens, token_index);
+      }
+      (Some(AstState::SubType), Some(AstStackSymbol::Type(sub_type)), TokenType::Newline) => {
+        token_index = consume_optional_newline(tokens, token_index);
       }
       (Some(AstState::SubType), Some(AstStackSymbol::Type(sub_type)), TokenType::RParen) => {
         ast_stack.pop();
@@ -441,6 +445,7 @@ pub fn parse(tokens: &Vec<Token>) -> (Option<Program>, Vec<OceanError>) {
               current_token.clone(),
             ))));
             token_index += 1;
+            token_index = consume_optional_newline(tokens, token_index);
             state_stack.goto(AstState::BaseTypeFollow);
           }
           _ => panic!(":("),
@@ -473,6 +478,9 @@ pub fn parse(tokens: &Vec<Token>) -> (Option<Program>, Vec<OceanError>) {
         ast_stack.push(AstStackSymbol::OptType(None));
         token_index += 1;
         state_stack.goto(AstState::BaseTypeFollowEnd);
+      }
+      (Some(AstState::BaseTypeFollow), Some(AstStackSymbol::Type(_)), TokenType::Newline) => {
+        token_index = consume_optional_newline(tokens, token_index);
       }
       (Some(AstState::BaseTypeFollow), Some(AstStackSymbol::Type(_)), _) => {
         state_stack.goto(AstState::TypeChainResolve);
@@ -565,6 +573,9 @@ pub fn parse(tokens: &Vec<Token>) -> (Option<Program>, Vec<OceanError>) {
         token_index += 1;
         state_stack.goto(AstState::FuncTypeParamList);
       }
+      (Some(AstState::FuncTypeParamListStart), Some(_), TokenType::Newline) => {
+        token_index = consume_optional_newline(tokens, token_index);
+      }
       (Some(AstState::FuncTypeParamListStart), Some(AstStackSymbol::Token(func_keyword)), _) => {
         ast_stack.pop();
         ast_stack.push(AstStackSymbol::Type(Type::Func(FuncType::new(func_keyword, None, Vec::new(), None, Vec::new(), None))));
@@ -576,6 +587,9 @@ pub fn parse(tokens: &Vec<Token>) -> (Option<Program>, Vec<OceanError>) {
         ast_stack.push(AstStackSymbol::TypeList(Vec::new()));
         token_index += 1;
         state_stack.goto(AstState::FuncTypeReturnList);
+      }
+      (Some(AstState::FuncTypeParamList), Some(AstStackSymbol::TypeList(_)), TokenType::Newline) => {
+        token_index = consume_optional_newline(tokens, token_index);
       }
       (Some(AstState::FuncTypeParamList), Some(AstStackSymbol::TypeList(_)), _) => {
         state_stack.push(AstState::Type);
@@ -595,14 +609,19 @@ pub fn parse(tokens: &Vec<Token>) -> (Option<Program>, Vec<OceanError>) {
       (Some(AstState::FuncTypeParamList), _, _) => {
         panic!("unexpected token {} at func type param list", current_token);
       }
+      (Some(AstState::FuncTypeParamListFollow), _, TokenType::Newline) => {
+        token_index = consume_optional_newline(tokens, token_index);
+      }
       (Some(AstState::FuncTypeParamListFollow), _, TokenType::Comma) => {
         token_index += 1;
+        token_index = consume_optional_newline(tokens, token_index);
         state_stack.goto(AstState::FuncTypeParamList);
       }
       (Some(AstState::FuncTypeParamListFollow), _, TokenType::Colon) => {
         ast_stack.push(AstStackSymbol::Token(current_token.clone()));
         ast_stack.push(AstStackSymbol::TypeList(Vec::new()));
         token_index += 1;
+        token_index = consume_optional_newline(tokens, token_index);
         state_stack.goto(AstState::FuncTypeReturnList);
       }
       (Some(AstState::FuncTypeParamListFollow), Some(AstStackSymbol::TypeList(type_list)), TokenType::RParen) => {
@@ -621,6 +640,9 @@ pub fn parse(tokens: &Vec<Token>) -> (Option<Program>, Vec<OceanError>) {
       (Some(AstState::FuncTypeParamListFollow), _, _) => panic!("unexpected token {} at func type param list follow", current_token),
       (Some(AstState::FuncTypeReturnList), Some(AstStackSymbol::TypeList(_)), TokenType::RParen) => {
         state_stack.goto(AstState::FuncTypeReturnListFollow);
+      }
+      (Some(AstState::FuncTypeReturnList), Some(AstStackSymbol::TypeList(_)), TokenType::Newline) => {
+        token_index = consume_optional_newline(tokens, token_index);
       }
       (Some(AstState::FuncTypeReturnList), Some(AstStackSymbol::TypeList(_)), _) => {
         state_stack.push(AstState::Type);
@@ -642,7 +664,11 @@ pub fn parse(tokens: &Vec<Token>) -> (Option<Program>, Vec<OceanError>) {
       }
       (Some(AstState::FuncTypeReturnListFollow), _, TokenType::Comma) => {
         token_index += 1;
+        token_index = consume_optional_newline(tokens, token_index);
         state_stack.goto(AstState::FuncTypeReturnList);
+      }
+      (Some(AstState::FuncTypeReturnListFollow), _, TokenType::Newline) => {
+        token_index = consume_optional_newline(tokens, token_index);
       }
       (Some(AstState::FuncTypeReturnListFollow), Some(AstStackSymbol::TypeList(type_list)), TokenType::RParen) => {
         ast_stack.pop();
@@ -699,6 +725,7 @@ pub fn parse(tokens: &Vec<Token>) -> (Option<Program>, Vec<OceanError>) {
         ast_stack.push(AstStackSymbol::Token(current_token.clone()));
         ast_stack.push(AstStackSymbol::TypeList(Vec::new()));
         token_index += 1;
+        token_index = consume_optional_newline(tokens, token_index);
         state_stack.goto(AstState::UnionDecStorage);
       }
       (Some(AstState::UnionDecStorageStart), Some(AstStackSymbol::Token(dec_entry_id)), TokenType::Comma) |
@@ -709,7 +736,10 @@ pub fn parse(tokens: &Vec<Token>) -> (Option<Program>, Vec<OceanError>) {
       }
       (Some(AstState::UnionDecStorageStart), _, _) => panic!("aw crap no paren {}", current_token),
       (Some(AstState::UnionDecStorage), Some(AstStackSymbol::TypeList(_)), TokenType::RParen) => {
-        state_stack.goto(AstState::UnionDecStorageEnd);
+        state_stack.goto(AstState::UnionDecStorageFollow);
+      }
+      (Some(AstState::UnionDecStorage), Some(AstStackSymbol::TypeList(_)), TokenType::Newline) => {
+        token_index = consume_optional_newline(tokens, token_index);
       }
       (Some(AstState::UnionDecStorage), Some(AstStackSymbol::TypeList(_)), _) => {
         state_stack.push(AstState::Type);
@@ -741,6 +771,10 @@ pub fn parse(tokens: &Vec<Token>) -> (Option<Program>, Vec<OceanError>) {
       }
       (Some(AstState::UnionDecStorageFollow), Some(AstStackSymbol::TypeList(type_list)), TokenType::Comma) => {
         token_index += 1;
+        state_stack.goto(AstState::UnionDecStorage);
+      }
+      (Some(AstState::UnionDecStorageFollow), Some(AstStackSymbol::TypeList(type_list)), TokenType::Newline) => {
+        token_index = consume_optional_newline(tokens, token_index);
         state_stack.goto(AstState::UnionDecStorage);
       }
       (Some(AstState::UnionDecStorageFollow), _, _) => panic!("whoops :("),

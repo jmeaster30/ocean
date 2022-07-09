@@ -29,7 +29,7 @@ pub enum TokenType {
   Newline,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Token {
   pub token_type: TokenType,
   pub lexeme: String,
@@ -230,69 +230,50 @@ pub fn lex(input: String) -> (Vec<Token>, Vec<OceanError>) {
         lexeme.clear();
       }
       '#' => {
-        while index < input_length {
+        if index < input_length - 1 && input_chars[index + 1] == '/' {
           index += 1;
-          let n = input_chars[index];
-          match n {
-            '\n' => {
-              index -= 1;
-              break;
+          lexeme.push_str(&input_chars[index].to_string());
+          let mut found_end = false;
+          while index < input_length - 1 {
+            index += 1;
+            let n = input_chars[index];
+            match n {
+              '/' => {
+                lexeme.push_str(&n.to_string());
+                if index < input_length - 1 && input_chars[index + 1] == '#' {
+                  index += 1;
+                  lexeme.push_str(&input_chars[index].to_string());
+                  found_end = true;
+                }
+              }
+              _ => lexeme.push_str(&n.to_string()),
             }
-            _ => lexeme.push_str(&n.to_string()),
           }
+          if found_end {
+            //tokens.push(Token::new(TokenType::Comment, lexeme.clone(), start_index, index));
+          } else {
+            errors.push(OceanError::LexError(
+              Severity::Error,
+              Token::new(TokenType::Error, c.to_string(), start_index, index),
+              "Unended comment block".to_string(),
+            ));
+          }
+        } else {
+          while index < input_length - 1 {
+            index += 1;
+            let n = input_chars[index];
+            match n {
+              '\n' => {
+                index -= 1;
+                break;
+              }
+              _ => lexeme.push_str(&n.to_string()),
+            }
+          }
+          //tokens.push(Token::new(TokenType::Comment, lexeme.clone(), start_index, index));
         }
-        //tokens.push(Token::new(TokenType::Comment, lexeme.clone(), start_index, index));
         lexeme.clear();
       }
-      /*'@' => {
-        index += 1;
-        let multiline = input_chars[index] == '@';
-        let mut found_end = false;
-        if multiline {
-          index += 1
-        }
-        while index < input_length {
-          let n = input_chars[index];
-          match n {
-            '\n' if !multiline => {
-              index -= 1;
-              found_end = true;
-              break;
-            }
-            '@' if multiline => {
-              index += 1;
-              if input_chars[index] == '@' {
-                index += 1;
-                found_end = true;
-                break;
-              } else {
-                lexeme.push_str(&n.to_string());
-                continue;
-              }
-            }
-            _ => lexeme.push_str(&n.to_string()),
-          }
-          index += 1;
-        }
-        if found_end || !multiline {
-          tokens.push(Token::new(
-            TokenType::Macro,
-            lexeme.clone(),
-            start_index,
-            index,
-          ));
-        } else {
-          let token = Token::new(TokenType::Macro, lexeme.clone(), start_index, index);
-          tokens.push(token.clone());
-          errors.push(OceanError::LexError(
-            Severity::Warning,
-            token,
-            "Unmarked end of macro.".to_string(),
-          ));
-        }
-
-        lexeme.clear();
-      }*/
       ':' | '>' | '<' | '?' | '.' | '/' | ';' | '~' | '!' | '$' | '%' | '&' | '^' | '*' | '-'
       | '+' | '=' | '|' | '\\' | ',' => {
         let symbol_size = 5;
