@@ -1,15 +1,15 @@
 use super::*;
 
-pub struct AstStack {
-  stack: Vec<AstStackSymbol>,
+pub struct Stack<T> {
+  stack: Vec<T>,
 }
 
-impl AstStack {
+impl<T: Clone> Stack<T> {
   pub fn new() -> Self {
-    AstStack { stack: Vec::new() }
+    Stack { stack: Vec::new() }
   }
 
-  pub fn peek(&self) -> Option<AstStackSymbol> {
+  pub fn peek(&self) -> Option<T> {
     if self.stack.is_empty() {
       None
     } else {
@@ -17,11 +17,11 @@ impl AstStack {
     }
   }
 
-  pub fn push(&mut self, symbol: AstStackSymbol) {
+  pub fn push(&mut self, symbol: T) {
     self.stack.push(symbol);
   }
 
-  pub fn pop(&mut self) -> Option<AstStackSymbol> {
+  pub fn pop(&mut self) -> Option<T> {
     if !self.stack.is_empty() {
       self.stack.pop()
     } else {
@@ -29,7 +29,7 @@ impl AstStack {
     }
   }
 
-  pub fn pop_panic(&mut self) -> Option<AstStackSymbol> {
+  pub fn pop_panic(&mut self) -> Option<T> {
     if self.stack.is_empty() {
       panic!("Ah crap I tried to pop an empty stack :(");
     }

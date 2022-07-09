@@ -487,6 +487,7 @@ pub enum Expression {
   Literal(Literal),
   Var(UntypedVar),
   FunctionCall(FunctionCall),
+  //Error(Severity, String, Vec<Token>)
 }
 
 #[derive(Clone)]

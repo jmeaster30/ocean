@@ -20,7 +20,7 @@ pub fn parser_pass(comp_unit: &CompilationUnit) -> Pass {
   match last_pass {
     Some(pass) => match pass {
       Pass::Lexer(tokenStack, _) => {
-        let (ast, parse_errors) = parse(&tokenStack);
+        let (ast, parse_errors) = parse(&tokenStack, None);
         Pass::Parser(ast, parse_errors)
       }
       _ => Pass::Parser(

@@ -8,6 +8,8 @@ use crate::compiler::{Token, TokenType};
 use ast::*;
 use helpers::*;
 
+use super::errors::Severity;
+
 #[derive(Clone)]
 pub enum AstStackSymbol {
   Token(Token),
@@ -70,6 +72,10 @@ pub enum AstState {
   UnionDecStorageEnd,
   UnionDecEntryFinalize,
   UnionDecFinalize,
+
+  ExprStmt,
+  Expression,
+
 }
 
 fn consume_optional_newline(tokens: &Vec<Token>, token_index: usize) -> usize {
@@ -80,11 +86,14 @@ fn consume_optional_newline(tokens: &Vec<Token>, token_index: usize) -> usize {
   new_token_index
 }
 
-pub fn parse(tokens: &Vec<Token>) -> (Option<Program>, Vec<OceanError>) {
-  let mut ast_stack = AstStack::new();
+pub fn parse(tokens: &Vec<Token>, start_index: Option<usize>) -> (Option<Program>, Vec<OceanError>) {
+  let mut ast_stack = Stack::new();
   let mut errors: Vec<OceanError> = Vec::new();
   let mut state_stack = StateStack::new();
-  let mut token_index = 0;
+  let mut token_index = match start_index {
+    Some(x) => x,
+    None => 0
+  };
   for token in tokens {
     println!("{}", token);
   }
@@ -140,9 +149,18 @@ pub fn parse(tokens: &Vec<Token>) -> (Option<Program>, Vec<OceanError>) {
           )));
           token_index += 1;
           state_stack.push(AstState::StmtFinalize);
+        } else if current_token.lexeme == "true" || current_token.lexeme == "false" {
+          state_stack.push(AstState::ExprStmt);
         } else {
           panic!("Unknown keyword {} :(", current_token);
         }
+      }
+      (Some(AstState::StmtList), Some(_), TokenType::Symbol) |
+      (Some(AstState::StmtList), Some(_), TokenType::Number) |
+      (Some(AstState::StmtList), Some(_), TokenType::Identifier) |
+      (Some(AstState::StmtList), Some(_), TokenType::InterpolatedString) |
+      (Some(AstState::StmtList), Some(_), TokenType::String) => {
+        state_stack.push(AstState::ExprStmt);
       }
       (Some(AstState::StmtList), Some(_), TokenType::Newline) => {
         token_index = consume_optional_newline(tokens, token_index);
@@ -161,7 +179,6 @@ pub fn parse(tokens: &Vec<Token>) -> (Option<Program>, Vec<OceanError>) {
           _ => panic!("Stmt finalize stack busted"),
         }
       }
-
       (
         Some(AstState::UseStmtIdList),
         Some(AstStackSymbol::IdList(mut contents)),
@@ -845,6 +862,49 @@ pub fn parse(tokens: &Vec<Token>) -> (Option<Program>, Vec<OceanError>) {
         }
       }
       (Some(AstState::UnionDecFinalize), _, _) => panic!("Pack dec finalize mismove"),
+      
+      //* EXPRESSION SECTION
+      
+      (Some(AstState::ExprStmt), Some(AstStackSymbol::Expr(expression)), _) => {
+        ast_stack.pop();
+        ast_stack.push(AstStackSymbol::Stmt(Statement::Expression(ExpressionStatement::new(expression))));
+        state_stack.goto(AstState::StmtFinalize);
+      }
+      (Some(AstState::ExprStmt), Some(_), _) => {
+        state_stack.push(AstState::Expression);
+      } 
+      (Some(AstState::ExprStmt), _, _) => {
+        panic!("expr stmt error :(");
+      }
+      
+      (Some(AstState::Expression), _, TokenType::Identifier) => {
+        token_index += 1;
+        ast_stack.push(AstStackSymbol::Expr(Expression::Var(UntypedVar::new(current_token.clone()))));
+        state_stack.pop();
+      }
+      (Some(AstState::Expression), _, TokenType::Number) => {
+        token_index += 1;
+        ast_stack.push(AstStackSymbol::Expr(Expression::Literal(Literal::Number(current_token.clone()))));
+        state_stack.pop();
+      }
+      (Some(AstState::Expression), _, TokenType::InterpolatedString) |
+      (Some(AstState::Expression), _, TokenType::String) => {
+        token_index += 1;
+        ast_stack.push(AstStackSymbol::Expr(Expression::Literal(Literal::String(current_token.clone()))));
+        state_stack.pop();
+      }
+      (Some(AstState::Expression), _, TokenType::Keyword) => {
+        if current_token.lexeme == "true" || current_token.lexeme == "false" {
+          token_index += 1;
+          ast_stack.push(AstStackSymbol::Expr(Expression::Literal(Literal::Boolean(current_token.clone()))));
+          state_stack.pop();
+        } else {
+          panic!("Did not expected this keyword in an expression {} :(", current_token);
+        }
+      }
+
+      //* END EXPRESSION SECTION
+
       (_, _, _) => {
         panic!("Unknown case :( {}", current_token);
       }
