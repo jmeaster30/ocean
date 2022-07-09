@@ -394,7 +394,7 @@ impl fmt::Display for Tuple {
 impl fmt::Display for ArrayLiteral {
   fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
     fmt.write_str("(ArrayLiteral")?;
-    for (arg, _comma) in &self.args {
+    for arg in &self.args {
       fmt.write_str(format!(" {}", arg).as_str())?;
     }
     fmt.write_str(")")?;

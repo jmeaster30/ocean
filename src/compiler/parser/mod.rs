@@ -22,7 +22,7 @@ pub enum AstStackSymbol {
   UnionDecList(Vec<UnionDeclaration>),
   MatchEntry(MatchEntry),
   Expr(Expression),
-  Literal(Literal),
+  ExprList(Vec<Box<Expression>>),
   TypeVar(TypeVar),
   Var(Var),
   Type(Type),
@@ -33,7 +33,6 @@ pub enum AstStackSymbol {
   ReturnList(ReturnList),
   ReturnEntry(ReturnEntry),
   IdList(Vec<Token>),
-  ExprList(Vec<Expression>),
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -75,6 +74,8 @@ pub enum AstState {
 
   ExprStmt,
   Expression,
+  ArrayLiteralContents,
+  ArrayLiteralContentsFollow,
 
 }
 
@@ -104,6 +105,8 @@ pub fn parse(tokens: &Vec<Token>, start_index: Option<usize>) -> (Option<Program
   state_stack.goto(AstState::StmtList);
 
   loop {
+    ast_stack.print();
+    state_stack.print();
     let current_token = &tokens[token_index];
     let stack_top = ast_stack.peek();
     let state = state_stack.current_state();
@@ -155,6 +158,8 @@ pub fn parse(tokens: &Vec<Token>, start_index: Option<usize>) -> (Option<Program
           panic!("Unknown keyword {} :(", current_token);
         }
       }
+      (Some(AstState::StmtList), Some(_), TokenType::LSquare) |
+      (Some(AstState::StmtList), Some(_), TokenType::LParen) |
       (Some(AstState::StmtList), Some(_), TokenType::Symbol) |
       (Some(AstState::StmtList), Some(_), TokenType::Number) |
       (Some(AstState::StmtList), Some(_), TokenType::Identifier) |
@@ -876,7 +881,86 @@ pub fn parse(tokens: &Vec<Token>, start_index: Option<usize>) -> (Option<Program
       (Some(AstState::ExprStmt), _, _) => {
         panic!("expr stmt error :(");
       }
+
+      (Some(AstState::Expression), _, TokenType::Newline) => {
+        state_stack.pop();
+      }
       
+      (Some(AstState::Expression), _, TokenType::LSquare) => {
+        token_index += 1;
+        ast_stack.push(AstStackSymbol::Token(current_token.clone()));
+        ast_stack.push(AstStackSymbol::ExprList(Vec::new()));
+        state_stack.push(AstState::ArrayLiteralContents);
+      }
+      (Some(AstState::ArrayLiteralContents), Some(AstStackSymbol::ExprList(_)), TokenType::Newline) => {
+        token_index = consume_optional_newline(tokens, token_index);
+      }
+      (Some(AstState::ArrayLiteralContents), Some(AstStackSymbol::ExprList(_)), _) => {
+        state_stack.push(AstState::Expression);
+      }
+      (Some(AstState::ArrayLiteralContents), Some(AstStackSymbol::Expr(expression)), _) => {
+        ast_stack.pop();
+        let expr_stmt_sym = ast_stack.pop_panic();
+        match expr_stmt_sym {
+          Some(AstStackSymbol::ExprList(mut contents)) => {
+            contents.push(Box::new(expression));
+            ast_stack.push(AstStackSymbol::ExprList(contents));
+            state_stack.goto(AstState::ArrayLiteralContentsFollow);
+          }
+          _ => panic!("Expression list not on stack :(")
+        }
+      }
+      (Some(AstState::ArrayLiteralContents), _, _) => panic!("unexpected token array literal contents"),
+      (Some(AstState::ArrayLiteralContentsFollow), Some(AstStackSymbol::ExprList(_)), TokenType::Comma) => {
+        token_index += 1;
+        token_index = consume_optional_newline(tokens, token_index);
+        state_stack.goto(AstState::ArrayLiteralContents);
+      }
+      (Some(AstState::ArrayLiteralContentsFollow), Some(AstStackSymbol::ExprList(_)), TokenType::Newline) => {
+        token_index += 1;
+        token_index = consume_optional_newline(tokens, token_index);
+      }
+      (Some(AstState::ArrayLiteralContentsFollow), Some(AstStackSymbol::ExprList(contents)), TokenType::RSquare) => {
+        ast_stack.pop();
+        let l_square_sym = ast_stack.pop_panic();
+        match l_square_sym {
+          Some(AstStackSymbol::Token(left_square)) => {
+            token_index += 1;
+            ast_stack.push(AstStackSymbol::Expr(Expression::Literal(Literal::Array(ArrayLiteral::new(left_square, contents, current_token.clone())))));
+            state_stack.pop();
+          }
+          _ => panic!("panic array literal contents follow stack bad")
+        }
+      }
+      (Some(AstState::ArrayLiteralContentsFollow), x, _) => {
+        println!("here => {}", current_token);
+        match x {
+          Some(y) => match y {
+            AstStackSymbol::Token(_) => todo!(),
+            AstStackSymbol::Program(_) => todo!(),
+            AstStackSymbol::StmtList(_) => todo!(),
+            AstStackSymbol::Stmt(_) => todo!(),
+            AstStackSymbol::PackDec(_) => todo!(),
+            AstStackSymbol::PackDecList(_) => todo!(),
+            AstStackSymbol::UnionDec(_) => todo!(),
+            AstStackSymbol::UnionDecList(_) => todo!(),
+            AstStackSymbol::MatchEntry(_) => todo!(),
+            AstStackSymbol::Expr(_) => todo!(),
+            AstStackSymbol::ExprList(_) => todo!(),
+            AstStackSymbol::TypeVar(_) => todo!(),
+            AstStackSymbol::Var(_) => todo!(),
+            AstStackSymbol::Type(_) => todo!(),
+            AstStackSymbol::TypeList(_) => todo!(),
+            AstStackSymbol::OptType(_) => todo!(),
+            AstStackSymbol::ParamList(_) => todo!(),
+            AstStackSymbol::Param(_) => todo!(),
+            AstStackSymbol::ReturnList(_) => todo!(),
+            AstStackSymbol::ReturnEntry(_) => todo!(),
+            AstStackSymbol::IdList(_) => todo!(),
+        },
+          None => todo!(),
+        }
+      }
       (Some(AstState::Expression), _, TokenType::Identifier) => {
         token_index += 1;
         ast_stack.push(AstStackSymbol::Expr(Expression::Var(UntypedVar::new(current_token.clone()))));

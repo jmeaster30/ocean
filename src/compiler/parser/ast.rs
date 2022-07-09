@@ -638,14 +638,14 @@ impl Tuple {
 #[derive(Clone)]
 pub struct ArrayLiteral {
   pub left_square: Token,
-  pub args: Vec<(Box<Expression>, Option<Token>)>,
+  pub args: Vec<Box<Expression>>,
   pub right_square: Token,
 }
 
 impl ArrayLiteral {
   pub fn new(
     left_square: Token,
-    args: Vec<(Box<Expression>, Option<Token>)>,
+    args: Vec<Box<Expression>>,
     right_square: Token,
   ) -> Self {
     Self {
