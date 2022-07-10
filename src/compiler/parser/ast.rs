@@ -585,7 +585,7 @@ impl CastExpression {
 pub struct FunctionCall {
   pub target: Box<Expression>,
   pub left_paren: Token,
-  pub arguments: Vec<(Expression, Option<Token>)>,
+  pub arguments: Vec<Box<Expression>>,
   pub right_paren: Token,
 }
 
@@ -593,7 +593,7 @@ impl FunctionCall {
   pub fn new(
     target: Box<Expression>,
     left_paren: Token,
-    arguments: Vec<(Expression, Option<Token>)>,
+    arguments: Vec<Box<Expression>>,
     right_paren: Token,
   ) -> Self {
     Self {

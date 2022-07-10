@@ -79,6 +79,7 @@ pub enum AstState {
   PrefixOrPrimary,
   Primary,
   PrimaryFollow,
+  FunctionCall,
   CastExpr,
   MemberAccess,
   ArrayAccess,
@@ -1054,9 +1055,55 @@ pub fn parse(tokens: &Vec<Token>, start_index: Option<usize>) -> (Option<Program
         state_stack.goto(AstState::ArrayAccess);
         token_index += 1;
       }
+      (Some(AstState::PrimaryFollow), _, TokenType::LParen) => {
+        ast_stack.push(AstStackSymbol::Token(current_token.clone()));
+        ast_stack.push(AstStackSymbol::ExprList(Vec::new()));
+        state_stack.goto(AstState::FunctionCall);
+        token_index += 1;
+      }
       (Some(AstState::PrimaryFollow), _, _) => {
         state_stack.pop();
       }
+      (Some(AstState::FunctionCall), Some(AstStackSymbol::ExprList(arguments)), TokenType::RParen) => {
+        ast_stack.pop();
+        let left_paren_sym = ast_stack.pop_panic();
+        let target_sym = ast_stack.pop_panic();
+        match (target_sym, left_paren_sym) {
+          (Some(AstStackSymbol::Expr(target)), Some(AstStackSymbol::Token(left_paren))) => {
+            ast_stack.push(AstStackSymbol::Expr(Expression::FunctionCall(FunctionCall::new(Box::new(target), left_paren, arguments, current_token.clone()))));
+            token_index += 1;
+            state_stack.goto(AstState::PrimaryFollow);
+          }
+          _ => panic!("bad stack function call")
+        }
+      }
+      (Some(AstState::FunctionCall), Some(AstStackSymbol::Expr(expression)), TokenType::RParen) => {
+        ast_stack.pop();
+        let expr_list = ast_stack.pop_panic();
+        match expr_list {
+          Some(AstStackSymbol::ExprList(mut contents)) => {
+            contents.push(Box::new(expression));
+            ast_stack.push(AstStackSymbol::ExprList(contents));
+          }
+          _ => panic!("bad stack function call contents")
+        }
+      }
+      (Some(AstState::FunctionCall), Some(AstStackSymbol::Expr(expression)), TokenType::Comma) => {
+        ast_stack.pop();
+        let expr_list = ast_stack.pop_panic();
+        match expr_list {
+          Some(AstStackSymbol::ExprList(mut contents)) => {
+            contents.push(Box::new(expression));
+            ast_stack.push(AstStackSymbol::ExprList(contents));
+            token_index += 1;
+          }
+          _ => panic!("bad stack function call contents")
+        }
+      }
+      (Some(AstState::FunctionCall), Some(AstStackSymbol::ExprList(_)), _) => {
+        state_stack.push(AstState::Expression);
+      }
+      (Some(AstState::FunctionCall), _, _) => panic!("Unexpected token {}!!!! function call", current_token),
       (Some(AstState::CastExpr), Some(AstStackSymbol::Type(cast_type)), _) => {
         ast_stack.pop();
         let as_token_sym = ast_stack.pop_panic();

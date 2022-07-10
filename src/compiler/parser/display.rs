@@ -359,7 +359,7 @@ impl fmt::Display for CastExpression {
 impl fmt::Display for FunctionCall {
   fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
     fmt.write_str(format!("(FunctionCall {} (Args", self.target).as_str())?;
-    for (exp, _comma) in &self.arguments {
+    for exp in &self.arguments {
       fmt.write_str(format!(" {}", exp).as_str())?;
     }
     fmt.write_str("))")?;
