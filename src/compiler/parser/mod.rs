@@ -76,12 +76,15 @@ pub enum AstState {
   Expression,
   ArrayLiteralContents,
   ArrayLiteralContentsFollow,
+  PrefixOrPrimary,
   Primary,
   PrimaryFollow,
   MemberAccess,
   ArrayAccess,
   Prefix, 
   PrefixContents,
+  BinaryExpression,
+  DefaultExpression,
 
 }
 
@@ -892,16 +895,46 @@ pub fn parse(tokens: &Vec<Token>, start_index: Option<usize>) -> (Option<Program
         state_stack.pop();
       }
 
+      (Some(AstState::BinaryExpression), _, TokenType::RParen) |
+      (Some(AstState::BinaryExpression), _, TokenType::RSquare) |
+      (Some(AstState::BinaryExpression), _, TokenType::Comma) |
+      (Some(AstState::BinaryExpression), _, TokenType::Newline) => {
+        state_stack.pop();
+      }
+
+      (Some(AstState::BinaryExpression), _, TokenType::Symbol) => {
+        if current_token.lexeme == "??" {
+          token_index += 1;
+          ast_stack.push(AstStackSymbol::Token(current_token.clone()));
+          state_stack.push(AstState::DefaultExpression);
+          state_stack.push(AstState::PrefixOrPrimary);
+        } else {
+          panic!("unknown symbol :(");
+        }
+      }
+
       (Some(AstState::Expression), _, TokenType::LSquare) |
       (Some(AstState::Expression), _, TokenType::Identifier) |
       (Some(AstState::Expression), _, TokenType::Number) |
       (Some(AstState::Expression), _, TokenType::String) |
       (Some(AstState::Expression), _, TokenType::InterpolatedString) |
-      (Some(AstState::Expression), _, TokenType::Keyword) => {
-        state_stack.push(AstState::Primary);
-      }
+      (Some(AstState::Expression), _, TokenType::Keyword) |
       (Some(AstState::Expression), _, TokenType::Symbol) => {
-        state_stack.push(AstState::Prefix);
+        state_stack.push(AstState::BinaryExpression);
+        state_stack.push(AstState::PrefixOrPrimary);
+      }
+
+      (Some(AstState::PrefixOrPrimary), _, TokenType::LSquare) |
+      (Some(AstState::PrefixOrPrimary), _, TokenType::Identifier) |
+      (Some(AstState::PrefixOrPrimary), _, TokenType::Number) |
+      (Some(AstState::PrefixOrPrimary), _, TokenType::String) |
+      (Some(AstState::PrefixOrPrimary), _, TokenType::InterpolatedString) |
+      (Some(AstState::PrefixOrPrimary), _, TokenType::Keyword) => {
+        state_stack.goto(AstState::Primary);
+      }
+
+      (Some(AstState::PrefixOrPrimary), _, TokenType::Symbol) => {
+        state_stack.goto(AstState::Prefix);
       }
       
       (Some(AstState::Primary), _, TokenType::RParen) |
@@ -1062,12 +1095,23 @@ pub fn parse(tokens: &Vec<Token>, start_index: Option<usize>) -> (Option<Program
         }
       }
       
-      (Some(AstState::PrefixContents), _, TokenType::Symbol) => {
-        state_stack.goto(AstState::Prefix);
-      }
       (Some(AstState::PrefixContents), _, _) => {
-        state_stack.goto(AstState::Primary);
+        state_stack.goto(AstState::PrefixOrPrimary);
       }
+
+      (Some(AstState::DefaultExpression), Some(AstStackSymbol::Expr(expression)), _) => {
+        ast_stack.pop();
+        let operator_sym = ast_stack.pop_panic();
+        let lhs_sym = ast_stack.pop_panic();
+        match (lhs_sym, operator_sym) {
+          (Some(AstStackSymbol::Expr(lhs)), Some(AstStackSymbol::Token(op))) => {
+            ast_stack.push(AstStackSymbol::Expr(Expression::Binary(BinaryExpression::new(Box::new(lhs), op, Box::new(expression)))));
+            state_stack.pop();
+          }
+          _ => panic!("unexpected stack default")
+        }
+      }
+      (Some(AstState::DefaultExpression), _, _) => panic!("default unexpected place :("),
 
       //* END EXPRESSION SECTION
 
