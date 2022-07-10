@@ -74,6 +74,7 @@ pub enum AstState {
 
   ExprStmt,
   Expression,
+  SubExpression,
   ArrayLiteralContents,
   ArrayLiteralContentsFollow,
   PrefixOrPrimary,
@@ -919,6 +920,7 @@ pub fn parse(tokens: &Vec<Token>, start_index: Option<usize>) -> (Option<Program
         }
       }
 
+      (Some(AstState::Expression), _, TokenType::LParen) |
       (Some(AstState::Expression), _, TokenType::LSquare) |
       (Some(AstState::Expression), _, TokenType::Identifier) |
       (Some(AstState::Expression), _, TokenType::Number) |
@@ -930,6 +932,7 @@ pub fn parse(tokens: &Vec<Token>, start_index: Option<usize>) -> (Option<Program
         state_stack.push(AstState::PrefixOrPrimary);
       }
 
+      (Some(AstState::PrefixOrPrimary), _, TokenType::LParen) |
       (Some(AstState::PrefixOrPrimary), _, TokenType::LSquare) |
       (Some(AstState::PrefixOrPrimary), _, TokenType::Identifier) |
       (Some(AstState::PrefixOrPrimary), _, TokenType::Number) |
@@ -950,12 +953,24 @@ pub fn parse(tokens: &Vec<Token>, start_index: Option<usize>) -> (Option<Program
       (Some(AstState::Primary), _, TokenType::Newline) => {
         state_stack.pop();
       }
+      (Some(AstState::Primary), _, TokenType::LParen) => {
+        state_stack.goto(AstState::SubExpression);
+      }
       (Some(AstState::Primary), _, TokenType::LSquare) => {
         token_index += 1;
         ast_stack.push(AstStackSymbol::Token(current_token.clone()));
         ast_stack.push(AstStackSymbol::ExprList(Vec::new()));
         state_stack.goto(AstState::ArrayLiteralContents);
       }
+      (Some(AstState::SubExpression), _, TokenType::LParen) => {
+        token_index += 1;
+        state_stack.push(AstState::Expression);
+      }
+      (Some(AstState::SubExpression), _, TokenType::RParen) => {
+        token_index += 1;
+        state_stack.goto(AstState::PrimaryFollow);
+      }
+      (Some(AstState::SubExpression), _, _) => panic!("Unexpected token sub expression"),
       (Some(AstState::ArrayLiteralContents), Some(AstStackSymbol::ExprList(_)), TokenType::Newline) => {
         token_index = consume_optional_newline(tokens, token_index);
       }
