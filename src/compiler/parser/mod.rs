@@ -79,6 +79,7 @@ pub enum AstState {
   PrefixOrPrimary,
   Primary,
   PrimaryFollow,
+  CastExpr,
   MemberAccess,
   ArrayAccess,
   Prefix, 
@@ -179,7 +180,9 @@ pub fn parse(tokens: &Vec<Token>, start_index: Option<usize>) -> (Option<Program
       (Some(AstState::StmtFinalize), Some(AstStackSymbol::Stmt(stmt)), TokenType::EndOfInput)
       | (Some(AstState::StmtFinalize), Some(AstStackSymbol::Stmt(stmt)), TokenType::Newline) => {
         ast_stack.pop();
-        token_index += 1;
+        if current_token.token_type != TokenType::EndOfInput {
+          token_index += 1;
+        }
         let mut stmt_list_sym = ast_stack.pop_panic();
         match stmt_list_sym {
           Some(AstStackSymbol::StmtList(mut contents)) => {
@@ -888,6 +891,7 @@ pub fn parse(tokens: &Vec<Token>, start_index: Option<usize>) -> (Option<Program
         panic!("expr stmt error :(");
       }
 
+      (Some(AstState::Expression), _, TokenType::EndOfInput) |
       (Some(AstState::Expression), _, TokenType::RParen) |
       (Some(AstState::Expression), _, TokenType::RSquare) |
       (Some(AstState::Expression), _, TokenType::Comma) |
@@ -895,6 +899,7 @@ pub fn parse(tokens: &Vec<Token>, start_index: Option<usize>) -> (Option<Program
         state_stack.pop();
       }
 
+      (Some(AstState::BinaryExpression), _, TokenType::EndOfInput) |
       (Some(AstState::BinaryExpression), _, TokenType::RParen) |
       (Some(AstState::BinaryExpression), _, TokenType::RSquare) |
       (Some(AstState::BinaryExpression), _, TokenType::Comma) |
@@ -937,6 +942,7 @@ pub fn parse(tokens: &Vec<Token>, start_index: Option<usize>) -> (Option<Program
         state_stack.goto(AstState::Prefix);
       }
       
+      (Some(AstState::Primary), _, TokenType::EndOfInput) |
       (Some(AstState::Primary), _, TokenType::RParen) |
       (Some(AstState::Primary), _, TokenType::RSquare) |
       (Some(AstState::Primary), _, TokenType::Comma) |
@@ -1029,6 +1035,15 @@ pub fn parse(tokens: &Vec<Token>, start_index: Option<usize>) -> (Option<Program
           state_stack.pop();
         }
       }
+      (Some(AstState::PrimaryFollow), _, TokenType::Keyword) => {
+        if current_token.lexeme == "as" {
+          ast_stack.push(AstStackSymbol::Token(current_token.clone()));
+          state_stack.goto(AstState::CastExpr);
+          token_index += 1;
+        } else {
+          state_stack.pop();
+        }
+      }
       (Some(AstState::PrimaryFollow), _, TokenType::Dot) => {
         ast_stack.push(AstStackSymbol::Token(current_token.clone()));
         state_stack.goto(AstState::MemberAccess);
@@ -1042,6 +1057,22 @@ pub fn parse(tokens: &Vec<Token>, start_index: Option<usize>) -> (Option<Program
       (Some(AstState::PrimaryFollow), _, _) => {
         state_stack.pop();
       }
+      (Some(AstState::CastExpr), Some(AstStackSymbol::Type(cast_type)), _) => {
+        ast_stack.pop();
+        let as_token_sym = ast_stack.pop_panic();
+        let expr_sym = ast_stack.pop_panic();
+        match (expr_sym, as_token_sym) {
+          (Some(AstStackSymbol::Expr(expression)), Some(AstStackSymbol::Token(as_token))) => {
+            ast_stack.push(AstStackSymbol::Expr(Expression::Cast(CastExpression::new(Box::new(expression), as_token, cast_type))));
+            state_stack.pop();
+          }
+          _ => panic!("bad stack cast expr")
+        }
+      } 
+      (Some(AstState::CastExpr), Some(AstStackSymbol::Token(_)), _) => {
+        state_stack.push(AstState::Type);
+      }
+      (Some(AstState::CastExpr), _, _) => panic!("asdfhalskdfh cast expr"),
       (Some(AstState::ArrayAccess), Some(AstStackSymbol::Expr(expression)), TokenType::RSquare) => {
         ast_stack.pop();
         let lsq_sym = ast_stack.pop_panic();
