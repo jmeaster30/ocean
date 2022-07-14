@@ -1010,14 +1010,24 @@ pub fn parse(
 
       (Some(AstState::ExpressionFollow), _, TokenType::Symbol) => {
         if current_token.lexeme == "="
+          || current_token.lexeme == "<<="
+          || current_token.lexeme == ">>="
+          || current_token.lexeme == "^^="
+          || current_token.lexeme == "||="
+          || current_token.lexeme == "&&="
+          || current_token.lexeme == "^="
+          || current_token.lexeme == "&="
+          || current_token.lexeme == "|="
           || current_token.lexeme == "+="
           || current_token.lexeme == "-="
           || current_token.lexeme == "*="
           || current_token.lexeme == "/="
           || current_token.lexeme == "%="
-          || current_token.lexeme == "|="
-          || current_token.lexeme == "&="
-          || current_token.lexeme == "^="
+          || current_token.lexeme == "//="
+          || current_token.lexeme == "++="
+          || current_token.lexeme == "--="
+          || current_token.lexeme == ">.="
+          || current_token.lexeme == "??="
           || current_token.lexeme == "~="
         {
           ast_stack.push(AstStackSymbol::Token(current_token.clone()));
