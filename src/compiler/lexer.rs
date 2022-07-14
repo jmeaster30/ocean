@@ -355,7 +355,7 @@ pub fn lex(input: String) -> (Vec<Token>, Vec<OceanError>) {
               } else {
                 index += 1;
               }
-            },
+            }
             '>' => {
               lexeme.push_str(&input_chars[index].to_string());
               if index < input_length - 1 {
@@ -442,7 +442,7 @@ pub fn lex(input: String) -> (Vec<Token>, Vec<OceanError>) {
               } else {
                 index += 1;
               }
-            },
+            }
             _ => {
               index -= 1;
             }
@@ -476,7 +476,7 @@ pub fn lex(input: String) -> (Vec<Token>, Vec<OceanError>) {
               } else {
                 index += 1;
               }
-            },
+            }
             '=' => lexeme.push_str(&input_chars[index].to_string()),
             _ => {
               index -= 1;
@@ -511,7 +511,7 @@ pub fn lex(input: String) -> (Vec<Token>, Vec<OceanError>) {
               } else {
                 index += 1;
               }
-            },
+            }
             '=' => lexeme.push_str(&input_chars[index].to_string()),
             _ => {
               index -= 1;
@@ -547,7 +547,7 @@ pub fn lex(input: String) -> (Vec<Token>, Vec<OceanError>) {
               } else {
                 index += 1;
               }
-            },
+            }
             '=' => lexeme.push_str(&input_chars[index].to_string()),
             _ => {
               index -= 1;
