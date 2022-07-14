@@ -8,7 +8,7 @@
 | `?`                   | postfix            | 2          | Right         |
 | `~`, `!`, `-`         | prefix             | 3          | Right         |
 | `??`                  | default            | 4          | Left          |
-| `..`, `..<`, `..=`    | range              | 5          | Right         |
+| `..`, `..<`, `..=`    | range              | 5          | Left          |
 | `++`, `--`, `>.`      | array              | 6          | Left          |
 | `*`, `/`, `%`, `//`   | multiplicative     | 7          | Left          |
 | `+`, `-`              | additive           | 8          | Left          |
