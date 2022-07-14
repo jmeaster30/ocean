@@ -113,13 +113,7 @@ impl fmt::Display for UnionDecStatement {
 
 impl fmt::Display for UnionDeclaration {
   fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-    fmt.write_str(
-      format!(
-        "(UnionDec '{}'",
-        self.identifier.lexeme,
-      )
-      .as_str(),
-    )?;
+    fmt.write_str(format!("(UnionDec '{}'", self.identifier.lexeme,).as_str())?;
     for union_type in &self.type_list {
       fmt.write_str(format!(" {}", union_type).as_str())?;
     }

@@ -169,11 +169,16 @@ pub struct UnionDeclaration {
   pub identifier: Token,
   pub left_paren: Option<Token>,
   pub type_list: Vec<Box<Type>>,
-  pub right_paren: Option<Token>
+  pub right_paren: Option<Token>,
 }
 
 impl UnionDeclaration {
-  pub fn new(identifier: Token, left_paren: Option<Token>, type_list: Vec<Box<Type>>, right_paren: Option<Token>) -> Self {
+  pub fn new(
+    identifier: Token,
+    left_paren: Option<Token>,
+    type_list: Vec<Box<Type>>,
+    right_paren: Option<Token>,
+  ) -> Self {
     Self {
       identifier,
       left_paren,
@@ -643,11 +648,7 @@ pub struct ArrayLiteral {
 }
 
 impl ArrayLiteral {
-  pub fn new(
-    left_square: Token,
-    args: Vec<Box<Expression>>,
-    right_square: Token,
-  ) -> Self {
+  pub fn new(left_square: Token, args: Vec<Box<Expression>>, right_square: Token) -> Self {
     Self {
       left_square,
       args,

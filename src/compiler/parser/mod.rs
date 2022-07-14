@@ -84,12 +84,11 @@ pub enum AstState {
   CastExpr,
   MemberAccess,
   ArrayAccess,
-  Prefix, 
+  Prefix,
   PrefixContents,
   ExpressionFollow,
   ExpressionFold,
   DefaultExpression,
-
 }
 
 fn consume_optional_newline(tokens: &Vec<Token>, token_index: usize) -> usize {
@@ -100,13 +99,16 @@ fn consume_optional_newline(tokens: &Vec<Token>, token_index: usize) -> usize {
   new_token_index
 }
 
-pub fn parse(tokens: &Vec<Token>, start_index: Option<usize>) -> (Option<Program>, Vec<OceanError>) {
+pub fn parse(
+  tokens: &Vec<Token>,
+  start_index: Option<usize>,
+) -> (Option<Program>, Vec<OceanError>) {
   let mut ast_stack = Stack::new();
   let mut errors: Vec<OceanError> = Vec::new();
   let mut state_stack = StateStack::new();
   let mut token_index = match start_index {
     Some(x) => x,
-    None => 0
+    None => 0,
   };
 
   println!("Start parse");
@@ -118,6 +120,7 @@ pub fn parse(tokens: &Vec<Token>, start_index: Option<usize>) -> (Option<Program
     ast_stack.print();
     state_stack.print();
     let current_token = &tokens[token_index];
+    println!("CURRENT TOKEN: {:?}", current_token.clone());
     let stack_top = ast_stack.peek();
     let state = state_stack.current_state();
     match (state, stack_top, &current_token.token_type) {
@@ -168,13 +171,13 @@ pub fn parse(tokens: &Vec<Token>, start_index: Option<usize>) -> (Option<Program
           panic!("Unknown keyword {} :(", current_token);
         }
       }
-      (Some(AstState::StmtList), Some(_), TokenType::LSquare) |
-      (Some(AstState::StmtList), Some(_), TokenType::LParen) |
-      (Some(AstState::StmtList), Some(_), TokenType::Symbol) |
-      (Some(AstState::StmtList), Some(_), TokenType::Number) |
-      (Some(AstState::StmtList), Some(_), TokenType::Identifier) |
-      (Some(AstState::StmtList), Some(_), TokenType::InterpolatedString) |
-      (Some(AstState::StmtList), Some(_), TokenType::String) => {
+      (Some(AstState::StmtList), Some(_), TokenType::LSquare)
+      | (Some(AstState::StmtList), Some(_), TokenType::LParen)
+      | (Some(AstState::StmtList), Some(_), TokenType::Symbol)
+      | (Some(AstState::StmtList), Some(_), TokenType::Number)
+      | (Some(AstState::StmtList), Some(_), TokenType::Identifier)
+      | (Some(AstState::StmtList), Some(_), TokenType::InterpolatedString)
+      | (Some(AstState::StmtList), Some(_), TokenType::String) => {
         state_stack.push(AstState::ExprStmt);
       }
       (Some(AstState::StmtList), Some(_), TokenType::Newline) => {
@@ -310,11 +313,7 @@ pub fn parse(tokens: &Vec<Token>, start_index: Option<usize>) -> (Option<Program
       (Some(AstState::PackDecEntry), Some(AstStackSymbol::PackDecList(_)), TokenType::Newline) => {
         token_index = consume_optional_newline(tokens, token_index);
       }
-      (
-        Some(AstState::PackDecEntry),
-        Some(AstStackSymbol::TypeVar(type_var)),
-        _,
-      ) => {
+      (Some(AstState::PackDecEntry), Some(AstStackSymbol::TypeVar(type_var)), _) => {
         ast_stack.pop();
         ast_stack.push(AstStackSymbol::PackDec(PackDeclaration::new(
           type_var, None, None,
@@ -612,7 +611,14 @@ pub fn parse(tokens: &Vec<Token>, start_index: Option<usize>) -> (Option<Program
       }
       (Some(AstState::FuncTypeParamListStart), Some(AstStackSymbol::Token(func_keyword)), _) => {
         ast_stack.pop();
-        ast_stack.push(AstStackSymbol::Type(Type::Func(FuncType::new(func_keyword, None, Vec::new(), None, Vec::new(), None))));
+        ast_stack.push(AstStackSymbol::Type(Type::Func(FuncType::new(
+          func_keyword,
+          None,
+          Vec::new(),
+          None,
+          Vec::new(),
+          None,
+        ))));
         state_stack.goto(AstState::BaseTypeFollow);
       }
       (Some(AstState::FuncTypeParamListStart), _, _) => panic!("func type param list start :("),
@@ -622,7 +628,11 @@ pub fn parse(tokens: &Vec<Token>, start_index: Option<usize>) -> (Option<Program
         token_index += 1;
         state_stack.goto(AstState::FuncTypeReturnList);
       }
-      (Some(AstState::FuncTypeParamList), Some(AstStackSymbol::TypeList(_)), TokenType::Newline) => {
+      (
+        Some(AstState::FuncTypeParamList),
+        Some(AstStackSymbol::TypeList(_)),
+        TokenType::Newline,
+      ) => {
         token_index = consume_optional_newline(tokens, token_index);
       }
       (Some(AstState::FuncTypeParamList), Some(AstStackSymbol::TypeList(_)), _) => {
@@ -658,24 +668,46 @@ pub fn parse(tokens: &Vec<Token>, start_index: Option<usize>) -> (Option<Program
         token_index = consume_optional_newline(tokens, token_index);
         state_stack.goto(AstState::FuncTypeReturnList);
       }
-      (Some(AstState::FuncTypeParamListFollow), Some(AstStackSymbol::TypeList(type_list)), TokenType::RParen) => {
+      (
+        Some(AstState::FuncTypeParamListFollow),
+        Some(AstStackSymbol::TypeList(type_list)),
+        TokenType::RParen,
+      ) => {
         ast_stack.pop();
         let left_paren_sym = ast_stack.pop_panic();
         let func_keyword_sym = ast_stack.pop_panic();
         match (func_keyword_sym, left_paren_sym) {
           (Some(AstStackSymbol::Token(func_keyword)), Some(AstStackSymbol::Token(left_paren))) => {
-            ast_stack.push(AstStackSymbol::Type(Type::Func(FuncType::new(func_keyword, Some(left_paren), type_list, None, Vec::new(), Some(current_token.clone())))));
+            ast_stack.push(AstStackSymbol::Type(Type::Func(FuncType::new(
+              func_keyword,
+              Some(left_paren),
+              type_list,
+              None,
+              Vec::new(),
+              Some(current_token.clone()),
+            ))));
             token_index += 1;
             state_stack.goto(AstState::BaseTypeFollow);
           }
-          _ => panic!("wacked out stack")
+          _ => panic!("wacked out stack"),
         }
       }
-      (Some(AstState::FuncTypeParamListFollow), _, _) => panic!("unexpected token {} at func type param list follow", current_token),
-      (Some(AstState::FuncTypeReturnList), Some(AstStackSymbol::TypeList(_)), TokenType::RParen) => {
+      (Some(AstState::FuncTypeParamListFollow), _, _) => panic!(
+        "unexpected token {} at func type param list follow",
+        current_token
+      ),
+      (
+        Some(AstState::FuncTypeReturnList),
+        Some(AstStackSymbol::TypeList(_)),
+        TokenType::RParen,
+      ) => {
         state_stack.goto(AstState::FuncTypeReturnListFollow);
       }
-      (Some(AstState::FuncTypeReturnList), Some(AstStackSymbol::TypeList(_)), TokenType::Newline) => {
+      (
+        Some(AstState::FuncTypeReturnList),
+        Some(AstStackSymbol::TypeList(_)),
+        TokenType::Newline,
+      ) => {
         token_index = consume_optional_newline(tokens, token_index);
       }
       (Some(AstState::FuncTypeReturnList), Some(AstStackSymbol::TypeList(_)), _) => {
@@ -694,7 +726,10 @@ pub fn parse(tokens: &Vec<Token>, start_index: Option<usize>) -> (Option<Program
         }
       }
       (Some(AstState::FuncTypeReturnList), _, _) => {
-        panic!("unexpected token {} at func type return list", current_token);
+        panic!(
+          "unexpected token {} at func type return list",
+          current_token
+        );
       }
       (Some(AstState::FuncTypeReturnListFollow), _, TokenType::Comma) => {
         token_index += 1;
@@ -704,22 +739,46 @@ pub fn parse(tokens: &Vec<Token>, start_index: Option<usize>) -> (Option<Program
       (Some(AstState::FuncTypeReturnListFollow), _, TokenType::Newline) => {
         token_index = consume_optional_newline(tokens, token_index);
       }
-      (Some(AstState::FuncTypeReturnListFollow), Some(AstStackSymbol::TypeList(type_list)), TokenType::RParen) => {
+      (
+        Some(AstState::FuncTypeReturnListFollow),
+        Some(AstStackSymbol::TypeList(type_list)),
+        TokenType::RParen,
+      ) => {
         ast_stack.pop();
         let colon_sym = ast_stack.pop_panic();
         let param_type_list_sym = ast_stack.pop_panic();
         let left_paren_sym = ast_stack.pop_panic();
         let func_keyword_sym = ast_stack.pop_panic();
-        match (func_keyword_sym, left_paren_sym, param_type_list_sym, colon_sym) {
-          (Some(AstStackSymbol::Token(func_keyword)), Some(AstStackSymbol::Token(left_paren)), Some(AstStackSymbol::TypeList(param_types)), Some(AstStackSymbol::Token(colon))) => {
-            ast_stack.push(AstStackSymbol::Type(Type::Func(FuncType::new(func_keyword, Some(left_paren), param_types, Some(colon), type_list, Some(current_token.clone())))));
+        match (
+          func_keyword_sym,
+          left_paren_sym,
+          param_type_list_sym,
+          colon_sym,
+        ) {
+          (
+            Some(AstStackSymbol::Token(func_keyword)),
+            Some(AstStackSymbol::Token(left_paren)),
+            Some(AstStackSymbol::TypeList(param_types)),
+            Some(AstStackSymbol::Token(colon)),
+          ) => {
+            ast_stack.push(AstStackSymbol::Type(Type::Func(FuncType::new(
+              func_keyword,
+              Some(left_paren),
+              param_types,
+              Some(colon),
+              type_list,
+              Some(current_token.clone()),
+            ))));
             token_index += 1;
             state_stack.goto(AstState::BaseTypeFollow);
           }
-          _ => panic!("wacked out stack")
+          _ => panic!("wacked out stack"),
         }
       }
-      (Some(AstState::FuncTypeReturnListFollow), _, _) => panic!("unexpected token {} at func type return list follow", current_token),
+      (Some(AstState::FuncTypeReturnListFollow), _, _) => panic!(
+        "unexpected token {} at func type return list follow",
+        current_token
+      ),
       (Some(AstState::UnionDecName), Some(_), TokenType::Identifier) => {
         ast_stack.push(AstStackSymbol::Token(current_token.clone()));
         token_index += 1;
@@ -748,7 +807,11 @@ pub fn parse(tokens: &Vec<Token>, start_index: Option<usize>) -> (Option<Program
         token_index += 1;
         state_stack.goto(AstState::UnionDecStorageStart)
       }
-      (Some(AstState::UnionDecEntry), Some(AstStackSymbol::UnionDecList(_)), TokenType::Newline) => {
+      (
+        Some(AstState::UnionDecEntry),
+        Some(AstStackSymbol::UnionDecList(_)),
+        TokenType::Newline,
+      ) => {
         token_index = consume_optional_newline(tokens, token_index);
       }
       (Some(AstState::UnionDecEntry), Some(AstStackSymbol::UnionDecList(_)), TokenType::RCurly) => {
@@ -762,10 +825,23 @@ pub fn parse(tokens: &Vec<Token>, start_index: Option<usize>) -> (Option<Program
         token_index = consume_optional_newline(tokens, token_index);
         state_stack.goto(AstState::UnionDecStorage);
       }
-      (Some(AstState::UnionDecStorageStart), Some(AstStackSymbol::Token(dec_entry_id)), TokenType::Comma) |
-      (Some(AstState::UnionDecStorageStart), Some(AstStackSymbol::Token(dec_entry_id)), TokenType::Newline) => {
+      (
+        Some(AstState::UnionDecStorageStart),
+        Some(AstStackSymbol::Token(dec_entry_id)),
+        TokenType::Comma,
+      )
+      | (
+        Some(AstState::UnionDecStorageStart),
+        Some(AstStackSymbol::Token(dec_entry_id)),
+        TokenType::Newline,
+      ) => {
         ast_stack.pop();
-        ast_stack.push(AstStackSymbol::UnionDec(UnionDeclaration::new(dec_entry_id, None, Vec::new(), None)));
+        ast_stack.push(AstStackSymbol::UnionDec(UnionDeclaration::new(
+          dec_entry_id,
+          None,
+          Vec::new(),
+          None,
+        )));
         state_stack.goto(AstState::UnionDecEntryFinalize);
       }
       (Some(AstState::UnionDecStorageStart), _, _) => panic!("aw crap no paren {}", current_token),
@@ -786,28 +862,45 @@ pub fn parse(tokens: &Vec<Token>, start_index: Option<usize>) -> (Option<Program
             contents.push(Box::new(found_type));
             ast_stack.push(AstStackSymbol::TypeList(contents));
             state_stack.goto(AstState::UnionDecStorageFollow);
-          } 
-          _ => panic!("stack bust union dec storage")
+          }
+          _ => panic!("stack bust union dec storage"),
         }
       }
-      (Some(AstState::UnionDecStorageFollow), Some(AstStackSymbol::TypeList(type_list)), TokenType::RParen) => {
+      (
+        Some(AstState::UnionDecStorageFollow),
+        Some(AstStackSymbol::TypeList(type_list)),
+        TokenType::RParen,
+      ) => {
         ast_stack.pop();
         let left_paren_sym = ast_stack.pop_panic();
         let name_sym = ast_stack.pop_panic();
         match (name_sym, left_paren_sym) {
           (Some(AstStackSymbol::Token(name)), Some(AstStackSymbol::Token(left_paren))) => {
-            ast_stack.push(AstStackSymbol::UnionDec(UnionDeclaration::new(name, Some(left_paren), type_list, Some(current_token.clone()))));
+            ast_stack.push(AstStackSymbol::UnionDec(UnionDeclaration::new(
+              name,
+              Some(left_paren),
+              type_list,
+              Some(current_token.clone()),
+            )));
             token_index += 1;
             state_stack.goto(AstState::UnionDecEntryFinalize);
           }
-          _ => panic!("union dec storage follow error")
+          _ => panic!("union dec storage follow error"),
         }
       }
-      (Some(AstState::UnionDecStorageFollow), Some(AstStackSymbol::TypeList(type_list)), TokenType::Comma) => {
+      (
+        Some(AstState::UnionDecStorageFollow),
+        Some(AstStackSymbol::TypeList(type_list)),
+        TokenType::Comma,
+      ) => {
         token_index += 1;
         state_stack.goto(AstState::UnionDecStorage);
       }
-      (Some(AstState::UnionDecStorageFollow), Some(AstStackSymbol::TypeList(type_list)), TokenType::Newline) => {
+      (
+        Some(AstState::UnionDecStorageFollow),
+        Some(AstStackSymbol::TypeList(type_list)),
+        TokenType::Newline,
+      ) => {
         token_index = consume_optional_newline(tokens, token_index);
         state_stack.goto(AstState::UnionDecStorage);
       }
@@ -879,43 +972,54 @@ pub fn parse(tokens: &Vec<Token>, start_index: Option<usize>) -> (Option<Program
         }
       }
       (Some(AstState::UnionDecFinalize), _, _) => panic!("Pack dec finalize mismove"),
-      
+
       //* EXPRESSION SECTION
-      
       (Some(AstState::ExprStmt), Some(AstStackSymbol::Expr(expression)), _) => {
         ast_stack.pop();
-        ast_stack.push(AstStackSymbol::Stmt(Statement::Expression(ExpressionStatement::new(expression))));
+        ast_stack.push(AstStackSymbol::Stmt(Statement::Expression(
+          ExpressionStatement::new(expression),
+        )));
         state_stack.goto(AstState::StmtFinalize);
       }
       (Some(AstState::ExprStmt), Some(_), _) => {
         state_stack.push(AstState::Expression);
-      } 
+      }
       (Some(AstState::ExprStmt), _, _) => {
         panic!("expr stmt error :(");
       }
 
-      (Some(AstState::Expression), _, TokenType::EndOfInput) |
-      (Some(AstState::Expression), _, TokenType::RParen) |
-      (Some(AstState::Expression), _, TokenType::RSquare) |
-      (Some(AstState::Expression), _, TokenType::Comma) |
-      (Some(AstState::Expression), _, TokenType::Newline) => {
+      (Some(AstState::Expression), _, TokenType::EndOfInput)
+      | (Some(AstState::Expression), _, TokenType::RParen)
+      | (Some(AstState::Expression), _, TokenType::RSquare)
+      | (Some(AstState::Expression), _, TokenType::Comma)
+      | (Some(AstState::Expression), _, TokenType::Newline) => {
         state_stack.pop();
       }
 
-      (Some(AstState::Expression), _, TokenType::LParen) |
-      (Some(AstState::Expression), _, TokenType::LSquare) |
-      (Some(AstState::Expression), _, TokenType::Identifier) |
-      (Some(AstState::Expression), _, TokenType::Number) |
-      (Some(AstState::Expression), _, TokenType::String) |
-      (Some(AstState::Expression), _, TokenType::InterpolatedString) |
-      (Some(AstState::Expression), _, TokenType::Keyword) |
-      (Some(AstState::Expression), _, TokenType::Symbol) => {
+      (Some(AstState::Expression), _, TokenType::LParen)
+      | (Some(AstState::Expression), _, TokenType::LSquare)
+      | (Some(AstState::Expression), _, TokenType::Identifier)
+      | (Some(AstState::Expression), _, TokenType::Number)
+      | (Some(AstState::Expression), _, TokenType::String)
+      | (Some(AstState::Expression), _, TokenType::InterpolatedString)
+      | (Some(AstState::Expression), _, TokenType::Keyword)
+      | (Some(AstState::Expression), _, TokenType::Symbol) => {
         state_stack.push(AstState::ExpressionFollow);
         state_stack.push(AstState::PrefixOrPrimary);
       }
 
       (Some(AstState::ExpressionFollow), _, TokenType::Symbol) => {
-        if current_token.lexeme == "=" {
+        if current_token.lexeme == "="
+          || current_token.lexeme == "+="
+          || current_token.lexeme == "-="
+          || current_token.lexeme == "*="
+          || current_token.lexeme == "/="
+          || current_token.lexeme == "%="
+          || current_token.lexeme == "|="
+          || current_token.lexeme == "&="
+          || current_token.lexeme == "^="
+          || current_token.lexeme == "~="
+        {
           ast_stack.push(AstStackSymbol::Token(current_token.clone()));
           state_stack.goto(AstState::ExpressionFold);
           state_stack.push(AstState::ExpressionFollow);
@@ -923,51 +1027,74 @@ pub fn parse(tokens: &Vec<Token>, start_index: Option<usize>) -> (Option<Program
           token_index += 1;
         } else {
           // goto equality
+          todo!();
         }
       }
-      (Some(AstState::ExpressionFollow), _, TokenType::EndOfInput) |
-      (Some(AstState::ExpressionFollow), _, TokenType::RParen) |
-      (Some(AstState::ExpressionFollow), _, TokenType::RSquare) |
-      (Some(AstState::ExpressionFollow), _, TokenType::Comma) |
-      (Some(AstState::ExpressionFollow), _, TokenType::Newline) => {
+      (Some(AstState::ExpressionFollow), _, TokenType::EndOfInput)
+      | (Some(AstState::ExpressionFollow), _, TokenType::RParen)
+      | (Some(AstState::ExpressionFollow), _, TokenType::RSquare)
+      | (Some(AstState::ExpressionFollow), _, TokenType::Comma)
+      | (Some(AstState::ExpressionFollow), _, TokenType::Newline) => {
         state_stack.pop();
       }
-      (Some(AstState::ExpressionFold), Some(AstStackSymbol::Expr(expression)), TokenType::EndOfInput) |
-      (Some(AstState::ExpressionFold), Some(AstStackSymbol::Expr(expression)), TokenType::RParen) |
-      (Some(AstState::ExpressionFold), Some(AstStackSymbol::Expr(expression)), TokenType::RSquare) |
-      (Some(AstState::ExpressionFold), Some(AstStackSymbol::Expr(expression)), TokenType::Comma) |
-      (Some(AstState::ExpressionFold), Some(AstStackSymbol::Expr(expression)), TokenType::Newline) => {
+      (
+        Some(AstState::ExpressionFold),
+        Some(AstStackSymbol::Expr(expression)),
+        TokenType::EndOfInput,
+      )
+      | (
+        Some(AstState::ExpressionFold),
+        Some(AstStackSymbol::Expr(expression)),
+        TokenType::RParen,
+      )
+      | (
+        Some(AstState::ExpressionFold),
+        Some(AstStackSymbol::Expr(expression)),
+        TokenType::RSquare,
+      )
+      | (
+        Some(AstState::ExpressionFold),
+        Some(AstStackSymbol::Expr(expression)),
+        TokenType::Comma,
+      )
+      | (
+        Some(AstState::ExpressionFold),
+        Some(AstStackSymbol::Expr(expression)),
+        TokenType::Newline,
+      ) => {
         ast_stack.pop();
         let operator_sym = ast_stack.pop_panic();
         let lhs_sym = ast_stack.pop_panic();
         match (lhs_sym, operator_sym) {
           (Some(AstStackSymbol::Expr(lhs)), Some(AstStackSymbol::Token(op))) => {
-            ast_stack.push(AstStackSymbol::Expr(Expression::Binary(BinaryExpression::new(Box::new(lhs), op, Box::new(expression)))));
+            ast_stack.push(AstStackSymbol::Expr(Expression::Binary(
+              BinaryExpression::new(Box::new(lhs), op, Box::new(expression)),
+            )));
             state_stack.pop();
           }
-          _ => panic!("unexpected stack default")
+          _ => panic!("unexpected stack default"),
         }
       }
 
-      (Some(AstState::PrefixOrPrimary), _, TokenType::LParen) |
-      (Some(AstState::PrefixOrPrimary), _, TokenType::LSquare) |
-      (Some(AstState::PrefixOrPrimary), _, TokenType::Identifier) |
-      (Some(AstState::PrefixOrPrimary), _, TokenType::Number) |
-      (Some(AstState::PrefixOrPrimary), _, TokenType::String) |
-      (Some(AstState::PrefixOrPrimary), _, TokenType::InterpolatedString) |
-      (Some(AstState::PrefixOrPrimary), _, TokenType::Keyword) => {
+      (Some(AstState::PrefixOrPrimary), _, TokenType::LParen)
+      | (Some(AstState::PrefixOrPrimary), _, TokenType::LSquare)
+      | (Some(AstState::PrefixOrPrimary), _, TokenType::Identifier)
+      | (Some(AstState::PrefixOrPrimary), _, TokenType::Number)
+      | (Some(AstState::PrefixOrPrimary), _, TokenType::String)
+      | (Some(AstState::PrefixOrPrimary), _, TokenType::InterpolatedString)
+      | (Some(AstState::PrefixOrPrimary), _, TokenType::Keyword) => {
         state_stack.goto(AstState::Primary);
       }
 
       (Some(AstState::PrefixOrPrimary), _, TokenType::Symbol) => {
         state_stack.goto(AstState::Prefix);
       }
-      
-      (Some(AstState::Primary), _, TokenType::EndOfInput) |
-      (Some(AstState::Primary), _, TokenType::RParen) |
-      (Some(AstState::Primary), _, TokenType::RSquare) |
-      (Some(AstState::Primary), _, TokenType::Comma) |
-      (Some(AstState::Primary), _, TokenType::Newline) => {
+
+      (Some(AstState::Primary), _, TokenType::EndOfInput)
+      | (Some(AstState::Primary), _, TokenType::RParen)
+      | (Some(AstState::Primary), _, TokenType::RSquare)
+      | (Some(AstState::Primary), _, TokenType::Comma)
+      | (Some(AstState::Primary), _, TokenType::Newline) => {
         state_stack.pop();
       }
       (Some(AstState::Primary), _, TokenType::LParen) => {
@@ -988,7 +1115,11 @@ pub fn parse(tokens: &Vec<Token>, start_index: Option<usize>) -> (Option<Program
         state_stack.goto(AstState::PrimaryFollow);
       }
       (Some(AstState::SubExpression), _, _) => panic!("Unexpected token sub expression"),
-      (Some(AstState::ArrayLiteralContents), Some(AstStackSymbol::ExprList(_)), TokenType::Newline) => {
+      (
+        Some(AstState::ArrayLiteralContents),
+        Some(AstStackSymbol::ExprList(_)),
+        TokenType::Newline,
+      ) => {
         token_index = consume_optional_newline(tokens, token_index);
       }
       (Some(AstState::ArrayLiteralContents), Some(AstStackSymbol::ExprList(_)), _) => {
@@ -1003,29 +1134,45 @@ pub fn parse(tokens: &Vec<Token>, start_index: Option<usize>) -> (Option<Program
             ast_stack.push(AstStackSymbol::ExprList(contents));
             state_stack.goto(AstState::ArrayLiteralContentsFollow);
           }
-          _ => panic!("Expression list not on stack :(")
+          _ => panic!("Expression list not on stack :("),
         }
       }
-      (Some(AstState::ArrayLiteralContents), _, _) => panic!("unexpected token array literal contents"),
-      (Some(AstState::ArrayLiteralContentsFollow), Some(AstStackSymbol::ExprList(_)), TokenType::Comma) => {
+      (Some(AstState::ArrayLiteralContents), _, _) => {
+        panic!("unexpected token array literal contents")
+      }
+      (
+        Some(AstState::ArrayLiteralContentsFollow),
+        Some(AstStackSymbol::ExprList(_)),
+        TokenType::Comma,
+      ) => {
         token_index += 1;
         token_index = consume_optional_newline(tokens, token_index);
         state_stack.goto(AstState::ArrayLiteralContents);
       }
-      (Some(AstState::ArrayLiteralContentsFollow), Some(AstStackSymbol::ExprList(_)), TokenType::Newline) => {
+      (
+        Some(AstState::ArrayLiteralContentsFollow),
+        Some(AstStackSymbol::ExprList(_)),
+        TokenType::Newline,
+      ) => {
         token_index += 1;
         token_index = consume_optional_newline(tokens, token_index);
       }
-      (Some(AstState::ArrayLiteralContentsFollow), Some(AstStackSymbol::ExprList(contents)), TokenType::RSquare) => {
+      (
+        Some(AstState::ArrayLiteralContentsFollow),
+        Some(AstStackSymbol::ExprList(contents)),
+        TokenType::RSquare,
+      ) => {
         ast_stack.pop();
         let l_square_sym = ast_stack.pop_panic();
         match l_square_sym {
           Some(AstStackSymbol::Token(left_square)) => {
             token_index += 1;
-            ast_stack.push(AstStackSymbol::Expr(Expression::Literal(Literal::Array(ArrayLiteral::new(left_square, contents, current_token.clone())))));
+            ast_stack.push(AstStackSymbol::Expr(Expression::Literal(Literal::Array(
+              ArrayLiteral::new(left_square, contents, current_token.clone()),
+            ))));
             state_stack.goto(AstState::PrimaryFollow);
           }
-          _ => panic!("panic array literal contents follow stack bad")
+          _ => panic!("panic array literal contents follow stack bad"),
         }
       }
       (Some(AstState::ArrayLiteralContentsFollow), x, _) => {
@@ -1033,36 +1180,53 @@ pub fn parse(tokens: &Vec<Token>, start_index: Option<usize>) -> (Option<Program
       }
       (Some(AstState::Primary), _, TokenType::Identifier) => {
         token_index += 1;
-        ast_stack.push(AstStackSymbol::Expr(Expression::Var(UntypedVar::new(current_token.clone()))));
+        ast_stack.push(AstStackSymbol::Expr(Expression::Var(UntypedVar::new(
+          current_token.clone(),
+        ))));
         state_stack.goto(AstState::PrimaryFollow);
       }
       (Some(AstState::Primary), _, TokenType::Number) => {
         token_index += 1;
-        ast_stack.push(AstStackSymbol::Expr(Expression::Literal(Literal::Number(current_token.clone()))));
+        ast_stack.push(AstStackSymbol::Expr(Expression::Literal(Literal::Number(
+          current_token.clone(),
+        ))));
         state_stack.goto(AstState::PrimaryFollow);
       }
-      (Some(AstState::Primary), _, TokenType::InterpolatedString) |
-      (Some(AstState::Primary), _, TokenType::String) => {
+      (Some(AstState::Primary), _, TokenType::InterpolatedString)
+      | (Some(AstState::Primary), _, TokenType::String) => {
         token_index += 1;
-        ast_stack.push(AstStackSymbol::Expr(Expression::Literal(Literal::String(current_token.clone()))));
+        ast_stack.push(AstStackSymbol::Expr(Expression::Literal(Literal::String(
+          current_token.clone(),
+        ))));
         state_stack.goto(AstState::PrimaryFollow);
       }
       (Some(AstState::Primary), _, TokenType::Keyword) => {
         if current_token.lexeme == "true" || current_token.lexeme == "false" {
           token_index += 1;
-          ast_stack.push(AstStackSymbol::Expr(Expression::Literal(Literal::Boolean(current_token.clone()))));
+          ast_stack.push(AstStackSymbol::Expr(Expression::Literal(Literal::Boolean(
+            current_token.clone(),
+          ))));
           state_stack.goto(AstState::PrimaryFollow);
         } else {
-          panic!("Did not expected this keyword in an expression {} :(", current_token);
+          panic!(
+            "Did not expected this keyword in an expression {} :(",
+            current_token
+          );
         }
       }
-      (Some(AstState::PrimaryFollow), Some(AstStackSymbol::Expr(expression)), TokenType::Symbol) => {
+      (
+        Some(AstState::PrimaryFollow),
+        Some(AstStackSymbol::Expr(expression)),
+        TokenType::Symbol,
+      ) => {
         if current_token.lexeme == "?" {
           ast_stack.pop();
-          ast_stack.push(AstStackSymbol::Expr(Expression::Postfix(PostfixExpression::new(Box::new(expression), current_token.clone()))));
+          ast_stack.push(AstStackSymbol::Expr(Expression::Postfix(
+            PostfixExpression::new(Box::new(expression), current_token.clone()),
+          )));
           token_index += 1;
           state_stack.pop();
-        } else if  current_token.lexeme == "." {
+        } else if current_token.lexeme == "." {
           panic!("member access");
         } else {
           state_stack.pop();
@@ -1096,17 +1260,28 @@ pub fn parse(tokens: &Vec<Token>, start_index: Option<usize>) -> (Option<Program
       (Some(AstState::PrimaryFollow), _, _) => {
         state_stack.pop();
       }
-      (Some(AstState::FunctionCall), Some(AstStackSymbol::ExprList(arguments)), TokenType::RParen) => {
+      (
+        Some(AstState::FunctionCall),
+        Some(AstStackSymbol::ExprList(arguments)),
+        TokenType::RParen,
+      ) => {
         ast_stack.pop();
         let left_paren_sym = ast_stack.pop_panic();
         let target_sym = ast_stack.pop_panic();
         match (target_sym, left_paren_sym) {
           (Some(AstStackSymbol::Expr(target)), Some(AstStackSymbol::Token(left_paren))) => {
-            ast_stack.push(AstStackSymbol::Expr(Expression::FunctionCall(FunctionCall::new(Box::new(target), left_paren, arguments, current_token.clone()))));
+            ast_stack.push(AstStackSymbol::Expr(Expression::FunctionCall(
+              FunctionCall::new(
+                Box::new(target),
+                left_paren,
+                arguments,
+                current_token.clone(),
+              ),
+            )));
             token_index += 1;
             state_stack.goto(AstState::PrimaryFollow);
           }
-          _ => panic!("bad stack function call")
+          _ => panic!("bad stack function call"),
         }
       }
       (Some(AstState::FunctionCall), Some(AstStackSymbol::Expr(expression)), TokenType::RParen) => {
@@ -1117,7 +1292,7 @@ pub fn parse(tokens: &Vec<Token>, start_index: Option<usize>) -> (Option<Program
             contents.push(Box::new(expression));
             ast_stack.push(AstStackSymbol::ExprList(contents));
           }
-          _ => panic!("bad stack function call contents")
+          _ => panic!("bad stack function call contents"),
         }
       }
       (Some(AstState::FunctionCall), Some(AstStackSymbol::Expr(expression)), TokenType::Comma) => {
@@ -1129,25 +1304,31 @@ pub fn parse(tokens: &Vec<Token>, start_index: Option<usize>) -> (Option<Program
             ast_stack.push(AstStackSymbol::ExprList(contents));
             token_index += 1;
           }
-          _ => panic!("bad stack function call contents")
+          _ => panic!("bad stack function call contents"),
         }
       }
       (Some(AstState::FunctionCall), Some(AstStackSymbol::ExprList(_)), _) => {
         state_stack.push(AstState::Expression);
       }
-      (Some(AstState::FunctionCall), _, _) => panic!("Unexpected token {}!!!! function call", current_token),
+      (Some(AstState::FunctionCall), _, _) => {
+        panic!("Unexpected token {}!!!! function call", current_token)
+      }
       (Some(AstState::CastExpr), Some(AstStackSymbol::Type(cast_type)), _) => {
         ast_stack.pop();
         let as_token_sym = ast_stack.pop_panic();
         let expr_sym = ast_stack.pop_panic();
         match (expr_sym, as_token_sym) {
           (Some(AstStackSymbol::Expr(expression)), Some(AstStackSymbol::Token(as_token))) => {
-            ast_stack.push(AstStackSymbol::Expr(Expression::Cast(CastExpression::new(Box::new(expression), as_token, cast_type))));
+            ast_stack.push(AstStackSymbol::Expr(Expression::Cast(CastExpression::new(
+              Box::new(expression),
+              as_token,
+              cast_type,
+            ))));
             state_stack.pop();
           }
-          _ => panic!("bad stack cast expr")
+          _ => panic!("bad stack cast expr"),
         }
-      } 
+      }
       (Some(AstState::CastExpr), Some(AstStackSymbol::Token(_)), _) => {
         state_stack.push(AstState::Type);
       }
@@ -1158,23 +1339,34 @@ pub fn parse(tokens: &Vec<Token>, start_index: Option<usize>) -> (Option<Program
         let expr_sym = ast_stack.pop_panic();
         match (expr_sym, lsq_sym) {
           (Some(AstStackSymbol::Expr(lhs_expr)), Some(AstStackSymbol::Token(lsq))) => {
-            ast_stack.push(AstStackSymbol::Expr(Expression::ArrayAccess(ArrayAccess::new(Box::new(lhs_expr), lsq, Box::new(expression), current_token.clone()))));
+            ast_stack.push(AstStackSymbol::Expr(Expression::ArrayAccess(
+              ArrayAccess::new(
+                Box::new(lhs_expr),
+                lsq,
+                Box::new(expression),
+                current_token.clone(),
+              ),
+            )));
             token_index += 1;
             state_stack.goto(AstState::PrimaryFollow);
           }
-          _ => panic!("bad array access stack")
+          _ => panic!("bad array access stack"),
         }
       }
       (Some(AstState::ArrayAccess), Some(AstStackSymbol::Expr(_)), _) => panic!("aa bad"),
       (Some(AstState::ArrayAccess), Some(AstStackSymbol::Token(_)), _) => {
         state_stack.push(AstState::Expression);
-      } 
+      }
       (Some(AstState::MemberAccess), Some(AstStackSymbol::Token(dot)), TokenType::Identifier) => {
         ast_stack.pop();
         let expr_sym = ast_stack.pop_panic();
         match expr_sym {
           Some(AstStackSymbol::Expr(expression)) => {
-            ast_stack.push(AstStackSymbol::Expr(Expression::Member(MemberAccess::new(Box::new(expression), dot, current_token.clone()))));
+            ast_stack.push(AstStackSymbol::Expr(Expression::Member(MemberAccess::new(
+              Box::new(expression),
+              dot,
+              current_token.clone(),
+            ))));
             token_index += 1;
             state_stack.goto(AstState::PrimaryFollow);
           }
@@ -1189,14 +1381,17 @@ pub fn parse(tokens: &Vec<Token>, start_index: Option<usize>) -> (Option<Program
         let operator_sym = ast_stack.pop_panic();
         match operator_sym {
           Some(AstStackSymbol::Token(operator)) => {
-            ast_stack.push(AstStackSymbol::Expr(Expression::Prefix(PrefixExpression::new(operator, Box::new(expression)))));
+            ast_stack.push(AstStackSymbol::Expr(Expression::Prefix(
+              PrefixExpression::new(operator, Box::new(expression)),
+            )));
             state_stack.pop();
           }
-          _ => panic!("Did not find prefix operator")
+          _ => panic!("Did not find prefix operator"),
         }
       }
       (Some(AstState::Prefix), _, TokenType::Symbol) => {
-        if current_token.lexeme == "~" || current_token.lexeme == "!" || current_token.lexeme == "-" {
+        if current_token.lexeme == "~" || current_token.lexeme == "!" || current_token.lexeme == "-"
+        {
           ast_stack.push(AstStackSymbol::Token(current_token.clone()));
           token_index += 1;
           state_stack.push(AstState::PrefixContents);
@@ -1204,7 +1399,7 @@ pub fn parse(tokens: &Vec<Token>, start_index: Option<usize>) -> (Option<Program
           panic!("Unexpected symbol {}", current_token);
         }
       }
-      
+
       (Some(AstState::PrefixContents), _, _) => {
         state_stack.goto(AstState::PrefixOrPrimary);
       }
@@ -1215,16 +1410,17 @@ pub fn parse(tokens: &Vec<Token>, start_index: Option<usize>) -> (Option<Program
         let lhs_sym = ast_stack.pop_panic();
         match (lhs_sym, operator_sym) {
           (Some(AstStackSymbol::Expr(lhs)), Some(AstStackSymbol::Token(op))) => {
-            ast_stack.push(AstStackSymbol::Expr(Expression::Binary(BinaryExpression::new(Box::new(lhs), op, Box::new(expression)))));
+            ast_stack.push(AstStackSymbol::Expr(Expression::Binary(
+              BinaryExpression::new(Box::new(lhs), op, Box::new(expression)),
+            )));
             state_stack.pop();
           }
-          _ => panic!("unexpected stack default")
+          _ => panic!("unexpected stack default"),
         }
       }
       (Some(AstState::DefaultExpression), _, _) => panic!("default unexpected place :("),
 
       //* END EXPRESSION SECTION
-
       (_, _, _) => {
         panic!("Unknown case :( {}", current_token);
       }

@@ -286,17 +286,18 @@ pub fn lex(input: String) -> (Vec<Token>, Vec<OceanError>) {
                 match input_chars[index] {
                   '<' | '=' => {
                     lexeme.push_str(&input_chars[index].to_string());
-                  },
+                  }
                   _ => {
                     index -= 1;
                   }
                 }
               } else {
-
                 index += 1;
               }
             }
-            _ => { index -= 1; }
+            _ => {
+              index -= 1;
+            }
           }
         }
 
@@ -312,7 +313,7 @@ pub fn lex(input: String) -> (Vec<Token>, Vec<OceanError>) {
             lexeme.clone(),
             start_index,
             index,
-          ))
+          )),
         }
         lexeme.clear();
       }
@@ -342,7 +343,9 @@ pub fn lex(input: String) -> (Vec<Token>, Vec<OceanError>) {
             '.' => lexeme.push_str(&input_chars[index].to_string()),
             '>' => lexeme.push_str(&input_chars[index].to_string()),
             '=' => lexeme.push_str(&input_chars[index].to_string()),
-            _ => { index -= 1; }
+            _ => {
+              index -= 1;
+            }
           }
         }
         tokens.push(Token::new(
@@ -352,7 +355,7 @@ pub fn lex(input: String) -> (Vec<Token>, Vec<OceanError>) {
           index,
         ));
         lexeme.clear();
-      } 
+      }
       '<' => {
         lexeme.push_str(&c.to_string());
         if index < input_length - 1 {
@@ -361,7 +364,9 @@ pub fn lex(input: String) -> (Vec<Token>, Vec<OceanError>) {
             ':' => lexeme.push_str(&input_chars[index].to_string()),
             '<' => lexeme.push_str(&input_chars[index].to_string()),
             '=' => lexeme.push_str(&input_chars[index].to_string()),
-            _ => { index -= 1; }
+            _ => {
+              index -= 1;
+            }
           }
         }
         tokens.push(Token::new(
@@ -378,7 +383,9 @@ pub fn lex(input: String) -> (Vec<Token>, Vec<OceanError>) {
           index += 1;
           match input_chars[index] {
             '?' => lexeme.push_str(&input_chars[index].to_string()),
-            _ => { index -= 1; }
+            _ => {
+              index -= 1;
+            }
           }
         }
         tokens.push(Token::new(
@@ -395,7 +402,10 @@ pub fn lex(input: String) -> (Vec<Token>, Vec<OceanError>) {
           index += 1;
           match input_chars[index] {
             '/' => lexeme.push_str(&input_chars[index].to_string()),
-            _ => { index -= 1; }
+            '=' => lexeme.push_str(&input_chars[index].to_string()),
+            _ => {
+              index -= 1;
+            }
           }
         }
         tokens.push(Token::new(
@@ -412,7 +422,10 @@ pub fn lex(input: String) -> (Vec<Token>, Vec<OceanError>) {
           index += 1;
           match input_chars[index] {
             '+' => lexeme.push_str(&input_chars[index].to_string()),
-            _ => { index -= 1; }
+            '=' => lexeme.push_str(&input_chars[index].to_string()),
+            _ => {
+              index -= 1;
+            }
           }
         }
         tokens.push(Token::new(
@@ -430,7 +443,10 @@ pub fn lex(input: String) -> (Vec<Token>, Vec<OceanError>) {
           match input_chars[index] {
             '>' => lexeme.push_str(&input_chars[index].to_string()),
             '-' => lexeme.push_str(&input_chars[index].to_string()),
-            _ => { index -= 1; }
+            '=' => lexeme.push_str(&input_chars[index].to_string()),
+            _ => {
+              index -= 1;
+            }
           }
         }
 
@@ -457,7 +473,10 @@ pub fn lex(input: String) -> (Vec<Token>, Vec<OceanError>) {
           index += 1;
           match input_chars[index] {
             '^' => lexeme.push_str(&input_chars[index].to_string()),
-            _ => { index -= 1; }
+            '=' => lexeme.push_str(&input_chars[index].to_string()),
+            _ => {
+              index -= 1;
+            }
           }
         }
         tokens.push(Token::new(
@@ -474,7 +493,10 @@ pub fn lex(input: String) -> (Vec<Token>, Vec<OceanError>) {
           index += 1;
           match input_chars[index] {
             '|' => lexeme.push_str(&input_chars[index].to_string()),
-            _ => { index -= 1; }
+            '=' => lexeme.push_str(&input_chars[index].to_string()),
+            _ => {
+              index -= 1;
+            }
           }
         }
         tokens.push(Token::new(
@@ -491,7 +513,10 @@ pub fn lex(input: String) -> (Vec<Token>, Vec<OceanError>) {
           index += 1;
           match input_chars[index] {
             '&' => lexeme.push_str(&input_chars[index].to_string()),
-            _ => { index -= 1; }
+            '=' => lexeme.push_str(&input_chars[index].to_string()),
+            _ => {
+              index -= 1;
+            }
           }
         }
         tokens.push(Token::new(
@@ -508,7 +533,9 @@ pub fn lex(input: String) -> (Vec<Token>, Vec<OceanError>) {
           index += 1;
           match input_chars[index] {
             '=' => lexeme.push_str(&input_chars[index].to_string()),
-            _ => { index -= 1; }
+            _ => {
+              index -= 1;
+            }
           }
         }
         tokens.push(Token::new(
@@ -525,7 +552,9 @@ pub fn lex(input: String) -> (Vec<Token>, Vec<OceanError>) {
           index += 1;
           match input_chars[index] {
             '=' => lexeme.push_str(&input_chars[index].to_string()),
-            _ => { index -= 1; }
+            _ => {
+              index -= 1;
+            }
           }
         }
         tokens.push(Token::new(
@@ -536,24 +565,63 @@ pub fn lex(input: String) -> (Vec<Token>, Vec<OceanError>) {
         ));
         lexeme.clear();
       }
-      '*' => tokens.push(Token::new(
-        TokenType::Symbol,
-        "*".to_string(),
-        start_index,
-        index,
-      )),
-      '~' => tokens.push(Token::new(
-        TokenType::Symbol,
-        "~".to_string(),
-        start_index,
-        index,
-      )),
-      '%' => tokens.push(Token::new(
-        TokenType::Symbol,
-        "%".to_string(),
-        start_index,
-        index,
-      )),
+      '*' => {
+        lexeme.push_str(&c.to_string());
+        if index < input_length - 1 {
+          index += 1;
+          match input_chars[index] {
+            '=' => lexeme.push_str(&input_chars[index].to_string()),
+            _ => {
+              index -= 1;
+            }
+          }
+        }
+        tokens.push(Token::new(
+          TokenType::Symbol,
+          lexeme.clone(),
+          start_index,
+          index,
+        ));
+        lexeme.clear();
+      }
+      '~' => {
+        lexeme.push_str(&c.to_string());
+        if index < input_length - 1 {
+          index += 1;
+          match input_chars[index] {
+            '=' => lexeme.push_str(&input_chars[index].to_string()),
+            _ => {
+              index -= 1;
+            }
+          }
+        }
+        tokens.push(Token::new(
+          TokenType::Symbol,
+          lexeme.clone(),
+          start_index,
+          index,
+        ));
+        lexeme.clear();
+      }
+      '%' => {
+        lexeme.push_str(&c.to_string());
+        if index < input_length - 1 {
+          index += 1;
+          match input_chars[index] {
+            '=' => lexeme.push_str(&input_chars[index].to_string()),
+            _ => {
+              index -= 1;
+            }
+          }
+        }
+        tokens.push(Token::new(
+          TokenType::Symbol,
+          lexeme.clone(),
+          start_index,
+          index,
+        ));
+        lexeme.clear();
+      }
       '(' => tokens.push(Token::new(
         TokenType::LParen,
         "(".to_string(),

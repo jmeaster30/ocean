@@ -99,9 +99,7 @@ impl Spanned for UnionDecStatement {
 impl Spanned for UnionDeclaration {
   fn get_span(&self) -> (usize, usize) {
     match &self.right_paren {
-      Some(x) => {
-        (self.identifier.start, x.end)
-      }
+      Some(x) => (self.identifier.start, x.end),
       None => (self.identifier.start, self.identifier.end),
     }
   }
