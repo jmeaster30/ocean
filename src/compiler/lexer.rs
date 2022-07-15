@@ -147,6 +147,11 @@ pub fn lex(input: String) -> (Vec<Token>, Vec<OceanError>) {
           index += 1
         }
 
+        if lexeme.ends_with('.') {
+          lexeme.pop();
+          index -= 1;
+        }
+
         tokens.push(Token::new(
           TokenType::Number,
           lexeme.clone(),

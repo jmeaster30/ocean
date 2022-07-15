@@ -1035,6 +1035,12 @@ pub fn parse(
           state_stack.push(AstState::ComparisonFollow);
           state_stack.push(AstState::ShiftFollow);
           state_stack.push(AstState::LogicalFollow);
+          state_stack.push(AstState::BitwiseFollow);
+          state_stack.push(AstState::AdditiveFollow);
+          state_stack.push(AstState::MultiplicativeFollow);
+          state_stack.push(AstState::ArrayFollow);
+          state_stack.push(AstState::RangeFollow);
+          state_stack.push(AstState::DefaultFollow);
           state_stack.push(AstState::PrefixOrPrimary);
           token_index += 1;
         } else {
@@ -1095,6 +1101,12 @@ pub fn parse(
           state_stack.push(AstState::ComparisonFollow);
           state_stack.push(AstState::ShiftFollow);
           state_stack.push(AstState::LogicalFollow);
+          state_stack.push(AstState::BitwiseFollow);
+          state_stack.push(AstState::AdditiveFollow);
+          state_stack.push(AstState::MultiplicativeFollow);
+          state_stack.push(AstState::ArrayFollow);
+          state_stack.push(AstState::RangeFollow);
+          state_stack.push(AstState::DefaultFollow);
           state_stack.push(AstState::PrefixOrPrimary);
           token_index += 1;
         } else if is_assignment(current_token.lexeme.clone()) {
@@ -1150,6 +1162,12 @@ pub fn parse(
           state_stack.push(AstState::ComparisonFold);
           state_stack.push(AstState::ShiftFollow);
           state_stack.push(AstState::LogicalFollow);
+          state_stack.push(AstState::BitwiseFollow);
+          state_stack.push(AstState::AdditiveFollow);
+          state_stack.push(AstState::MultiplicativeFollow);
+          state_stack.push(AstState::ArrayFollow);
+          state_stack.push(AstState::RangeFollow);
+          state_stack.push(AstState::DefaultFollow);
           state_stack.push(AstState::PrefixOrPrimary);
           token_index += 1;
         } else if is_assignment(current_token.lexeme.clone())
@@ -1217,6 +1235,12 @@ pub fn parse(
           state_stack.goto(AstState::ShiftFollow);
           state_stack.push(AstState::ShiftFold);
           state_stack.push(AstState::LogicalFollow);
+          state_stack.push(AstState::BitwiseFollow);
+          state_stack.push(AstState::AdditiveFollow);
+          state_stack.push(AstState::MultiplicativeFollow);
+          state_stack.push(AstState::ArrayFollow);
+          state_stack.push(AstState::RangeFollow);
+          state_stack.push(AstState::DefaultFollow);
           state_stack.push(AstState::PrefixOrPrimary);
           token_index += 1;
         } else if is_assignment(current_token.lexeme.clone())
@@ -1264,6 +1288,12 @@ pub fn parse(
           ast_stack.push(AstStackSymbol::Token(current_token.clone()));
           state_stack.goto(AstState::LogicalFold);
           state_stack.push(AstState::LogicalFollow);
+          state_stack.push(AstState::BitwiseFollow);
+          state_stack.push(AstState::AdditiveFollow);
+          state_stack.push(AstState::MultiplicativeFollow);
+          state_stack.push(AstState::ArrayFollow);
+          state_stack.push(AstState::RangeFollow);
+          state_stack.push(AstState::DefaultFollow);
           state_stack.push(AstState::PrefixOrPrimary);
           token_index += 1;
         } else if is_assignment(current_token.lexeme.clone())
@@ -1294,6 +1324,330 @@ pub fn parse(
       | (Some(AstState::LogicalFold), Some(AstStackSymbol::Expr(expression)), TokenType::RSquare)
       | (Some(AstState::LogicalFold), Some(AstStackSymbol::Expr(expression)), TokenType::Comma)
       | (Some(AstState::LogicalFold), Some(AstStackSymbol::Expr(expression)), TokenType::Newline) => {
+        ast_stack.pop();
+        let operator_sym = ast_stack.pop_panic();
+        let lhs_sym = ast_stack.pop_panic();
+        match (lhs_sym, operator_sym) {
+          (Some(AstStackSymbol::Expr(lhs)), Some(AstStackSymbol::Token(op))) => {
+            ast_stack.push(AstStackSymbol::Expr(Expression::Binary(
+              BinaryExpression::new(Box::new(lhs), op, Box::new(expression)),
+            )));
+            state_stack.pop();
+          }
+          _ => panic!("unexpected stack default"),
+        }
+      }
+
+      (Some(AstState::BitwiseFollow), _, TokenType::Symbol) => {
+        if is_bitwise(current_token.lexeme.clone()) {
+          ast_stack.push(AstStackSymbol::Token(current_token.clone()));
+          state_stack.goto(AstState::BitwiseFollow);
+          state_stack.push(AstState::BitwiseFold);
+          state_stack.push(AstState::AdditiveFollow);
+          state_stack.push(AstState::MultiplicativeFollow);
+          state_stack.push(AstState::ArrayFollow);
+          state_stack.push(AstState::RangeFollow);
+          state_stack.push(AstState::DefaultFollow);
+          state_stack.push(AstState::PrefixOrPrimary);
+          token_index += 1;
+        } else if is_assignment(current_token.lexeme.clone())
+          || is_equality(current_token.lexeme.clone())
+          || is_comparison(current_token.lexeme.clone())
+          || is_shift(current_token.lexeme.clone())
+          || is_logical(current_token.lexeme.clone()) 
+        {
+          state_stack.pop();
+        } else {
+          state_stack.push(AstState::AdditiveFollow);
+        }
+      }
+      (Some(AstState::BitwiseFollow), _, TokenType::EndOfInput)
+      | (Some(AstState::BitwiseFollow), _, TokenType::RParen)
+      | (Some(AstState::BitwiseFollow), _, TokenType::RSquare)
+      | (Some(AstState::BitwiseFollow), _, TokenType::Comma)
+      | (Some(AstState::BitwiseFollow), _, TokenType::Newline) => {
+        state_stack.pop();
+      }
+      (Some(AstState::BitwiseFold), Some(AstStackSymbol::Expr(expression)), TokenType::Symbol)
+      | (
+        Some(AstState::BitwiseFold),
+        Some(AstStackSymbol::Expr(expression)),
+        TokenType::EndOfInput,
+      )
+      | (Some(AstState::BitwiseFold), Some(AstStackSymbol::Expr(expression)), TokenType::RParen)
+      | (Some(AstState::BitwiseFold), Some(AstStackSymbol::Expr(expression)), TokenType::RSquare)
+      | (Some(AstState::BitwiseFold), Some(AstStackSymbol::Expr(expression)), TokenType::Comma)
+      | (Some(AstState::BitwiseFold), Some(AstStackSymbol::Expr(expression)), TokenType::Newline) => {
+        ast_stack.pop();
+        let operator_sym = ast_stack.pop_panic();
+        let lhs_sym = ast_stack.pop_panic();
+        match (lhs_sym, operator_sym) {
+          (Some(AstStackSymbol::Expr(lhs)), Some(AstStackSymbol::Token(op))) => {
+            ast_stack.push(AstStackSymbol::Expr(Expression::Binary(
+              BinaryExpression::new(Box::new(lhs), op, Box::new(expression)),
+            )));
+            state_stack.pop();
+          }
+          _ => panic!("unexpected stack default"),
+        }
+      }
+
+      (Some(AstState::AdditiveFollow), _, TokenType::Symbol) => {
+        if is_additive(current_token.lexeme.clone()) {
+          ast_stack.push(AstStackSymbol::Token(current_token.clone()));
+          state_stack.goto(AstState::AdditiveFollow);
+          state_stack.push(AstState::AdditiveFold);
+          state_stack.push(AstState::MultiplicativeFollow);
+          state_stack.push(AstState::ArrayFollow);
+          state_stack.push(AstState::RangeFollow);
+          state_stack.push(AstState::DefaultFollow);
+          state_stack.push(AstState::PrefixOrPrimary);
+          token_index += 1;
+        } else if is_assignment(current_token.lexeme.clone())
+          || is_equality(current_token.lexeme.clone())
+          || is_comparison(current_token.lexeme.clone())
+          || is_shift(current_token.lexeme.clone())
+          || is_logical(current_token.lexeme.clone()) 
+          || is_bitwise(current_token.lexeme.clone())
+        {
+          state_stack.pop();
+        } else {
+          state_stack.push(AstState::MultiplicativeFollow);
+        }
+      }
+      (Some(AstState::AdditiveFollow), _, TokenType::EndOfInput)
+      | (Some(AstState::AdditiveFollow), _, TokenType::RParen)
+      | (Some(AstState::AdditiveFollow), _, TokenType::RSquare)
+      | (Some(AstState::AdditiveFollow), _, TokenType::Comma)
+      | (Some(AstState::AdditiveFollow), _, TokenType::Newline) => {
+        state_stack.pop();
+      }
+      (Some(AstState::AdditiveFold), Some(AstStackSymbol::Expr(expression)), TokenType::Symbol)
+      | (
+        Some(AstState::AdditiveFold),
+        Some(AstStackSymbol::Expr(expression)),
+        TokenType::EndOfInput,
+      )
+      | (Some(AstState::AdditiveFold), Some(AstStackSymbol::Expr(expression)), TokenType::RParen)
+      | (Some(AstState::AdditiveFold), Some(AstStackSymbol::Expr(expression)), TokenType::RSquare)
+      | (Some(AstState::AdditiveFold), Some(AstStackSymbol::Expr(expression)), TokenType::Comma)
+      | (Some(AstState::AdditiveFold), Some(AstStackSymbol::Expr(expression)), TokenType::Newline) => {
+        ast_stack.pop();
+        let operator_sym = ast_stack.pop_panic();
+        let lhs_sym = ast_stack.pop_panic();
+        match (lhs_sym, operator_sym) {
+          (Some(AstStackSymbol::Expr(lhs)), Some(AstStackSymbol::Token(op))) => {
+            ast_stack.push(AstStackSymbol::Expr(Expression::Binary(
+              BinaryExpression::new(Box::new(lhs), op, Box::new(expression)),
+            )));
+            state_stack.pop();
+          }
+          _ => panic!("unexpected stack default"),
+        }
+      }
+
+      (Some(AstState::MultiplicativeFollow), _, TokenType::Symbol) => {
+        if is_multiplicative(current_token.lexeme.clone()) {
+          ast_stack.push(AstStackSymbol::Token(current_token.clone()));
+          state_stack.goto(AstState::MultiplicativeFollow);
+          state_stack.push(AstState::MultiplicativeFold);
+          state_stack.push(AstState::ArrayFollow);
+          state_stack.push(AstState::RangeFollow);
+          state_stack.push(AstState::DefaultFollow);
+          state_stack.push(AstState::PrefixOrPrimary);
+          token_index += 1;
+        } else if is_assignment(current_token.lexeme.clone())
+          || is_equality(current_token.lexeme.clone())
+          || is_comparison(current_token.lexeme.clone())
+          || is_shift(current_token.lexeme.clone())
+          || is_logical(current_token.lexeme.clone()) 
+          || is_bitwise(current_token.lexeme.clone())
+          || is_additive(current_token.lexeme.clone())
+        {
+          state_stack.pop();
+        } else {
+          state_stack.push(AstState::ArrayFollow);
+        }
+      }
+      (Some(AstState::MultiplicativeFollow), _, TokenType::EndOfInput)
+      | (Some(AstState::MultiplicativeFollow), _, TokenType::RParen)
+      | (Some(AstState::MultiplicativeFollow), _, TokenType::RSquare)
+      | (Some(AstState::MultiplicativeFollow), _, TokenType::Comma)
+      | (Some(AstState::MultiplicativeFollow), _, TokenType::Newline) => {
+        state_stack.pop();
+      }
+      (Some(AstState::MultiplicativeFold), Some(AstStackSymbol::Expr(expression)), TokenType::Symbol)
+      | (
+        Some(AstState::MultiplicativeFold),
+        Some(AstStackSymbol::Expr(expression)),
+        TokenType::EndOfInput,
+      )
+      | (Some(AstState::MultiplicativeFold), Some(AstStackSymbol::Expr(expression)), TokenType::RParen)
+      | (Some(AstState::MultiplicativeFold), Some(AstStackSymbol::Expr(expression)), TokenType::RSquare)
+      | (Some(AstState::MultiplicativeFold), Some(AstStackSymbol::Expr(expression)), TokenType::Comma)
+      | (Some(AstState::MultiplicativeFold), Some(AstStackSymbol::Expr(expression)), TokenType::Newline) => {
+        ast_stack.pop();
+        let operator_sym = ast_stack.pop_panic();
+        let lhs_sym = ast_stack.pop_panic();
+        match (lhs_sym, operator_sym) {
+          (Some(AstStackSymbol::Expr(lhs)), Some(AstStackSymbol::Token(op))) => {
+            ast_stack.push(AstStackSymbol::Expr(Expression::Binary(
+              BinaryExpression::new(Box::new(lhs), op, Box::new(expression)),
+            )));
+            state_stack.pop();
+          }
+          _ => panic!("unexpected stack default"),
+        }
+      }
+
+      (Some(AstState::ArrayFollow), _, TokenType::Symbol) => {
+        if is_array(current_token.lexeme.clone()) {
+          ast_stack.push(AstStackSymbol::Token(current_token.clone()));
+          state_stack.goto(AstState::ArrayFollow);
+          state_stack.push(AstState::ArrayFold);
+          state_stack.push(AstState::RangeFollow);
+          state_stack.push(AstState::DefaultFollow);
+          state_stack.push(AstState::PrefixOrPrimary);
+          token_index += 1;
+        } else if is_assignment(current_token.lexeme.clone())
+          || is_equality(current_token.lexeme.clone())
+          || is_comparison(current_token.lexeme.clone())
+          || is_shift(current_token.lexeme.clone())
+          || is_logical(current_token.lexeme.clone()) 
+          || is_bitwise(current_token.lexeme.clone())
+          || is_additive(current_token.lexeme.clone())
+          || is_multiplicative(current_token.lexeme.clone())
+        {
+          state_stack.pop();
+        } else {
+          state_stack.push(AstState::RangeFollow);
+        }
+      }
+      (Some(AstState::ArrayFollow), _, TokenType::EndOfInput)
+      | (Some(AstState::ArrayFollow), _, TokenType::RParen)
+      | (Some(AstState::ArrayFollow), _, TokenType::RSquare)
+      | (Some(AstState::ArrayFollow), _, TokenType::Comma)
+      | (Some(AstState::ArrayFollow), _, TokenType::Newline) => {
+        state_stack.pop();
+      }
+      (Some(AstState::ArrayFold), Some(AstStackSymbol::Expr(expression)), TokenType::Symbol)
+      | (
+        Some(AstState::ArrayFold),
+        Some(AstStackSymbol::Expr(expression)),
+        TokenType::EndOfInput,
+      )
+      | (Some(AstState::ArrayFold), Some(AstStackSymbol::Expr(expression)), TokenType::RParen)
+      | (Some(AstState::ArrayFold), Some(AstStackSymbol::Expr(expression)), TokenType::RSquare)
+      | (Some(AstState::ArrayFold), Some(AstStackSymbol::Expr(expression)), TokenType::Comma)
+      | (Some(AstState::ArrayFold), Some(AstStackSymbol::Expr(expression)), TokenType::Newline) => {
+        ast_stack.pop();
+        let operator_sym = ast_stack.pop_panic();
+        let lhs_sym = ast_stack.pop_panic();
+        match (lhs_sym, operator_sym) {
+          (Some(AstStackSymbol::Expr(lhs)), Some(AstStackSymbol::Token(op))) => {
+            ast_stack.push(AstStackSymbol::Expr(Expression::Binary(
+              BinaryExpression::new(Box::new(lhs), op, Box::new(expression)),
+            )));
+            state_stack.pop();
+          }
+          _ => panic!("unexpected stack default"),
+        }
+      }
+
+      (Some(AstState::RangeFollow), _, TokenType::Symbol) => {
+        if is_range(current_token.lexeme.clone()) {
+          ast_stack.push(AstStackSymbol::Token(current_token.clone()));
+          state_stack.goto(AstState::RangeFollow);
+          state_stack.push(AstState::RangeFold);
+          state_stack.push(AstState::DefaultFollow);
+          state_stack.push(AstState::PrefixOrPrimary);
+          token_index += 1;
+        } else if is_assignment(current_token.lexeme.clone())
+          || is_equality(current_token.lexeme.clone())
+          || is_comparison(current_token.lexeme.clone())
+          || is_shift(current_token.lexeme.clone())
+          || is_logical(current_token.lexeme.clone()) 
+          || is_bitwise(current_token.lexeme.clone())
+          || is_additive(current_token.lexeme.clone())
+          || is_multiplicative(current_token.lexeme.clone())
+          || is_array(current_token.lexeme.clone())
+        {
+          state_stack.pop();
+        } else {
+          state_stack.push(AstState::DefaultFollow);
+        }
+      }
+      (Some(AstState::RangeFollow), _, TokenType::EndOfInput)
+      | (Some(AstState::RangeFollow), _, TokenType::RParen)
+      | (Some(AstState::RangeFollow), _, TokenType::RSquare)
+      | (Some(AstState::RangeFollow), _, TokenType::Comma)
+      | (Some(AstState::RangeFollow), _, TokenType::Newline) => {
+        state_stack.pop();
+      }
+      (Some(AstState::RangeFold), Some(AstStackSymbol::Expr(expression)), TokenType::Symbol)
+      | (
+        Some(AstState::RangeFold),
+        Some(AstStackSymbol::Expr(expression)),
+        TokenType::EndOfInput,
+      )
+      | (Some(AstState::RangeFold), Some(AstStackSymbol::Expr(expression)), TokenType::RParen)
+      | (Some(AstState::RangeFold), Some(AstStackSymbol::Expr(expression)), TokenType::RSquare)
+      | (Some(AstState::RangeFold), Some(AstStackSymbol::Expr(expression)), TokenType::Comma)
+      | (Some(AstState::RangeFold), Some(AstStackSymbol::Expr(expression)), TokenType::Newline) => {
+        ast_stack.pop();
+        let operator_sym = ast_stack.pop_panic();
+        let lhs_sym = ast_stack.pop_panic();
+        match (lhs_sym, operator_sym) {
+          (Some(AstStackSymbol::Expr(lhs)), Some(AstStackSymbol::Token(op))) => {
+            ast_stack.push(AstStackSymbol::Expr(Expression::Binary(
+              BinaryExpression::new(Box::new(lhs), op, Box::new(expression)),
+            )));
+            state_stack.pop();
+          }
+          _ => panic!("unexpected stack default"),
+        }
+      }
+
+      (Some(AstState::DefaultFollow), _, TokenType::Symbol) => {
+        if is_default(current_token.lexeme.clone()) {
+          ast_stack.push(AstStackSymbol::Token(current_token.clone()));
+          state_stack.goto(AstState::DefaultFollow);
+          state_stack.push(AstState::RangeFold);
+          state_stack.push(AstState::PrefixOrPrimary);
+          token_index += 1;
+        } else if is_assignment(current_token.lexeme.clone())
+          || is_equality(current_token.lexeme.clone())
+          || is_comparison(current_token.lexeme.clone())
+          || is_shift(current_token.lexeme.clone())
+          || is_logical(current_token.lexeme.clone()) 
+          || is_bitwise(current_token.lexeme.clone())
+          || is_additive(current_token.lexeme.clone())
+          || is_multiplicative(current_token.lexeme.clone())
+          || is_array(current_token.lexeme.clone())
+          || is_range(current_token.lexeme.clone())
+        {
+          state_stack.pop();
+        } else {
+          todo!(); // does this actually get hit?
+        }
+      }
+      (Some(AstState::DefaultFollow), _, TokenType::EndOfInput)
+      | (Some(AstState::DefaultFollow), _, TokenType::RParen)
+      | (Some(AstState::DefaultFollow), _, TokenType::RSquare)
+      | (Some(AstState::DefaultFollow), _, TokenType::Comma)
+      | (Some(AstState::DefaultFollow), _, TokenType::Newline) => {
+        state_stack.pop();
+      }
+      (Some(AstState::DefaultFold), Some(AstStackSymbol::Expr(expression)), TokenType::Symbol)
+      | (
+        Some(AstState::DefaultFold),
+        Some(AstStackSymbol::Expr(expression)),
+        TokenType::EndOfInput,
+      )
+      | (Some(AstState::DefaultFold), Some(AstStackSymbol::Expr(expression)), TokenType::RParen)
+      | (Some(AstState::DefaultFold), Some(AstStackSymbol::Expr(expression)), TokenType::RSquare)
+      | (Some(AstState::DefaultFold), Some(AstStackSymbol::Expr(expression)), TokenType::Comma)
+      | (Some(AstState::DefaultFold), Some(AstStackSymbol::Expr(expression)), TokenType::Newline) => {
         ast_stack.pop();
         let operator_sym = ast_stack.pop_panic();
         let lhs_sym = ast_stack.pop_panic();
@@ -1689,4 +2043,28 @@ fn is_shift(lexeme: String) -> bool {
 
 fn is_logical(lexeme: String) -> bool {
   lexeme == "||" || lexeme == "&&" || lexeme == "^^"
+}
+
+fn is_bitwise(lexeme: String) -> bool {
+  lexeme == "|" || lexeme == "&" || lexeme == "^"
+}
+
+fn is_additive(lexeme: String) -> bool {
+  lexeme == "+" || lexeme == "-"
+}
+
+fn is_multiplicative(lexeme: String) -> bool {
+  lexeme == "*" || lexeme == "/" || lexeme == "%" || lexeme == "//"
+}
+
+fn is_array(lexeme: String) -> bool {
+  lexeme == "++" || lexeme == "--" || lexeme == ">."
+}
+
+fn is_range(lexeme: String) -> bool {
+  lexeme == ".." || lexeme == "..<" || lexeme == "..="
+}
+
+fn is_default(lexeme: String) -> bool {
+  lexeme == "??"
 }
