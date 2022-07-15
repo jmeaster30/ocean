@@ -1,0 +1,28 @@
+{
+    "name": "ocean-language-support",
+    "displayName": "Ocean Language Support",
+    "description": "Language support for the ocean programming language",
+    "version": "0.0.1",
+    "engines": {
+        "vscode": "^1.69.0"
+    },
+    "categories": [
+        "Programming Languages"
+    ],
+    "contributes": {
+        "languages": [{
+            "id": "ocean",
+            "aliases": ["ocean", "ocean"],
+            "extensions": [".sea"],
+            "configuration": "./language-configuration.json"
+        }],
+        "grammars": [{
+            "language": "ocean",
+            "scopeName": "source.ocean",
+            "path": "./syntaxes/ocean.tmLanguage.json"
+        }]
+    },
+    "scripts": {
+        "load-ext-vsc": "cp -r . ~/.vscode/extensions/ocean-language-support"
+    }
+}

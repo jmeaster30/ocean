@@ -1,0 +1,101 @@
+{
+	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+	"name": "ocean",
+	"patterns": [
+		{ "include": "#types" },
+		{ "include": "#keywords_control" },
+		{ "include": "#keywords_literal" },
+		{ "include": "#keywords_other" },
+		{ "include": "#identifier" },
+		{ "include": "#numbers" },
+		{ "include": "#comment" },
+		{ "include": "#block_comment" },
+		{ "include": "#strings" },
+		{ "include": "#strings_single" },
+		{ "include": "#strings_other" }
+	],
+	"repository": {
+		"types": {
+			"patterns": [{
+				"name": "storage.type.ocean",
+				"match": "\\b(i8|i16|i32|i64|f32|f64|u8|u16|u32|u64|string|auto|bool|func|void|ref|lazy|optional|comp|char)\\b"
+			}]
+		},
+		"keywords_control": {
+			"patterns": [{
+				"name": "keyword.control.ocean",
+				"match": "\\b(if|while|for|return|continue|break|loop|match|else|in)\\b"
+			}]
+		},
+		"keywords_other": {
+			"patterns": [{
+				"name": "keyword.other",
+				"match": "\\b(cast|as|use|union|pack|let)\\b"
+			}]
+		},
+		"keywords_literal": {
+			"patterns": [{
+				"name": "constant.language.ocean",
+				"match": "\\b(true|false)\\b"
+			}]
+		},
+		"identifier": {
+			"patterns": [{
+				"name": "variable.name.ocean",
+				"match": "[a-zA-Z_][a-zA-Z0-9_]*"
+			}]
+		},
+		"numbers": {
+			"patterns": [{
+				"name": "constant.numeric.ocean",
+				"match": "\\b([0-9]+(\\.[0-9]*)?)\\b"
+			}]
+		},
+		"block_comment": {
+			"patterns": [{
+				"name": "constant.numeric.ocean",
+				"match": "#\\/(\\/(?!#)|[^/])*\\/#"
+			}]
+		},
+		"comment": {
+			"patterns": [{
+				"name": "comment.line.number-sign",
+				"match": "#[^\\n]*$"
+			}]
+		},
+		"strings": {
+			"name": "string.quoted.double.ocean",
+			"begin": "\"",
+			"end": "\"",
+			"patterns": [
+				{
+					"name": "constant.character.escape.ocean",
+					"match": "\\\\."
+				}
+			]
+		},
+		"strings_single": {
+			"name": "string.quoted.single.ocean",
+			"begin": "'",
+			"end": "'",
+			"patterns": [
+				{
+					"name": "constant.character.escape.ocean",
+					"match": "\\\\."
+				}
+			]
+		},
+		"strings_other": {
+			"name": "string.interpolated.ocean",
+			"begin": "`",
+			"end": "`",
+			"patterns": [
+				{
+					"name": "constant.character.escape.ocean",
+					"match": "\\\\."
+				}
+			]
+		}
+	},
+	"scopeName": "source.ocean"
+}

@@ -28,9 +28,9 @@ let abs = (a: i64) -> (result: i64) {
 
 let lcm = (a: i64, b: i64) -> (result: i64 = abs(a) * abs(b) / gcd(a, b))
 
-op + = (x: auto T, y: T) -> (result: T = add(x, y))
+# op + = (x: auto T, y: T) -> (result: T = add(x, y))
 
-op - = (x: auto T, y: T) -> (result: T = subtract(x, y))
+#op - = (x: auto T, y: T) -> (result: T = subtract(x, y))
 
 pack rational {
   numerator: i64

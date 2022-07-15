@@ -1,8 +1,8 @@
-isEven: func = (x: i64) -> (result: bool = x % 2 == 0)
+let isEven: func = (x: i64) -> (result: bool = x % 2 == 0)
 
-isEmpty: func = (x: string) -> (result: bool = x == "")
+let isEmpty: func = (x: string) -> (result: bool = x == "")
 
-collatz: func = (input: i64) -> (path: i64[]) {
+let collatz: func = (input: i64) -> (path: i64[]) {
   loop input != 1 {
     path.append(input)
     if !input.isEven() {
@@ -15,11 +15,11 @@ collatz: func = (input: i64) -> (path: i64[]) {
 
 while true {
   print("Input a number: ")
-  userinput: string = input()
+  let userinput: string = input()
   if !userinput.isEmpty() {
-    parsed: auto = userInput.parsei64   # the type here is optional i64
+    let parsed: auto = userInput.parsei64   # the type here is optional i64
     if parsed.has_value() {
-      result: auto = parsed.collatz()
+      let result: auto = parsed.collatz()
       println(result.size())
       println(result)
       break
