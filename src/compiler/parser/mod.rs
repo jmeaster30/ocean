@@ -55,6 +55,7 @@ pub enum AstState {
   BaseTypeFollow,
   BaseTypeFollowEnd,
   TypeChainResolve,
+  TypeFinalize,
   AutoTypeFollow,
   FuncTypeParamListStart,
   FuncTypeParamList,
@@ -478,6 +479,16 @@ pub fn parse(
         token_index += 1;
         state_stack.goto(AstState::BaseTypeFollow)
       }
+      // (Some(AstState::Type), Some(AstStackSymbol::Type(found_type)), TokenType::Symbol) => {
+      //   if current_token.lexeme == "..." {
+      //     token_index += 1;
+      //     ast_stack.pop();
+      //     ast_stack.push(AstStackSymbol::Type(Type::VarType(VarType::new(Box::new(found_type), current_token.clone()))));
+      //     state_stack.pop();
+      //   } else {
+      //     state_stack.pop();
+      //   }
+      // }
       (Some(AstState::SubType), _, TokenType::LParen) => {
         ast_stack.push(AstStackSymbol::Token(current_token.clone()));
         token_index += 1;
@@ -607,17 +618,30 @@ pub fn parse(
             }
             _ => {
               ast_stack.push(AstStackSymbol::Type(base));
-              state_stack.pop(); // done
+              state_stack.goto(AstState::TypeFinalize);
             }
           },
           Some(_) => {
             ast_stack.push(AstStackSymbol::Type(base));
-            state_stack.pop(); /* done */
+            state_stack.goto(AstState::TypeFinalize);
           }
           None => {
             panic!("Stack shouldn't be empty here at state AstState::type chain resolve");
           }
         }
+      }
+      (Some(AstState::TypeFinalize), Some(AstStackSymbol::Type(found_type)), TokenType::Symbol) => {
+        if current_token.lexeme == "..." {
+          token_index += 1;
+          ast_stack.pop();
+          ast_stack.push(AstStackSymbol::Type(Type::VarType(VarType::new(Box::new(found_type), current_token.clone()))));
+          state_stack.pop();
+        } else {
+          state_stack.pop();
+        }
+      }
+      (Some(AstState::TypeFinalize), _, _) => {
+        state_stack.pop();
       }
       (Some(AstState::FuncTypeParamListStart), Some(_), TokenType::LParen) => {
         ast_stack.push(AstStackSymbol::Token(current_token.clone()));

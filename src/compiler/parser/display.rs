@@ -431,6 +431,7 @@ impl fmt::Display for Type {
       Type::Ref(x) => x.fmt(fmt)?,
       Type::Optional(x) => x.fmt(fmt)?,
       Type::Array(x) => x.fmt(fmt)?,
+      Type::VarType(x) => x.fmt(fmt)?,
     };
     Ok(())
   }
@@ -515,6 +516,12 @@ impl fmt::Display for ArrayType {
       None => {}
     }
     fmt.write_str(")")
+  }
+}
+
+impl fmt::Display for VarType {
+  fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+    fmt.write_str(format!("(VariableType {})", self.base).as_str())
   }
 }
 

@@ -334,6 +334,7 @@ impl Spanned for Type {
       Type::Ref(x) => x.get_span(),
       Type::Optional(x) => x.get_span(),
       Type::Array(x) => x.get_span(),
+      Type::VarType(x) => x.get_span(),
     }
   }
 }
@@ -400,5 +401,12 @@ impl Spanned for ArrayType {
   fn get_span(&self) -> (usize, usize) {
     let (base_type_start, _) = (*self.base).get_span();
     (base_type_start, self.right_square.end)
+  }
+}
+
+impl Spanned for VarType {
+  fn get_span(&self) -> (usize, usize) {
+    let (base_type_start, _) = (*self.base).get_span();
+    (base_type_start, self.triple_dot.end)
   }
 }

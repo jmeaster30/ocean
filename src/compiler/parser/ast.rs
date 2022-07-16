@@ -702,6 +702,7 @@ pub enum Type {
   Ref(RefType),
   Optional(OptionalType),
   Array(ArrayType),
+  VarType(VarType),
 }
 
 #[derive(Clone)]
@@ -857,6 +858,24 @@ impl ArrayType {
       left_square,
       sub_type,
       right_square,
+    }
+  }
+}
+
+#[derive(Clone)]
+pub struct VarType {
+  pub base: Box<Type>,
+  pub triple_dot: Token,
+}
+
+impl VarType {
+  pub fn new(
+    base: Box<Type>,
+    triple_dot: Token,
+  ) -> Self {
+    Self {
+      base,
+      triple_dot
     }
   }
 }

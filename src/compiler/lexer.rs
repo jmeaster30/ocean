@@ -289,7 +289,7 @@ pub fn lex(input: String) -> (Vec<Token>, Vec<OceanError>) {
               if index < input_length - 1 {
                 index += 1;
                 match input_chars[index] {
-                  '<' | '=' => {
+                  '<' | '=' | '.' => {
                     lexeme.push_str(&input_chars[index].to_string());
                   }
                   _ => {
