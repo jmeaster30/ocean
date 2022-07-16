@@ -8,8 +8,8 @@
 		{ "include": "#keywords_other" },
 		{ "include": "#identifier" },
 		{ "include": "#numbers" },
-		{ "include": "#comment" },
 		{ "include": "#block_comment" },
+		{ "include": "#comment" },
 		{ "include": "#strings" },
 		{ "include": "#strings_single" },
 		{ "include": "#strings_other" }
@@ -52,15 +52,14 @@
 			}]
 		},
 		"block_comment": {
-			"patterns": [{
-				"name": "constant.numeric.ocean",
-				"match": "#\\/(\\/(?!#)|[^/])*\\/#"
-			}]
+			"name": "comment.block.ocean",
+			"begin": "#/",
+			"end": "/#"
 		},
 		"comment": {
 			"patterns": [{
 				"name": "comment.line.number-sign",
-				"match": "#[^\\n]*$"
+				"match": "#.*$"
 			}]
 		},
 		"strings": {

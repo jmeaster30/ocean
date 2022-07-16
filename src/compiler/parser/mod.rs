@@ -1303,8 +1303,7 @@ pub fn parse(
         {
           state_stack.pop();
         } else {
-          //state_stack.push(AstState::EqualityFollow);
-          todo!();
+          state_stack.push(AstState::BitwiseFollow);
         }
       }
       (Some(AstState::LogicalFollow), _, TokenType::EndOfInput)
