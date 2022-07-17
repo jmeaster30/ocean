@@ -192,7 +192,7 @@ impl UnionDeclaration {
 pub struct VarDecStatement {
   pub let_token: Token,
   pub var: Var,
-  pub assignment: Token,
+  pub assignment: Option<Token>,
   pub expression: Option<Expression>,
   pub function: Option<Function>,
 }
@@ -201,7 +201,7 @@ impl VarDecStatement {
   pub fn new(
     let_token: Token,
     var: Var,
-    assignment: Token,
+    assignment: Option<Token>,
     expression: Option<Expression>,
     function: Option<Function>,
   ) -> Self {
@@ -869,14 +869,8 @@ pub struct VarType {
 }
 
 impl VarType {
-  pub fn new(
-    base: Box<Type>,
-    triple_dot: Token,
-  ) -> Self {
-    Self {
-      base,
-      triple_dot
-    }
+  pub fn new(base: Box<Type>, triple_dot: Token) -> Self {
+    Self { base, triple_dot }
   }
 }
 

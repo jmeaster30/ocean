@@ -39,19 +39,25 @@ pub enum AstStackSymbol {
 pub enum AstState {
   StmtList,
   StmtFinalize,
+
   UseStmtIdList,
   UseStmtIdListFollow,
   UseStmtAlias,
   UseStmtFinalize,
+
   PackDecName,
   PackDecStartEntryList,
   PackDecEntry,
   PackDecEntryFinalize,
   PackDecEntryExpression,
   PackDecFinalize,
+
+  Var,
+  VarFollow,
   TypeVar,
   TypeVarColon,
   TypeVarFinalize,
+
   Type,
   BaseTypeFollow,
   BaseTypeFollowEnd,
@@ -64,6 +70,7 @@ pub enum AstState {
   FuncTypeReturnList,
   FuncTypeReturnListFollow,
   SubType,
+
   UnionDecName,
   UnionDecStartEntryList,
   UnionDecEntry,
@@ -73,6 +80,10 @@ pub enum AstState {
   UnionDecStorageEnd,
   UnionDecEntryFinalize,
   UnionDecFinalize,
+
+  LetStmt,
+  LetVar,
+  LetExpression,
 
   ExprStmt,
   Expression,
@@ -188,6 +199,8 @@ pub fn parse(
           state_stack.push(AstState::StmtFinalize);
         } else if current_token.lexeme == "true" || current_token.lexeme == "false" {
           state_stack.push(AstState::ExprStmt);
+        } else if current_token.lexeme == "let" {
+          state_stack.push(AstState::LetStmt);
         } else {
           panic!("Unknown keyword {} :(", current_token);
         }
@@ -219,6 +232,87 @@ pub fn parse(
           }
           _ => panic!("Stmt finalize stack busted"),
         }
+      }
+      (Some(AstState::LetStmt), _, TokenType::Keyword) => {
+        if current_token.lexeme == "let" {
+          ast_stack.push(AstStackSymbol::Token(current_token.clone()));
+          state_stack.goto(AstState::LetVar);
+          token_index += 1;
+        } else {
+          panic!("I SHOULD NOT BE HERE LET STMT");
+        }
+      }
+      (Some(AstState::LetStmt), _, _) => panic!("I SHOULD NOT BE HERE LET STMT"),
+      (Some(AstState::LetVar), Some(AstStackSymbol::Token(_)), _) => {
+        state_stack.push(AstState::Var);
+      }
+      (Some(AstState::LetVar), Some(AstStackSymbol::Var(var)), TokenType::Symbol) => {
+        if current_token.lexeme == "=" {
+          ast_stack.push(AstStackSymbol::Token(current_token.clone()));
+          token_index += 1;
+          state_stack.goto(AstState::LetExpression);
+        } else {
+          ast_stack.pop();
+          let let_token_sym = ast_stack.pop_panic();
+          match let_token_sym {
+            Some(AstStackSymbol::Token(let_token)) => {
+              ast_stack.push(AstStackSymbol::Stmt(Statement::VarDec(
+                VarDecStatement::new(let_token, var, None, None, None),
+              )));
+              state_stack.goto(AstState::StmtFinalize);
+            }
+            _ => panic!("not good :( let var"),
+          }
+        }
+      }
+      (Some(AstState::LetVar), Some(AstStackSymbol::Var(var)), _) => {
+        ast_stack.pop();
+        let let_token_sym = ast_stack.pop_panic();
+        match let_token_sym {
+          Some(AstStackSymbol::Token(let_token)) => {
+            ast_stack.push(AstStackSymbol::Stmt(Statement::VarDec(
+              VarDecStatement::new(let_token, var, None, None, None),
+            )));
+            state_stack.goto(AstState::StmtFinalize);
+          }
+          _ => panic!("not good :( let var"),
+        }
+      }
+      (Some(AstState::LetVar), Some(AstStackSymbol::TypeVar(type_var)), _) => {
+        ast_stack.pop();
+        ast_stack.push(AstStackSymbol::Var(Var::Typed(type_var)));
+      }
+      (Some(AstState::LetVar), _, _) => panic!("creeper aw man :( let var"),
+      (Some(AstState::LetExpression), Some(AstStackSymbol::Token(_)), _) => {
+        state_stack.push(AstState::Expression);
+      }
+      (Some(AstState::LetExpression), Some(AstStackSymbol::Expr(expression)), _) => {
+        ast_stack.pop();
+        let assignment_token_sym = ast_stack.pop_panic();
+        let var_sym = ast_stack.pop_panic();
+        let let_sym = ast_stack.pop_panic();
+        match (let_sym, var_sym, assignment_token_sym) {
+          (
+            Some(AstStackSymbol::Token(let_token)),
+            Some(AstStackSymbol::Var(var)),
+            Some(AstStackSymbol::Token(assignment_token)),
+          ) => {
+            ast_stack.push(AstStackSymbol::Stmt(Statement::VarDec(
+              VarDecStatement::new(
+                let_token,
+                var,
+                Some(assignment_token),
+                Some(expression),
+                None,
+              ),
+            )));
+            state_stack.goto(AstState::StmtFinalize);
+          }
+          _ => panic!("uhoh we weren't meant to get here :("),
+        }
+      }
+      (Some(AstState::LetExpression), _, _) => {
+        panic!("Unexpected token let expression :(");
       }
       (
         Some(AstState::UseStmtIdList),
@@ -356,14 +450,20 @@ pub fn parse(
             ast_stack.push(AstStackSymbol::PackDec(entry));
             state_stack.pop();
           }
-          _ => panic!("weird stack after pack dec entry expression")
+          _ => panic!("weird stack after pack dec entry expression"),
         }
       }
       (Some(AstState::PackDecEntryExpression), Some(_), _) => {
         state_stack.push(AstState::Expression);
       }
-      (Some(AstState::PackDecEntryExpression), _, _) => panic!("Unexpected token in pack dec entry expression"),
-      (Some(AstState::PackDecEntryFinalize), Some(AstStackSymbol::PackDec(entry)), TokenType::Symbol) => {
+      (Some(AstState::PackDecEntryExpression), _, _) => {
+        panic!("Unexpected token in pack dec entry expression")
+      }
+      (
+        Some(AstState::PackDecEntryFinalize),
+        Some(AstStackSymbol::PackDec(entry)),
+        TokenType::Symbol,
+      ) => {
         if current_token.lexeme == "=" {
           ast_stack.push(AstStackSymbol::Token(current_token.clone()));
           state_stack.push(AstState::PackDecEntryExpression);
@@ -439,6 +539,25 @@ pub fn parse(
         }
       }
       (Some(AstState::PackDecFinalize), _, _) => panic!("Pack dec finalize mismove"),
+      (Some(AstState::Var), _, TokenType::Identifier) => {
+        ast_stack.push(AstStackSymbol::Token(current_token.clone()));
+        token_index += 1;
+        state_stack.goto(AstState::VarFollow);
+      }
+      (Some(AstState::Var), _, _) => panic!("Unexpected token in var"),
+      (Some(AstState::VarFollow), Some(AstStackSymbol::Token(_)), TokenType::Colon) => {
+        state_stack.push(AstState::TypeVarColon);
+      }
+      (Some(AstState::VarFollow), Some(AstStackSymbol::Type(_)), _) => {
+        state_stack.goto(AstState::TypeVarFinalize);
+      }
+      (Some(AstState::VarFollow), Some(AstStackSymbol::Token(id)), _) => {
+        ast_stack.pop();
+        ast_stack.push(AstStackSymbol::Var(Var::Untyped(UntypedVar::new(
+          id.clone(),
+        ))));
+        state_stack.pop();
+      }
       (Some(AstState::TypeVar), Some(AstStackSymbol::PackDecList(_)), TokenType::Identifier) => {
         ast_stack.push(AstStackSymbol::Token(current_token.clone()));
         token_index += 1;
@@ -507,16 +626,6 @@ pub fn parse(
         token_index += 1;
         state_stack.goto(AstState::BaseTypeFollow)
       }
-      // (Some(AstState::Type), Some(AstStackSymbol::Type(found_type)), TokenType::Symbol) => {
-      //   if current_token.lexeme == "..." {
-      //     token_index += 1;
-      //     ast_stack.pop();
-      //     ast_stack.push(AstStackSymbol::Type(Type::VarType(VarType::new(Box::new(found_type), current_token.clone()))));
-      //     state_stack.pop();
-      //   } else {
-      //     state_stack.pop();
-      //   }
-      // }
       (Some(AstState::SubType), _, TokenType::LParen) => {
         ast_stack.push(AstStackSymbol::Token(current_token.clone()));
         token_index += 1;
@@ -662,7 +771,10 @@ pub fn parse(
         if current_token.lexeme == "..." {
           token_index += 1;
           ast_stack.pop();
-          ast_stack.push(AstStackSymbol::Type(Type::VarType(VarType::new(Box::new(found_type), current_token.clone()))));
+          ast_stack.push(AstStackSymbol::Type(Type::VarType(VarType::new(
+            Box::new(found_type),
+            current_token.clone(),
+          ))));
           state_stack.pop();
         } else {
           state_stack.pop();
@@ -1207,8 +1319,7 @@ pub fn parse(
       }
 
       (Some(AstState::ComparisonFollow), _, TokenType::Symbol) => {
-        if is_comparison(current_token.lexeme.clone())
-        {
+        if is_comparison(current_token.lexeme.clone()) {
           ast_stack.push(AstStackSymbol::Token(current_token.clone()));
           state_stack.goto(AstState::ComparisonFollow);
           state_stack.push(AstState::ComparisonFold);
@@ -1374,7 +1485,8 @@ pub fn parse(
       | (Some(AstState::LogicalFold), Some(AstStackSymbol::Expr(expression)), TokenType::RParen)
       | (Some(AstState::LogicalFold), Some(AstStackSymbol::Expr(expression)), TokenType::RSquare)
       | (Some(AstState::LogicalFold), Some(AstStackSymbol::Expr(expression)), TokenType::Comma)
-      | (Some(AstState::LogicalFold), Some(AstStackSymbol::Expr(expression)), TokenType::Newline) => {
+      | (Some(AstState::LogicalFold), Some(AstStackSymbol::Expr(expression)), TokenType::Newline) =>
+      {
         ast_stack.pop();
         let operator_sym = ast_stack.pop_panic();
         let lhs_sym = ast_stack.pop_panic();
@@ -1405,7 +1517,7 @@ pub fn parse(
           || is_equality(current_token.lexeme.clone())
           || is_comparison(current_token.lexeme.clone())
           || is_shift(current_token.lexeme.clone())
-          || is_logical(current_token.lexeme.clone()) 
+          || is_logical(current_token.lexeme.clone())
         {
           state_stack.pop();
         } else {
@@ -1428,7 +1540,8 @@ pub fn parse(
       | (Some(AstState::BitwiseFold), Some(AstStackSymbol::Expr(expression)), TokenType::RParen)
       | (Some(AstState::BitwiseFold), Some(AstStackSymbol::Expr(expression)), TokenType::RSquare)
       | (Some(AstState::BitwiseFold), Some(AstStackSymbol::Expr(expression)), TokenType::Comma)
-      | (Some(AstState::BitwiseFold), Some(AstStackSymbol::Expr(expression)), TokenType::Newline) => {
+      | (Some(AstState::BitwiseFold), Some(AstStackSymbol::Expr(expression)), TokenType::Newline) =>
+      {
         ast_stack.pop();
         let operator_sym = ast_stack.pop_panic();
         let lhs_sym = ast_stack.pop_panic();
@@ -1458,7 +1571,7 @@ pub fn parse(
           || is_equality(current_token.lexeme.clone())
           || is_comparison(current_token.lexeme.clone())
           || is_shift(current_token.lexeme.clone())
-          || is_logical(current_token.lexeme.clone()) 
+          || is_logical(current_token.lexeme.clone())
           || is_bitwise(current_token.lexeme.clone())
         {
           state_stack.pop();
@@ -1480,9 +1593,17 @@ pub fn parse(
         TokenType::EndOfInput,
       )
       | (Some(AstState::AdditiveFold), Some(AstStackSymbol::Expr(expression)), TokenType::RParen)
-      | (Some(AstState::AdditiveFold), Some(AstStackSymbol::Expr(expression)), TokenType::RSquare)
+      | (
+        Some(AstState::AdditiveFold),
+        Some(AstStackSymbol::Expr(expression)),
+        TokenType::RSquare,
+      )
       | (Some(AstState::AdditiveFold), Some(AstStackSymbol::Expr(expression)), TokenType::Comma)
-      | (Some(AstState::AdditiveFold), Some(AstStackSymbol::Expr(expression)), TokenType::Newline) => {
+      | (
+        Some(AstState::AdditiveFold),
+        Some(AstStackSymbol::Expr(expression)),
+        TokenType::Newline,
+      ) => {
         ast_stack.pop();
         let operator_sym = ast_stack.pop_panic();
         let lhs_sym = ast_stack.pop_panic();
@@ -1511,7 +1632,7 @@ pub fn parse(
           || is_equality(current_token.lexeme.clone())
           || is_comparison(current_token.lexeme.clone())
           || is_shift(current_token.lexeme.clone())
-          || is_logical(current_token.lexeme.clone()) 
+          || is_logical(current_token.lexeme.clone())
           || is_bitwise(current_token.lexeme.clone())
           || is_additive(current_token.lexeme.clone())
         {
@@ -1527,16 +1648,36 @@ pub fn parse(
       | (Some(AstState::MultiplicativeFollow), _, TokenType::Newline) => {
         state_stack.pop();
       }
-      (Some(AstState::MultiplicativeFold), Some(AstStackSymbol::Expr(expression)), TokenType::Symbol)
+      (
+        Some(AstState::MultiplicativeFold),
+        Some(AstStackSymbol::Expr(expression)),
+        TokenType::Symbol,
+      )
       | (
         Some(AstState::MultiplicativeFold),
         Some(AstStackSymbol::Expr(expression)),
         TokenType::EndOfInput,
       )
-      | (Some(AstState::MultiplicativeFold), Some(AstStackSymbol::Expr(expression)), TokenType::RParen)
-      | (Some(AstState::MultiplicativeFold), Some(AstStackSymbol::Expr(expression)), TokenType::RSquare)
-      | (Some(AstState::MultiplicativeFold), Some(AstStackSymbol::Expr(expression)), TokenType::Comma)
-      | (Some(AstState::MultiplicativeFold), Some(AstStackSymbol::Expr(expression)), TokenType::Newline) => {
+      | (
+        Some(AstState::MultiplicativeFold),
+        Some(AstStackSymbol::Expr(expression)),
+        TokenType::RParen,
+      )
+      | (
+        Some(AstState::MultiplicativeFold),
+        Some(AstStackSymbol::Expr(expression)),
+        TokenType::RSquare,
+      )
+      | (
+        Some(AstState::MultiplicativeFold),
+        Some(AstStackSymbol::Expr(expression)),
+        TokenType::Comma,
+      )
+      | (
+        Some(AstState::MultiplicativeFold),
+        Some(AstStackSymbol::Expr(expression)),
+        TokenType::Newline,
+      ) => {
         ast_stack.pop();
         let operator_sym = ast_stack.pop_panic();
         let lhs_sym = ast_stack.pop_panic();
@@ -1564,7 +1705,7 @@ pub fn parse(
           || is_equality(current_token.lexeme.clone())
           || is_comparison(current_token.lexeme.clone())
           || is_shift(current_token.lexeme.clone())
-          || is_logical(current_token.lexeme.clone()) 
+          || is_logical(current_token.lexeme.clone())
           || is_bitwise(current_token.lexeme.clone())
           || is_additive(current_token.lexeme.clone())
           || is_multiplicative(current_token.lexeme.clone())
@@ -1617,7 +1758,7 @@ pub fn parse(
           || is_equality(current_token.lexeme.clone())
           || is_comparison(current_token.lexeme.clone())
           || is_shift(current_token.lexeme.clone())
-          || is_logical(current_token.lexeme.clone()) 
+          || is_logical(current_token.lexeme.clone())
           || is_bitwise(current_token.lexeme.clone())
           || is_additive(current_token.lexeme.clone())
           || is_multiplicative(current_token.lexeme.clone())
@@ -1670,7 +1811,7 @@ pub fn parse(
           || is_equality(current_token.lexeme.clone())
           || is_comparison(current_token.lexeme.clone())
           || is_shift(current_token.lexeme.clone())
-          || is_logical(current_token.lexeme.clone()) 
+          || is_logical(current_token.lexeme.clone())
           || is_bitwise(current_token.lexeme.clone())
           || is_additive(current_token.lexeme.clone())
           || is_multiplicative(current_token.lexeme.clone())
@@ -1698,7 +1839,8 @@ pub fn parse(
       | (Some(AstState::DefaultFold), Some(AstStackSymbol::Expr(expression)), TokenType::RParen)
       | (Some(AstState::DefaultFold), Some(AstStackSymbol::Expr(expression)), TokenType::RSquare)
       | (Some(AstState::DefaultFold), Some(AstStackSymbol::Expr(expression)), TokenType::Comma)
-      | (Some(AstState::DefaultFold), Some(AstStackSymbol::Expr(expression)), TokenType::Newline) => {
+      | (Some(AstState::DefaultFold), Some(AstStackSymbol::Expr(expression)), TokenType::Newline) =>
+      {
         ast_stack.pop();
         let operator_sym = ast_stack.pop_panic();
         let lhs_sym = ast_stack.pop_panic();

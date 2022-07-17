@@ -103,7 +103,7 @@ pub fn lex(input: String) -> (Vec<Token>, Vec<OceanError>) {
             ));
           }
           "if" | "else" | "return" | "continue" | "while" | "break" | "loop" | "union" | "pack"
-          | "cast" | "for" | "in" | "as" | "use" | "match" | "true" | "false" => {
+          | "cast" | "for" | "in" | "as" | "use" | "match" | "true" | "false" | "let" => {
             tokens.push(Token::new(
               TokenType::Keyword,
               lexeme.clone(),
