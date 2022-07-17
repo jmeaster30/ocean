@@ -85,6 +85,9 @@ pub enum AstState {
   LetVar,
   LetExpression,
 
+  InfiniteLoopStmt,
+  InfiniteLoopBody,
+
   ExprStmt,
   Expression,
   SubExpression,
@@ -158,12 +161,13 @@ pub fn parse(
     match (state, stack_top, &current_token.token_type) {
       (
         Some(AstState::StmtList),
-        Some(AstStackSymbol::StmtList(contents)),
+        Some(AstStackSymbol::StmtList(_)),
         TokenType::EndOfInput,
       ) => {
-        ast_stack.pop();
-        ast_stack.push(AstStackSymbol::Program(Program::new(contents.to_vec())));
         break;
+      }
+      (Some(AstState::StmtList), Some(AstStackSymbol::StmtList(_)), TokenType::RCurly) => {
+        state_stack.pop();
       }
       (Some(AstState::StmtList), Some(_), TokenType::Keyword) => {
         if current_token.lexeme == "use" {
@@ -201,6 +205,8 @@ pub fn parse(
           state_stack.push(AstState::ExprStmt);
         } else if current_token.lexeme == "let" {
           state_stack.push(AstState::LetStmt);
+        } else if current_token.lexeme == "loop" {
+          state_stack.push(AstState::InfiniteLoopStmt);
         } else {
           panic!("Unknown keyword {} :(", current_token);
         }
@@ -217,10 +223,11 @@ pub fn parse(
       (Some(AstState::StmtList), Some(_), TokenType::Newline) => {
         token_index = consume_optional_newline(tokens, token_index);
       }
-      (Some(AstState::StmtFinalize), Some(AstStackSymbol::Stmt(stmt)), TokenType::EndOfInput)
+      (Some(AstState::StmtFinalize), Some(AstStackSymbol::Stmt(stmt)), TokenType::RCurly)
+      | (Some(AstState::StmtFinalize), Some(AstStackSymbol::Stmt(stmt)), TokenType::EndOfInput)
       | (Some(AstState::StmtFinalize), Some(AstStackSymbol::Stmt(stmt)), TokenType::Newline) => {
         ast_stack.pop();
-        if current_token.token_type != TokenType::EndOfInput {
+        if current_token.token_type != TokenType::EndOfInput && current_token.token_type != TokenType::RCurly {
           token_index += 1;
         }
         let mut stmt_list_sym = ast_stack.pop_panic();
@@ -233,6 +240,38 @@ pub fn parse(
           _ => panic!("Stmt finalize stack busted"),
         }
       }
+      (Some(AstState::InfiniteLoopStmt), _, TokenType::Keyword) => {
+        if current_token.lexeme == "loop" {
+          ast_stack.push(AstStackSymbol::Token(current_token.clone()));
+          state_stack.goto(AstState::InfiniteLoopBody);
+          token_index += 1;
+          token_index = consume_optional_newline(tokens, token_index);
+        } else {
+          panic!("I SHOULD NOT BE HERE INF LOOP STMT");
+        }
+      }
+      (Some(AstState::InfiniteLoopStmt), _, _) => panic!("I SHOULD NOT BE HERE INF LOOP STMT"),
+      (Some(AstState::InfiniteLoopBody), _, TokenType::LCurly) => {
+        ast_stack.push(AstStackSymbol::Token(current_token.clone()));
+        ast_stack.push(AstStackSymbol::StmtList(Vec::new()));
+        state_stack.push(AstState::StmtList);
+        token_index += 1;
+        token_index = consume_optional_newline(tokens, token_index);
+      }
+      (Some(AstState::InfiniteLoopBody), Some(AstStackSymbol::StmtList(stmts)), TokenType::RCurly) => {
+        ast_stack.pop();
+        let left_curly_sym = ast_stack.pop_panic();
+        let loop_sym = ast_stack.pop_panic();
+        match (loop_sym, left_curly_sym) {
+          (Some(AstStackSymbol::Token(loop_token)), Some(AstStackSymbol::Token(left_curly))) => {
+            token_index += 1;
+            ast_stack.push(AstStackSymbol::Stmt(Statement::InfiniteLoop(InfiniteLoopStatement::new(loop_token, left_curly, stmts, current_token.clone()))));
+            state_stack.goto(AstState::StmtFinalize);
+          }
+          _ => panic!("bad stack infinite loop body")
+        }
+      }
+      (Some(AstState::InfiniteLoopBody), _, _) => panic!("unexpected case infinite loop body :("),
       (Some(AstState::LetStmt), _, TokenType::Keyword) => {
         if current_token.lexeme == "let" {
           ast_stack.push(AstStackSymbol::Token(current_token.clone()));
@@ -2189,12 +2228,14 @@ pub fn parse(
     };
   }
 
-  match ast_stack.pop() {
-    Some(x) => match x {
-      AstStackSymbol::Program(program) => (Some(program), errors),
+  if ast_stack.size() == 1 {
+    match ast_stack.pop() {
+      Some(AstStackSymbol::StmtList(stmts)) => 
+        (Some(Program::new(stmts)), errors),
       _ => (None, errors),
-    },
-    None => (None, errors),
+    }
+  } else {
+    (None, errors)
   }
 }
 

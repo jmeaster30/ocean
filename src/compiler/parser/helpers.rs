@@ -65,6 +65,10 @@ impl<T: Clone + std::fmt::Display> Stack<T> {
     self.stack.pop()
   }
 
+  pub fn size(&self) -> usize {
+    self.stack.len()
+  }
+
   pub fn print(&self) {
     print!("AST STACK:   ");
     for entry in &self.stack {
