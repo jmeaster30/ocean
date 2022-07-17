@@ -215,11 +215,11 @@ impl VarDecStatement {
 #[derive(Clone)]
 pub struct CastStatement {
   pub cast_token: Token,
-  pub function: Function,
+  pub function: Expression,
 }
 
 impl CastStatement {
-  pub fn new(cast_token: Token, function: Function) -> Self {
+  pub fn new(cast_token: Token, function: Expression) -> Self {
     Self {
       cast_token,
       function,

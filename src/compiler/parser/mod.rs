@@ -88,6 +88,12 @@ pub enum AstState {
   InfiniteLoopStmt,
   InfiniteLoopBody,
 
+  WhileLoopStmt,
+  WhileLoopBody,
+
+  CastDecStmt,
+  CastDecExpr,
+
   ExprStmt,
   Expression,
   SubExpression,
@@ -205,8 +211,12 @@ pub fn parse(
           state_stack.push(AstState::ExprStmt);
         } else if current_token.lexeme == "let" {
           state_stack.push(AstState::LetStmt);
+        } else if current_token.lexeme == "cast" {
+          state_stack.push(AstState::CastDecStmt);
         } else if current_token.lexeme == "loop" {
           state_stack.push(AstState::InfiniteLoopStmt);
+        } else if current_token.lexeme == "while" {
+          state_stack.push(AstState::WhileLoopStmt);
         } else {
           panic!("Unknown keyword {} :(", current_token);
         }
@@ -272,6 +282,66 @@ pub fn parse(
         }
       }
       (Some(AstState::InfiniteLoopBody), _, _) => panic!("unexpected case infinite loop body :("),
+      (Some(AstState::WhileLoopStmt), Some(AstStackSymbol::Expr(expression)), _) => {
+        token_index = consume_optional_newline(tokens, token_index);
+        state_stack.goto(AstState::WhileLoopBody);
+      }
+      (Some(AstState::WhileLoopStmt), _, TokenType::Keyword) => {
+        if current_token.lexeme == "while" {
+          ast_stack.push(AstStackSymbol::Token(current_token.clone()));
+          state_stack.push(AstState::Expression);
+          token_index += 1;
+        } else {
+          panic!("I SHOULD NOT BE HERE WHILE LOOP STMT");
+        }
+      }
+      (Some(AstState::WhileLoopStmt), _, _) => panic!("I SHOULD NOT BE HERE WHILE LOOP STMT"),
+      (Some(AstState::WhileLoopBody), _, TokenType::LCurly) => {
+        ast_stack.push(AstStackSymbol::Token(current_token.clone()));
+        ast_stack.push(AstStackSymbol::StmtList(Vec::new()));
+        state_stack.push(AstState::StmtList);
+        token_index += 1;
+        token_index = consume_optional_newline(tokens, token_index);
+      }
+      (Some(AstState::WhileLoopBody), Some(AstStackSymbol::StmtList(stmts)), TokenType::RCurly) => {
+        ast_stack.pop();
+        let left_curly_sym = ast_stack.pop_panic();
+        let while_expr_sym = ast_stack.pop_panic();
+        let loop_sym = ast_stack.pop_panic();
+        match (loop_sym, while_expr_sym, left_curly_sym) {
+          (Some(AstStackSymbol::Token(loop_token)), Some(AstStackSymbol::Expr(expression)), Some(AstStackSymbol::Token(left_curly))) => {
+            token_index += 1;
+            ast_stack.push(AstStackSymbol::Stmt(Statement::WhileLoop(WhileStatement::new(loop_token, expression, left_curly, stmts, current_token.clone()))));
+            state_stack.goto(AstState::StmtFinalize);
+          }
+          _ => panic!("bad stack infinite loop body")
+        }
+      }
+      (Some(AstState::WhileLoopBody), _, _) => panic!("unexpected case while loop body :("),
+      (Some(AstState::CastDecStmt), _, TokenType::Keyword) => {
+        if current_token.lexeme == "cast" {
+          ast_stack.push(AstStackSymbol::Token(current_token.clone()));
+          state_stack.goto(AstState::CastDecExpr);
+          token_index += 1;
+        } else {
+          panic!("I DID NOT EXPECT TO GET HERE CAST DEC STMT");
+        }
+      }
+      (Some(AstState::CastDecStmt), _, _) => panic!("I DID NOT EXPECT TO GET HERE CAST DEC STMT"),
+      (Some(AstState::CastDecExpr), Some(AstStackSymbol::Token(_)), _) => {
+        state_stack.push(AstState::Expression);
+      }
+      (Some(AstState::CastDecExpr), Some(AstStackSymbol::Expr(expression)), _) => {
+        ast_stack.pop();
+        let cast_token_sym = ast_stack.pop_panic();
+        match cast_token_sym {
+          Some(AstStackSymbol::Token(cast_token)) => {
+            ast_stack.push(AstStackSymbol::Stmt(Statement::Cast(CastStatement::new(cast_token, expression))));
+            state_stack.goto(AstState::StmtFinalize);
+          }
+          _ => panic!("bad stack cast dec expr"),
+        }
+      }
       (Some(AstState::LetStmt), _, TokenType::Keyword) => {
         if current_token.lexeme == "let" {
           ast_stack.push(AstStackSymbol::Token(current_token.clone()));
@@ -1210,6 +1280,7 @@ pub fn parse(
       }
 
       (Some(AstState::Expression), _, TokenType::EndOfInput)
+      | (Some(AstState::Expression), _, TokenType::LCurly)
       | (Some(AstState::Expression), _, TokenType::RParen)
       | (Some(AstState::Expression), _, TokenType::RSquare)
       | (Some(AstState::Expression), _, TokenType::Comma)
@@ -1250,6 +1321,7 @@ pub fn parse(
         }
       }
       (Some(AstState::ExpressionFollow), _, TokenType::EndOfInput)
+      | (Some(AstState::ExpressionFollow), _, TokenType::LCurly)
       | (Some(AstState::ExpressionFollow), _, TokenType::RParen)
       | (Some(AstState::ExpressionFollow), _, TokenType::RSquare)
       | (Some(AstState::ExpressionFollow), _, TokenType::Comma)
@@ -1257,6 +1329,11 @@ pub fn parse(
         state_stack.pop();
       }
       (
+        Some(AstState::ExpressionFold),
+        Some(AstStackSymbol::Expr(expression)),
+        TokenType::LCurly,
+      )
+      | (
         Some(AstState::ExpressionFold),
         Some(AstStackSymbol::Expr(expression)),
         TokenType::EndOfInput,
@@ -1318,13 +1395,15 @@ pub fn parse(
         }
       }
       (Some(AstState::EqualityFollow), _, TokenType::EndOfInput)
+      | (Some(AstState::EqualityFollow), _, TokenType::LCurly)
       | (Some(AstState::EqualityFollow), _, TokenType::RParen)
       | (Some(AstState::EqualityFollow), _, TokenType::RSquare)
       | (Some(AstState::EqualityFollow), _, TokenType::Comma)
       | (Some(AstState::EqualityFollow), _, TokenType::Newline) => {
         state_stack.pop();
       }
-      (Some(AstState::EqualityFold), Some(AstStackSymbol::Expr(expression)), TokenType::Symbol)
+      (Some(AstState::EqualityFold), Some(AstStackSymbol::Expr(expression)), TokenType::LCurly)
+      | (Some(AstState::EqualityFold), Some(AstStackSymbol::Expr(expression)), TokenType::Symbol)
       | (
         Some(AstState::EqualityFold),
         Some(AstStackSymbol::Expr(expression)),
@@ -1380,6 +1459,7 @@ pub fn parse(
         }
       }
       (Some(AstState::ComparisonFollow), _, TokenType::EndOfInput)
+      | (Some(AstState::ComparisonFollow), _, TokenType::LCurly)
       | (Some(AstState::ComparisonFollow), _, TokenType::RParen)
       | (Some(AstState::ComparisonFollow), _, TokenType::RSquare)
       | (Some(AstState::ComparisonFollow), _, TokenType::Comma)
@@ -1387,6 +1467,11 @@ pub fn parse(
         state_stack.pop();
       }
       (
+        Some(AstState::ComparisonFold),
+        Some(AstStackSymbol::Expr(expression)),
+        TokenType::LCurly,
+      )
+      | (
         Some(AstState::ComparisonFold),
         Some(AstStackSymbol::Expr(expression)),
         TokenType::Symbol,
@@ -1454,6 +1539,7 @@ pub fn parse(
         }
       }
       (Some(AstState::ShiftFollow), _, TokenType::EndOfInput)
+      | (Some(AstState::ShiftFollow), _, TokenType::LCurly)
       | (Some(AstState::ShiftFollow), _, TokenType::RParen)
       | (Some(AstState::ShiftFollow), _, TokenType::RSquare)
       | (Some(AstState::ShiftFollow), _, TokenType::Comma)
@@ -1466,6 +1552,7 @@ pub fn parse(
         Some(AstStackSymbol::Expr(expression)),
         TokenType::EndOfInput,
       )
+      | (Some(AstState::ShiftFold), Some(AstStackSymbol::Expr(expression)), TokenType::LCurly)
       | (Some(AstState::ShiftFold), Some(AstStackSymbol::Expr(expression)), TokenType::RParen)
       | (Some(AstState::ShiftFold), Some(AstStackSymbol::Expr(expression)), TokenType::RSquare)
       | (Some(AstState::ShiftFold), Some(AstStackSymbol::Expr(expression)), TokenType::Comma)
@@ -1508,6 +1595,7 @@ pub fn parse(
         }
       }
       (Some(AstState::LogicalFollow), _, TokenType::EndOfInput)
+      | (Some(AstState::LogicalFollow), _, TokenType::LCurly)
       | (Some(AstState::LogicalFollow), _, TokenType::RParen)
       | (Some(AstState::LogicalFollow), _, TokenType::RSquare)
       | (Some(AstState::LogicalFollow), _, TokenType::Comma)
@@ -1520,6 +1608,7 @@ pub fn parse(
         Some(AstStackSymbol::Expr(expression)),
         TokenType::EndOfInput,
       )
+      | (Some(AstState::LogicalFold), Some(AstStackSymbol::Expr(expression)), TokenType::LCurly)
       | (Some(AstState::LogicalFold), Some(AstStackSymbol::Expr(expression)), TokenType::RParen)
       | (Some(AstState::LogicalFold), Some(AstStackSymbol::Expr(expression)), TokenType::RSquare)
       | (Some(AstState::LogicalFold), Some(AstStackSymbol::Expr(expression)), TokenType::Comma)
@@ -1563,6 +1652,7 @@ pub fn parse(
         }
       }
       (Some(AstState::BitwiseFollow), _, TokenType::EndOfInput)
+      | (Some(AstState::BitwiseFollow), _, TokenType::LCurly)
       | (Some(AstState::BitwiseFollow), _, TokenType::RParen)
       | (Some(AstState::BitwiseFollow), _, TokenType::RSquare)
       | (Some(AstState::BitwiseFollow), _, TokenType::Comma)
@@ -1575,6 +1665,7 @@ pub fn parse(
         Some(AstStackSymbol::Expr(expression)),
         TokenType::EndOfInput,
       )
+      | (Some(AstState::BitwiseFold), Some(AstStackSymbol::Expr(expression)), TokenType::LCurly)
       | (Some(AstState::BitwiseFold), Some(AstStackSymbol::Expr(expression)), TokenType::RParen)
       | (Some(AstState::BitwiseFold), Some(AstStackSymbol::Expr(expression)), TokenType::RSquare)
       | (Some(AstState::BitwiseFold), Some(AstStackSymbol::Expr(expression)), TokenType::Comma)
@@ -1618,6 +1709,7 @@ pub fn parse(
         }
       }
       (Some(AstState::AdditiveFollow), _, TokenType::EndOfInput)
+      | (Some(AstState::AdditiveFollow), _, TokenType::LCurly)
       | (Some(AstState::AdditiveFollow), _, TokenType::RParen)
       | (Some(AstState::AdditiveFollow), _, TokenType::RSquare)
       | (Some(AstState::AdditiveFollow), _, TokenType::Comma)
@@ -1631,6 +1723,7 @@ pub fn parse(
         TokenType::EndOfInput,
       )
       | (Some(AstState::AdditiveFold), Some(AstStackSymbol::Expr(expression)), TokenType::RParen)
+      | (Some(AstState::AdditiveFold), Some(AstStackSymbol::Expr(expression)), TokenType::LCurly)
       | (
         Some(AstState::AdditiveFold),
         Some(AstStackSymbol::Expr(expression)),
@@ -1680,6 +1773,7 @@ pub fn parse(
         }
       }
       (Some(AstState::MultiplicativeFollow), _, TokenType::EndOfInput)
+      | (Some(AstState::MultiplicativeFollow), _, TokenType::LCurly)
       | (Some(AstState::MultiplicativeFollow), _, TokenType::RParen)
       | (Some(AstState::MultiplicativeFollow), _, TokenType::RSquare)
       | (Some(AstState::MultiplicativeFollow), _, TokenType::Comma)
@@ -1687,6 +1781,11 @@ pub fn parse(
         state_stack.pop();
       }
       (
+        Some(AstState::MultiplicativeFold),
+        Some(AstStackSymbol::Expr(expression)),
+        TokenType::LCurly,
+      )
+      | (
         Some(AstState::MultiplicativeFold),
         Some(AstStackSymbol::Expr(expression)),
         TokenType::Symbol,
@@ -1754,6 +1853,7 @@ pub fn parse(
         }
       }
       (Some(AstState::ArrayFollow), _, TokenType::EndOfInput)
+      | (Some(AstState::ArrayFollow), _, TokenType::LCurly)
       | (Some(AstState::ArrayFollow), _, TokenType::RParen)
       | (Some(AstState::ArrayFollow), _, TokenType::RSquare)
       | (Some(AstState::ArrayFollow), _, TokenType::Comma)
@@ -1767,6 +1867,7 @@ pub fn parse(
         TokenType::EndOfInput,
       )
       | (Some(AstState::ArrayFold), Some(AstStackSymbol::Expr(expression)), TokenType::RParen)
+      | (Some(AstState::ArrayFold), Some(AstStackSymbol::Expr(expression)), TokenType::LCurly)
       | (Some(AstState::ArrayFold), Some(AstStackSymbol::Expr(expression)), TokenType::RSquare)
       | (Some(AstState::ArrayFold), Some(AstStackSymbol::Expr(expression)), TokenType::Comma)
       | (Some(AstState::ArrayFold), Some(AstStackSymbol::Expr(expression)), TokenType::Newline) => {
@@ -1808,6 +1909,7 @@ pub fn parse(
         }
       }
       (Some(AstState::RangeFollow), _, TokenType::EndOfInput)
+      | (Some(AstState::RangeFollow), _, TokenType::LCurly)
       | (Some(AstState::RangeFollow), _, TokenType::RParen)
       | (Some(AstState::RangeFollow), _, TokenType::RSquare)
       | (Some(AstState::RangeFollow), _, TokenType::Comma)
@@ -1821,6 +1923,7 @@ pub fn parse(
         TokenType::EndOfInput,
       )
       | (Some(AstState::RangeFold), Some(AstStackSymbol::Expr(expression)), TokenType::RParen)
+      | (Some(AstState::RangeFold), Some(AstStackSymbol::Expr(expression)), TokenType::LCurly)
       | (Some(AstState::RangeFold), Some(AstStackSymbol::Expr(expression)), TokenType::RSquare)
       | (Some(AstState::RangeFold), Some(AstStackSymbol::Expr(expression)), TokenType::Comma)
       | (Some(AstState::RangeFold), Some(AstStackSymbol::Expr(expression)), TokenType::Newline) => {
@@ -1862,6 +1965,7 @@ pub fn parse(
         }
       }
       (Some(AstState::DefaultFollow), _, TokenType::EndOfInput)
+      | (Some(AstState::DefaultFollow), _, TokenType::LCurly)
       | (Some(AstState::DefaultFollow), _, TokenType::RParen)
       | (Some(AstState::DefaultFollow), _, TokenType::RSquare)
       | (Some(AstState::DefaultFollow), _, TokenType::Comma)
@@ -1875,6 +1979,7 @@ pub fn parse(
         TokenType::EndOfInput,
       )
       | (Some(AstState::DefaultFold), Some(AstStackSymbol::Expr(expression)), TokenType::RParen)
+      | (Some(AstState::DefaultFold), Some(AstStackSymbol::Expr(expression)), TokenType::LCurly)
       | (Some(AstState::DefaultFold), Some(AstStackSymbol::Expr(expression)), TokenType::RSquare)
       | (Some(AstState::DefaultFold), Some(AstStackSymbol::Expr(expression)), TokenType::Comma)
       | (Some(AstState::DefaultFold), Some(AstStackSymbol::Expr(expression)), TokenType::Newline) =>
@@ -1908,6 +2013,7 @@ pub fn parse(
       }
 
       (Some(AstState::Primary), _, TokenType::EndOfInput)
+      | (Some(AstState::Primary), _, TokenType::LCurly)
       | (Some(AstState::Primary), _, TokenType::RParen)
       | (Some(AstState::Primary), _, TokenType::RSquare)
       | (Some(AstState::Primary), _, TokenType::Comma)
