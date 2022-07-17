@@ -47,6 +47,7 @@ pub enum AstState {
   PackDecStartEntryList,
   PackDecEntry,
   PackDecEntryFinalize,
+  PackDecEntryExpression,
   PackDecFinalize,
   TypeVar,
   TypeVarColon,
@@ -344,6 +345,33 @@ pub fn parse(
         state_stack.goto(AstState::PackDecFinalize);
       }
       (Some(AstState::PackDecEntry), _, _) => panic!("PackDecEntry error {}", current_token),
+      (Some(AstState::PackDecEntryExpression), Some(AstStackSymbol::Expr(expression)), _) => {
+        ast_stack.pop();
+        let assign_token_sym = ast_stack.pop_panic();
+        let pack_dec_sym = ast_stack.pop_panic();
+        match (assign_token_sym, pack_dec_sym) {
+          (Some(AstStackSymbol::Token(assign_token)), Some(AstStackSymbol::PackDec(mut entry))) => {
+            entry.assignment = Some(assign_token);
+            entry.expression = Some(expression);
+            ast_stack.push(AstStackSymbol::PackDec(entry));
+            state_stack.pop();
+          }
+          _ => panic!("weird stack after pack dec entry expression")
+        }
+      }
+      (Some(AstState::PackDecEntryExpression), Some(_), _) => {
+        state_stack.push(AstState::Expression);
+      }
+      (Some(AstState::PackDecEntryExpression), _, _) => panic!("Unexpected token in pack dec entry expression"),
+      (Some(AstState::PackDecEntryFinalize), Some(AstStackSymbol::PackDec(entry)), TokenType::Symbol) => {
+        if current_token.lexeme == "=" {
+          ast_stack.push(AstStackSymbol::Token(current_token.clone()));
+          state_stack.push(AstState::PackDecEntryExpression);
+          token_index += 1;
+        } else {
+          panic!("unexpected symbol following a pack declaration");
+        }
+      }
       (
         Some(AstState::PackDecEntryFinalize),
         Some(AstStackSymbol::PackDec(entry)),
