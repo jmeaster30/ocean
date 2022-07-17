@@ -193,7 +193,7 @@ pub struct VarDecStatement {
   pub let_token: Token,
   pub var: Var,
   pub assignment: Option<Token>,
-  pub expression: Option<Expression>
+  pub expression: Option<Expression>,
 }
 
 impl VarDecStatement {
@@ -201,13 +201,13 @@ impl VarDecStatement {
     let_token: Token,
     var: Var,
     assignment: Option<Token>,
-    expression: Option<Expression>
+    expression: Option<Expression>,
   ) -> Self {
     Self {
       let_token,
       var,
       assignment,
-      expression
+      expression,
     }
   }
 }

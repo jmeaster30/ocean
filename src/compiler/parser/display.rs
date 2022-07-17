@@ -124,7 +124,7 @@ impl fmt::Display for UnionDeclaration {
 
 impl fmt::Display for VarDecStatement {
   fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-    fmt.write_str(format!("(VarDecStatement {}", self.var).as_str());
+    fmt.write_str(format!("(VarDecStatement {}", self.var).as_str())?;
     match &self.expression {
       Some(x) => fmt.write_str(format!(" {}", x).as_str())?,
       None => {}

@@ -91,6 +91,11 @@ pub enum AstState {
   WhileLoopStmt,
   WhileLoopBody,
 
+  ForLoopStmt,
+  ForLoopIterator,
+  ForLoopExpression,
+  ForLoopBody,
+
   CastDecStmt,
   CastDecExpr,
 
@@ -165,11 +170,7 @@ pub fn parse(
     let stack_top = ast_stack.peek();
     let state = state_stack.current_state();
     match (state, stack_top, &current_token.token_type) {
-      (
-        Some(AstState::StmtList),
-        Some(AstStackSymbol::StmtList(_)),
-        TokenType::EndOfInput,
-      ) => {
+      (Some(AstState::StmtList), Some(AstStackSymbol::StmtList(_)), TokenType::EndOfInput) => {
         break;
       }
       (Some(AstState::StmtList), Some(AstStackSymbol::StmtList(_)), TokenType::RCurly) => {
@@ -217,6 +218,8 @@ pub fn parse(
           state_stack.push(AstState::InfiniteLoopStmt);
         } else if current_token.lexeme == "while" {
           state_stack.push(AstState::WhileLoopStmt);
+        } else if current_token.lexeme == "for" {
+          state_stack.push(AstState::ForLoopStmt);
         } else {
           panic!("Unknown keyword {} :(", current_token);
         }
@@ -237,10 +240,12 @@ pub fn parse(
       | (Some(AstState::StmtFinalize), Some(AstStackSymbol::Stmt(stmt)), TokenType::EndOfInput)
       | (Some(AstState::StmtFinalize), Some(AstStackSymbol::Stmt(stmt)), TokenType::Newline) => {
         ast_stack.pop();
-        if current_token.token_type != TokenType::EndOfInput && current_token.token_type != TokenType::RCurly {
+        if current_token.token_type != TokenType::EndOfInput
+          && current_token.token_type != TokenType::RCurly
+        {
           token_index += 1;
         }
-        let mut stmt_list_sym = ast_stack.pop_panic();
+        let stmt_list_sym = ast_stack.pop_panic();
         match stmt_list_sym {
           Some(AstStackSymbol::StmtList(mut contents)) => {
             contents.push(stmt);
@@ -268,21 +273,27 @@ pub fn parse(
         token_index += 1;
         token_index = consume_optional_newline(tokens, token_index);
       }
-      (Some(AstState::InfiniteLoopBody), Some(AstStackSymbol::StmtList(stmts)), TokenType::RCurly) => {
+      (
+        Some(AstState::InfiniteLoopBody),
+        Some(AstStackSymbol::StmtList(stmts)),
+        TokenType::RCurly,
+      ) => {
         ast_stack.pop();
         let left_curly_sym = ast_stack.pop_panic();
         let loop_sym = ast_stack.pop_panic();
         match (loop_sym, left_curly_sym) {
           (Some(AstStackSymbol::Token(loop_token)), Some(AstStackSymbol::Token(left_curly))) => {
             token_index += 1;
-            ast_stack.push(AstStackSymbol::Stmt(Statement::InfiniteLoop(InfiniteLoopStatement::new(loop_token, left_curly, stmts, current_token.clone()))));
+            ast_stack.push(AstStackSymbol::Stmt(Statement::InfiniteLoop(
+              InfiniteLoopStatement::new(loop_token, left_curly, stmts, current_token.clone()),
+            )));
             state_stack.goto(AstState::StmtFinalize);
           }
-          _ => panic!("bad stack infinite loop body")
+          _ => panic!("bad stack infinite loop body"),
         }
       }
       (Some(AstState::InfiniteLoopBody), _, _) => panic!("unexpected case infinite loop body :("),
-      (Some(AstState::WhileLoopStmt), Some(AstStackSymbol::Expr(expression)), _) => {
+      (Some(AstState::WhileLoopStmt), Some(AstStackSymbol::Expr(_)), _) => {
         token_index = consume_optional_newline(tokens, token_index);
         state_stack.goto(AstState::WhileLoopBody);
       }
@@ -309,15 +320,103 @@ pub fn parse(
         let while_expr_sym = ast_stack.pop_panic();
         let loop_sym = ast_stack.pop_panic();
         match (loop_sym, while_expr_sym, left_curly_sym) {
-          (Some(AstStackSymbol::Token(loop_token)), Some(AstStackSymbol::Expr(expression)), Some(AstStackSymbol::Token(left_curly))) => {
+          (
+            Some(AstStackSymbol::Token(loop_token)),
+            Some(AstStackSymbol::Expr(expression)),
+            Some(AstStackSymbol::Token(left_curly)),
+          ) => {
             token_index += 1;
-            ast_stack.push(AstStackSymbol::Stmt(Statement::WhileLoop(WhileStatement::new(loop_token, expression, left_curly, stmts, current_token.clone()))));
+            ast_stack.push(AstStackSymbol::Stmt(Statement::WhileLoop(
+              WhileStatement::new(
+                loop_token,
+                expression,
+                left_curly,
+                stmts,
+                current_token.clone(),
+              ),
+            )));
             state_stack.goto(AstState::StmtFinalize);
           }
-          _ => panic!("bad stack infinite loop body")
+          _ => panic!("bad stack infinite loop body"),
         }
       }
       (Some(AstState::WhileLoopBody), _, _) => panic!("unexpected case while loop body :("),
+      (Some(AstState::ForLoopStmt), _, TokenType::Keyword) => {
+        if current_token.lexeme == "for" {
+          ast_stack.push(AstStackSymbol::Token(current_token.clone()));
+          state_stack.goto(AstState::ForLoopIterator);
+          token_index += 1;
+        } else {
+          panic!("I SHOULD NOT BE HERE WHILE LOOP STMT");
+        }
+      }
+      (Some(AstState::ForLoopStmt), _, _) => panic!("I SHOULD NOT BE HERE WHILE LOOP STMT"),
+      (Some(AstState::ForLoopIterator), _, TokenType::Identifier) => {
+        ast_stack.push(AstStackSymbol::Token(current_token.clone()));
+        state_stack.goto(AstState::ForLoopExpression);
+        token_index += 1;
+      }
+      (Some(AstState::ForLoopIterator), _, _) => panic!("for loop iterator unexpected token"),
+      (Some(AstState::ForLoopExpression), Some(AstStackSymbol::Expr(_)), _) => {
+        state_stack.goto(AstState::ForLoopBody);
+        token_index = consume_optional_newline(tokens, token_index);
+      }
+      (Some(AstState::ForLoopExpression), _, TokenType::Keyword) => {
+        if current_token.lexeme == "in" {
+          ast_stack.push(AstStackSymbol::Token(current_token.clone()));
+          token_index += 1;
+          state_stack.push(AstState::Expression);
+        } else {
+          panic!("Unexpected keyword {} expected 'in'", current_token);
+        }
+      }
+      (Some(AstState::ForLoopExpression), _, _) => panic!("unexpected token for loop expression"),
+      (Some(AstState::ForLoopBody), _, TokenType::LCurly) => {
+        ast_stack.push(AstStackSymbol::Token(current_token.clone()));
+        ast_stack.push(AstStackSymbol::StmtList(Vec::new()));
+        state_stack.push(AstState::StmtList);
+        token_index += 1;
+        token_index = consume_optional_newline(tokens, token_index);
+      }
+      (Some(AstState::ForLoopBody), Some(AstStackSymbol::StmtList(stmts)), TokenType::RCurly) => {
+        ast_stack.pop();
+        let left_curly_sym = ast_stack.pop_panic();
+        let loop_expr_sym = ast_stack.pop_panic();
+        let in_token_sym = ast_stack.pop_panic();
+        let iter_token_sym = ast_stack.pop_panic();
+        let loop_sym = ast_stack.pop_panic();
+        match (
+          loop_sym,
+          iter_token_sym,
+          in_token_sym,
+          loop_expr_sym,
+          left_curly_sym,
+        ) {
+          (
+            Some(AstStackSymbol::Token(loop_token)),
+            Some(AstStackSymbol::Token(iter_token)),
+            Some(AstStackSymbol::Token(in_token)),
+            Some(AstStackSymbol::Expr(loop_expr)),
+            Some(AstStackSymbol::Token(left_curly)),
+          ) => {
+            token_index += 1;
+            ast_stack.push(AstStackSymbol::Stmt(Statement::ForLoop(
+              ForLoopStatement::new(
+                loop_token,
+                iter_token,
+                in_token,
+                loop_expr,
+                left_curly,
+                stmts,
+                current_token.clone(),
+              ),
+            )));
+            state_stack.goto(AstState::StmtFinalize);
+          }
+          _ => panic!("bad stack infinite loop body"),
+        }
+      }
+      (Some(AstState::ForLoopBody), _, _) => panic!("unexpected case while loop body :("),
       (Some(AstState::CastDecStmt), _, TokenType::Keyword) => {
         if current_token.lexeme == "cast" {
           ast_stack.push(AstStackSymbol::Token(current_token.clone()));
@@ -336,7 +435,9 @@ pub fn parse(
         let cast_token_sym = ast_stack.pop_panic();
         match cast_token_sym {
           Some(AstStackSymbol::Token(cast_token)) => {
-            ast_stack.push(AstStackSymbol::Stmt(Statement::Cast(CastStatement::new(cast_token, expression))));
+            ast_stack.push(AstStackSymbol::Stmt(Statement::Cast(CastStatement::new(
+              cast_token, expression,
+            ))));
             state_stack.goto(AstState::StmtFinalize);
           }
           _ => panic!("bad stack cast dec expr"),
@@ -407,12 +508,7 @@ pub fn parse(
             Some(AstStackSymbol::Token(assignment_token)),
           ) => {
             ast_stack.push(AstStackSymbol::Stmt(Statement::VarDec(
-              VarDecStatement::new(
-                let_token,
-                var,
-                Some(assignment_token),
-                Some(expression),
-              ),
+              VarDecStatement::new(let_token, var, Some(assignment_token), Some(expression)),
             )));
             state_stack.goto(AstState::StmtFinalize);
           }
@@ -442,7 +538,7 @@ pub fn parse(
       }
       (
         Some(AstState::UseStmtIdListFollow),
-        Some(AstStackSymbol::IdList(contents)),
+        Some(AstStackSymbol::IdList(_)),
         TokenType::Keyword,
       ) => {
         if current_token.lexeme == "as" {
@@ -451,8 +547,8 @@ pub fn parse(
           state_stack.pop();
           state_stack.goto(AstState::UseStmtAlias);
         } else {
-          let mut id_list = ast_stack.pop_panic();
-          let mut use_token = ast_stack.pop_panic();
+          let id_list = ast_stack.pop_panic();
+          let use_token = ast_stack.pop_panic();
           match (use_token, id_list) {
             (Some(AstStackSymbol::Token(ut)), Some(AstStackSymbol::IdList(contents))) => {
               ast_stack.push(AstStackSymbol::Stmt(Statement::Use(UseStatement::new(
@@ -466,8 +562,8 @@ pub fn parse(
         }
       }
       (Some(AstState::UseStmtIdListFollow), Some(AstStackSymbol::IdList(_)), _) => {
-        let mut id_list = ast_stack.pop_panic();
-        let mut use_token = ast_stack.pop_panic();
+        let id_list = ast_stack.pop_panic();
+        let use_token = ast_stack.pop_panic();
         match (use_token, id_list) {
           (Some(AstStackSymbol::Token(ut)), Some(AstStackSymbol::IdList(contents))) => {
             ast_stack.push(AstStackSymbol::Stmt(Statement::Use(UseStatement::new(
@@ -483,9 +579,9 @@ pub fn parse(
         panic!("Unexpected token {}!! expected identifier", current_token)
       }
       (Some(AstState::UseStmtAlias), Some(_), TokenType::Identifier) => {
-        let mut as_token = ast_stack.pop_panic();
-        let mut id_list = ast_stack.pop_panic();
-        let mut use_token = ast_stack.pop_panic();
+        let as_token = ast_stack.pop_panic();
+        let id_list = ast_stack.pop_panic();
+        let use_token = ast_stack.pop_panic();
         match (use_token, id_list, as_token) {
           (
             Some(AstStackSymbol::Token(ut)),
@@ -569,7 +665,7 @@ pub fn parse(
       }
       (
         Some(AstState::PackDecEntryFinalize),
-        Some(AstStackSymbol::PackDec(entry)),
+        Some(AstStackSymbol::PackDec(_)),
         TokenType::Symbol,
       ) => {
         if current_token.lexeme == "=" {
@@ -739,7 +835,7 @@ pub fn parse(
         token_index += 1;
         token_index = consume_optional_newline(tokens, token_index);
       }
-      (Some(AstState::SubType), Some(AstStackSymbol::Type(sub_type)), TokenType::Newline) => {
+      (Some(AstState::SubType), Some(AstStackSymbol::Type(_)), TokenType::Newline) => {
         token_index = consume_optional_newline(tokens, token_index);
       }
       (Some(AstState::SubType), Some(AstStackSymbol::Type(sub_type)), TokenType::RParen) => {
@@ -828,7 +924,7 @@ pub fn parse(
           _ => panic!("Unexpected case base type follow end"),
         }
       }
-      (Some(AstState::BaseTypeFollowEnd), Some(AstStackSymbol::OptType(x)), TokenType::Type) => {
+      (Some(AstState::BaseTypeFollowEnd), Some(AstStackSymbol::OptType(_)), TokenType::Type) => {
         state_stack.push(AstState::Type);
       }
       (Some(AstState::TypeChainResolve), Some(AstStackSymbol::Type(base)), _) => {
@@ -1181,7 +1277,7 @@ pub fn parse(
       }
       (
         Some(AstState::UnionDecStorageFollow),
-        Some(AstStackSymbol::TypeList(type_list)),
+        Some(AstStackSymbol::TypeList(_)),
         TokenType::Comma,
       ) => {
         token_index += 1;
@@ -1189,7 +1285,7 @@ pub fn parse(
       }
       (
         Some(AstState::UnionDecStorageFollow),
-        Some(AstStackSymbol::TypeList(type_list)),
+        Some(AstStackSymbol::TypeList(_)),
         TokenType::Newline,
       ) => {
         token_index = consume_optional_newline(tokens, token_index);
@@ -2098,7 +2194,7 @@ pub fn parse(
           _ => panic!("panic array literal contents follow stack bad"),
         }
       }
-      (Some(AstState::ArrayLiteralContentsFollow), x, _) => {
+      (Some(AstState::ArrayLiteralContentsFollow), _, _) => {
         panic!("unexpected array literal contents follow {}", current_token);
       }
       (Some(AstState::Primary), _, TokenType::Identifier) => {
@@ -2336,8 +2432,7 @@ pub fn parse(
 
   if ast_stack.size() == 1 {
     match ast_stack.pop() {
-      Some(AstStackSymbol::StmtList(stmts)) => 
-        (Some(Program::new(stmts)), errors),
+      Some(AstStackSymbol::StmtList(stmts)) => (Some(Program::new(stmts)), errors),
       _ => (None, errors),
     }
   } else {

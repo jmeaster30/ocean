@@ -744,25 +744,6 @@ pub fn lex(input: String) -> (Vec<Token>, Vec<OceanError>) {
         ));
         lexeme.clear();
       }
-      '~' => {
-        lexeme.push_str(&c.to_string());
-        if index < input_length - 1 {
-          index += 1;
-          match input_chars[index] {
-            '=' => lexeme.push_str(&input_chars[index].to_string()),
-            _ => {
-              index -= 1;
-            }
-          }
-        }
-        tokens.push(Token::new(
-          TokenType::Symbol,
-          lexeme.clone(),
-          start_index,
-          index,
-        ));
-        lexeme.clear();
-      }
       '%' => {
         lexeme.push_str(&c.to_string());
         if index < input_length - 1 {

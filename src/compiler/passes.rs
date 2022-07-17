@@ -19,8 +19,8 @@ pub fn parser_pass(comp_unit: &CompilationUnit) -> Pass {
   let last_pass = comp_unit.passes.last();
   match last_pass {
     Some(pass) => match pass {
-      Pass::Lexer(tokenStack, _) => {
-        let (ast, parse_errors) = parse(&tokenStack, None);
+      Pass::Lexer(token_stack, _) => {
+        let (ast, parse_errors) = parse(&token_stack, None);
         Pass::Parser(ast, parse_errors)
       }
       _ => Pass::Parser(
