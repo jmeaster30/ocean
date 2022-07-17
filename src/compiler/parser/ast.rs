@@ -193,8 +193,7 @@ pub struct VarDecStatement {
   pub let_token: Token,
   pub var: Var,
   pub assignment: Option<Token>,
-  pub expression: Option<Expression>,
-  pub function: Option<Function>,
+  pub expression: Option<Expression>
 }
 
 impl VarDecStatement {
@@ -202,15 +201,13 @@ impl VarDecStatement {
     let_token: Token,
     var: Var,
     assignment: Option<Token>,
-    expression: Option<Expression>,
-    function: Option<Function>,
+    expression: Option<Expression>
   ) -> Self {
     Self {
       let_token,
       var,
       assignment,
-      expression,
-      function,
+      expression
     }
   }
 }
@@ -440,48 +437,6 @@ impl ExpressionStatement {
 }
 
 #[derive(Clone)]
-pub struct Function {
-  pub param_left_paren: Token,
-  pub param_list: ParameterList,
-  pub param_right_paren: Token,
-  pub arrow: Token,
-  pub returns_left_paren: Token,
-  pub return_list: ReturnList,
-  pub return_right_paren: Token,
-  pub left_curly: Option<Token>,
-  pub function_body: Vec<Statement>,
-  pub right_curly: Option<Token>,
-}
-
-impl Function {
-  pub fn new(
-    param_left_paren: Token,
-    param_list: ParameterList,
-    param_right_paren: Token,
-    arrow: Token,
-    returns_left_paren: Token,
-    return_list: ReturnList,
-    return_right_paren: Token,
-    left_curly: Option<Token>,
-    function_body: Vec<Statement>,
-    right_curly: Option<Token>,
-  ) -> Self {
-    Self {
-      param_left_paren,
-      param_list,
-      param_right_paren,
-      arrow,
-      returns_left_paren,
-      return_list,
-      return_right_paren,
-      left_curly,
-      function_body,
-      right_curly,
-    }
-  }
-}
-
-#[derive(Clone)]
 pub enum Expression {
   Binary(BinaryExpression),
   Prefix(PrefixExpression),
@@ -617,6 +572,52 @@ pub enum Literal {
   String(Token),
   Array(ArrayLiteral),
   Tuple(Tuple),
+  Function(Function),
+}
+
+#[derive(Clone)]
+pub struct Function {
+  pub param_left_paren: Token,
+  pub param_list: ParameterList,
+  pub param_right_paren: Token,
+  pub arrow: Token,
+  pub returns_left_paren: Token,
+  pub return_list: ReturnList,
+  pub return_right_paren: Token,
+  pub colon: Option<Token>,
+  pub left_curly: Option<Token>,
+  pub function_body: Vec<Statement>,
+  pub right_curly: Option<Token>,
+}
+
+impl Function {
+  pub fn new(
+    param_left_paren: Token,
+    param_list: ParameterList,
+    param_right_paren: Token,
+    arrow: Token,
+    returns_left_paren: Token,
+    return_list: ReturnList,
+    return_right_paren: Token,
+    colon: Option<Token>,
+    left_curly: Option<Token>,
+    function_body: Vec<Statement>,
+    right_curly: Option<Token>,
+  ) -> Self {
+    Self {
+      param_left_paren,
+      param_list,
+      param_right_paren,
+      arrow,
+      returns_left_paren,
+      return_list,
+      return_right_paren,
+      colon,
+      left_curly,
+      function_body,
+      right_curly,
+    }
+  }
 }
 
 #[derive(Clone)]

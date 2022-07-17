@@ -113,15 +113,9 @@ impl Spanned for VarDecStatement {
         let (_, expr_end) = x.get_span();
         (let_start, expr_end)
       }
-      None => match &self.function {
-        Some(x) => {
-          let (_, func_end) = x.get_span();
-          (let_start, func_end)
-        }
-        None => {
-          let (_, var_end) = self.var.get_span();
-          (let_start, var_end)
-        }
+      None => {
+        let (_, var_end) = self.var.get_span();
+        (let_start, var_end)
       },
     }
   }
@@ -286,6 +280,7 @@ impl Spanned for Literal {
       Literal::String(x) => (x.start, x.end),
       Literal::Array(x) => x.get_span(),
       Literal::Tuple(x) => x.get_span(),
+      Literal::Function(x) => x.get_span(),
     }
   }
 }

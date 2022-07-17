@@ -359,6 +359,7 @@ impl fmt::Display for Literal {
       Literal::String(x) => fmt.write_str(format!("(String '{}')", x.lexeme).as_str())?,
       Literal::Array(x) => x.fmt(fmt)?,
       Literal::Tuple(x) => x.fmt(fmt)?,
+      Literal::Function(x) => x.fmt(fmt)?,
     };
     Ok(())
   }

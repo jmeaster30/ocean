@@ -257,7 +257,7 @@ pub fn parse(
           match let_token_sym {
             Some(AstStackSymbol::Token(let_token)) => {
               ast_stack.push(AstStackSymbol::Stmt(Statement::VarDec(
-                VarDecStatement::new(let_token, var, None, None, None),
+                VarDecStatement::new(let_token, var, None, None),
               )));
               state_stack.goto(AstState::StmtFinalize);
             }
@@ -271,7 +271,7 @@ pub fn parse(
         match let_token_sym {
           Some(AstStackSymbol::Token(let_token)) => {
             ast_stack.push(AstStackSymbol::Stmt(Statement::VarDec(
-              VarDecStatement::new(let_token, var, None, None, None),
+              VarDecStatement::new(let_token, var, None, None),
             )));
             state_stack.goto(AstState::StmtFinalize);
           }
@@ -303,7 +303,6 @@ pub fn parse(
                 var,
                 Some(assignment_token),
                 Some(expression),
-                None,
               ),
             )));
             state_stack.goto(AstState::StmtFinalize);
