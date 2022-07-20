@@ -1,10 +1,81 @@
 use std.io
 
 loop {
-  user_input: auto = readinput("> ")
-  match user_input {
-    value("quit") { break      }
-    value(x)      { println(x) }
-    none          { println()  }
-  }
+  let user_input = readinput("> ")
+  
+  if user_input.value() == "quit" { break }
+  else if !user_input.has_value() { "No input provided".println() }
+  else { user_input.value().println() }
 }
+
+#/
+
+(Program 
+  (UseStatement (Id std) (Id io)) 
+  (InfiniteLoopStatement 
+    (Body 
+      (VarDecStatement 
+        (Var user_input) 
+        (FunctionCall (Var readinput) (Args (String '> ')))
+      ) 
+      (IfStatement 
+        (BinaryExpression '==' 
+          (FunctionCall 
+            (MemberAccess 
+              (Var user_input) 
+              'value'
+            ) 
+            (Args)
+          ) 
+          (String 'quit')
+        ) 
+        (TrueBody 
+          (BreakStatement)
+        ) 
+        (ElseBody 
+          (IfStatement 
+            (PrefixExpression '!' 
+              (FunctionCall 
+                (MemberAccess 
+                  (Var user_input) 
+                  'has_value'
+                ) 
+                (Args)
+              )
+            ) 
+            (TrueBody 
+              (ExpressionStatement 
+                (FunctionCall 
+                  (MemberAccess 
+                    (String 'No input provided') 
+                    'println'
+                  ) 
+                  (Args)
+                )
+              )
+            ) 
+            (ElseBody 
+              (ExpressionStatement 
+                (FunctionCall 
+                  (MemberAccess 
+                    (FunctionCall 
+                      (MemberAccess 
+                        (Var user_input) 
+                        'value'
+                      ) 
+                      (Args)
+                    ) 
+                    'println'
+                  ) 
+                  (Args)
+                )
+              )
+            )
+          )
+        )
+      )
+    )
+  )
+)
+
+/#

@@ -10,7 +10,7 @@ let doubled = array >. double
 
 println(doubled)
 
-let sum: func = (input: (auto T)[]) -> (result: T) {
+let sum: func = (input: (auto T)[]) -> (result: T):{
   result = 0
   for val in input {
     result += val
@@ -19,7 +19,7 @@ let sum: func = (input: (auto T)[]) -> (result: T) {
 
 let total = array.sum()
 
-let mod2 = (a: auto T) -> (result: T) {
+let mod2 = (a: auto T) -> (result: T):{
   result = a % 2
 }
 
