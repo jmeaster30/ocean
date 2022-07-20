@@ -249,6 +249,7 @@ pub fn lex(input: String) -> (Vec<Token>, Vec<OceanError>) {
                   index += 1;
                   lexeme.push_str(&input_chars[index].to_string());
                   found_end = true;
+                  break;
                 }
               }
               _ => lexeme.push_str(&n.to_string()),
