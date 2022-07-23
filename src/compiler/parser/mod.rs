@@ -2520,11 +2520,23 @@ pub fn parse(
           state_stack.pop();
         }
       }
+      (Some(AstState::FunctionReturnEntry), _, TokenType::Newline) => {
+        token_index = consume_optional_newline(tokens, token_index);
+      }
+      (Some(AstState::FunctionReturnEntry), Some(AstStackSymbol::TypeVar(var)), TokenType::RParen) |
+      (Some(AstState::FunctionReturnEntry), Some(AstStackSymbol::TypeVar(var)), TokenType::Comma) => {
+        ast_stack.pop();
+        ast_stack.push(AstStackSymbol::ReturnEntry(ReturnEntry::new(var, None, None)));
+        state_stack.pop();
+      }
       (Some(AstState::FunctionReturnEntry), _, TokenType::Identifier) => {
         state_stack.push(AstState::TypeVar);
       }
       (Some(AstState::FunctionSignatureFollow), _, TokenType::Colon) => {
-        panic!();
+        ast_stack.push(AstStackSymbol::Token(current_token.clone()));
+        token_index += 1;
+        token_index = consume_optional_newline(tokens, token_index);
+        state_stack.goto(AstState::FunctionBody);
       }
       (Some(AstState::FunctionSignatureFollow), _, _) => {
         let return_rparen_sym = ast_stack.pop_panic();
@@ -2548,6 +2560,45 @@ pub fn parse(
           ) => {
             ast_stack.push(AstStackSymbol::Expr(Expression::Literal(Literal::Function(Function::new(func, param_lparen, ParameterList::new(parameter_list), param_rparen, arrow, return_lparen, ReturnList::new(return_list), return_rparen, None, None, Vec::new(), None)))));
             state_stack.pop();
+          }
+          _ => panic!("bad stack")
+        }
+      }
+      (Some(AstState::FunctionBody), _, TokenType::LCurly) => {
+        ast_stack.push(AstStackSymbol::Token(current_token.clone()));
+        ast_stack.push(AstStackSymbol::StmtList(Vec::new()));
+        token_index += 1;
+        token_index = consume_optional_newline(tokens, token_index);
+        state_stack.push(AstState::StmtList);
+      }
+      (Some(AstState::FunctionBody), Some(AstStackSymbol::StmtList(statements)), TokenType::RCurly) => {
+        ast_stack.pop();
+        let left_curly_sym = ast_stack.pop_panic();
+        let colon_sym = ast_stack.pop_panic();
+        let return_rparen_sym = ast_stack.pop_panic();
+        let return_list_sym = ast_stack.pop_panic();
+        let return_lparen_sym = ast_stack.pop_panic();
+        let arrow_sym = ast_stack.pop_panic();
+        let param_rparen_sym = ast_stack.pop_panic();
+        let param_list_sym = ast_stack.pop_panic();
+        let param_lparen_sym = ast_stack.pop_panic();
+        let func_sym = ast_stack.pop_panic();
+        match (func_sym, param_lparen_sym, param_list_sym, param_rparen_sym, arrow_sym, return_lparen_sym, return_list_sym, return_rparen_sym, colon_sym, left_curly_sym) {
+          (
+            Some(AstStackSymbol::Token(func)),
+            Some(AstStackSymbol::Token(param_lparen)),
+            Some(AstStackSymbol::ParamList(parameter_list)),
+            Some(AstStackSymbol::Token(param_rparen)),
+            Some(AstStackSymbol::Token(arrow)),
+            Some(AstStackSymbol::Token(return_lparen)),
+            Some(AstStackSymbol::ReturnList(return_list)),
+            Some(AstStackSymbol::Token(return_rparen)),
+            Some(AstStackSymbol::Token(colon)),
+            Some(AstStackSymbol::Token(left_curly)),
+          ) => {
+            ast_stack.push(AstStackSymbol::Expr(Expression::Literal(Literal::Function(Function::new(func, param_lparen, ParameterList::new(parameter_list), param_rparen, arrow, return_lparen, ReturnList::new(return_list), return_rparen, Some(colon), Some(left_curly), statements, Some(current_token.clone()))))));
+            state_stack.pop();
+            token_index += 1;
           }
           _ => panic!("bad stack")
         }

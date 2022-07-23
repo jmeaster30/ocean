@@ -6,3 +6,8 @@ let morph =
   (result: T = callback(value))
 
 let swap = func (a: auto T, b: T) -> (c: T = b, d: T = a)
+
+let sum = func (a: i32, b: i32) -> (result: i32):
+{
+  result = a + b
+}
