@@ -1,0 +1,17 @@
+use std.io as io
+use std.math.random
+
+let answer = random() as i64
+
+loop {
+  let guess = io.read("Enter guess: ") as i64
+  if guess < answer {
+    "Too low :(".io.println()
+  } else if guess > answer {
+    "Too high :(".io.println()
+  } else {
+    break
+  }
+}
+
+"Exactly right!!!!".io.println()

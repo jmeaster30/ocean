@@ -93,8 +93,8 @@ pub fn lex(input: String) -> (Vec<Token>, Vec<OceanError>) {
             index,
           )),
           "i8" | "i16" | "i32" | "i64" | "f32" | "f64" | "u8" | "u16" | "u32" | "u64"
-          | "string" | "auto" | "bool" | "func" | "void" | "ref" | "lazy" | "optional" | "comp"
-          | "char" => {
+          | "string" | "auto" | "bool" | "func" | "void" | "ref" | "optional" | "comp"
+          | "char" => { // removed 'lazy'
             tokens.push(Token::new(
               TokenType::Type,
               lexeme.clone(),

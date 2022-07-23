@@ -28,9 +28,9 @@ pub enum AstStackSymbol {
   Type(Type),
   TypeList(Vec<Box<Type>>),
   OptType(Option<Type>),
-  ParamList(ParameterList),
+  ParamList(Vec<Parameter>),
   Param(Parameter),
-  ReturnList(ReturnList),
+  ReturnList(Vec<ReturnEntry>),
   ReturnEntry(ReturnEntry),
   IdList(Vec<Token>),
 }
@@ -119,6 +119,15 @@ pub enum AstState {
   ArrayAccess,
   Prefix,
   PrefixContents,
+
+  FunctionPrimary,
+  FunctionParameters,
+  FunctionArrow,
+  FunctionReturns,
+  FunctionReturnEntry,
+  FunctionSignatureFollow,
+  FunctionBody,
+
   ExpressionFollow,
   ExpressionFold,
   EqualityFollow,
@@ -708,6 +717,11 @@ pub fn parse(
         ast_stack.push(AstStackSymbol::Var(Var::Typed(type_var)));
       }
       (Some(AstState::LetVar), _, _) => panic!("creeper aw man :( let var"),
+      (Some(AstState::LetExpression), Some(AstStackSymbol::Token(_)), TokenType::Newline) => {
+        token_index += 1;
+        token_index = consume_optional_newline(tokens, token_index);
+        state_stack.push(AstState::Expression);
+      }
       (Some(AstState::LetExpression), Some(AstStackSymbol::Token(_)), _) => {
         state_stack.push(AstState::Expression);
       }
@@ -977,7 +991,7 @@ pub fn parse(
         ))));
         state_stack.pop();
       }
-      (Some(AstState::TypeVar), Some(AstStackSymbol::PackDecList(_)), TokenType::Identifier) => {
+      (Some(AstState::TypeVar), _, TokenType::Identifier) => {
         ast_stack.push(AstStackSymbol::Token(current_token.clone()));
         token_index += 1;
         state_stack.push(AstState::TypeVarColon);
@@ -1097,9 +1111,6 @@ pub fn parse(
         ast_stack.push(AstStackSymbol::OptType(None));
         token_index += 1;
         state_stack.goto(AstState::BaseTypeFollowEnd);
-      }
-      (Some(AstState::BaseTypeFollow), Some(AstStackSymbol::Type(_)), TokenType::Newline) => {
-        token_index = consume_optional_newline(tokens, token_index);
       }
       (Some(AstState::BaseTypeFollow), Some(AstStackSymbol::Type(_)), _) => {
         state_stack.goto(AstState::TypeChainResolve);
@@ -1504,7 +1515,6 @@ pub fn parse(
         TokenType::Newline,
       ) => {
         token_index = consume_optional_newline(tokens, token_index);
-        state_stack.goto(AstState::UnionDecStorage);
       }
       (Some(AstState::UnionDecStorageFollow), _, _) => panic!("whoops :("),
       (
@@ -1607,7 +1617,8 @@ pub fn parse(
       | (Some(AstState::Expression), _, TokenType::String)
       | (Some(AstState::Expression), _, TokenType::InterpolatedString)
       | (Some(AstState::Expression), _, TokenType::Keyword)
-      | (Some(AstState::Expression), _, TokenType::Symbol) => {
+      | (Some(AstState::Expression), _, TokenType::Symbol)
+      | (Some(AstState::Expression), _, TokenType::Type) => {
         state_stack.push(AstState::ExpressionFollow);
         state_stack.push(AstState::PrefixOrPrimary);
       }
@@ -2350,7 +2361,8 @@ pub fn parse(
       | (Some(AstState::PrefixOrPrimary), _, TokenType::Number)
       | (Some(AstState::PrefixOrPrimary), _, TokenType::String)
       | (Some(AstState::PrefixOrPrimary), _, TokenType::InterpolatedString)
-      | (Some(AstState::PrefixOrPrimary), _, TokenType::Keyword) => {
+      | (Some(AstState::PrefixOrPrimary), _, TokenType::Keyword)
+      | (Some(AstState::PrefixOrPrimary), _, TokenType::Type) => {
         state_stack.goto(AstState::Primary);
       }
 
@@ -2366,6 +2378,9 @@ pub fn parse(
       | (Some(AstState::Primary), _, TokenType::Newline) => {
         state_stack.pop();
       }
+      (Some(AstState::Primary), _, TokenType::Type) => {
+        state_stack.goto(AstState::FunctionPrimary);
+      }
       (Some(AstState::Primary), _, TokenType::LParen) => {
         state_stack.goto(AstState::SubExpression);
       }
@@ -2374,6 +2389,168 @@ pub fn parse(
         ast_stack.push(AstStackSymbol::Token(current_token.clone()));
         ast_stack.push(AstStackSymbol::ExprList(Vec::new()));
         state_stack.goto(AstState::ArrayLiteralContents);
+      }
+      (Some(AstState::FunctionPrimary), _, TokenType::Type) => {
+        if current_token.lexeme == "func" {
+          ast_stack.push(AstStackSymbol::Token(current_token.clone()));
+          token_index += 1;
+          token_index = consume_optional_newline(tokens, token_index);
+        } else {
+          panic!("Unexpected type function primary");
+        }
+      }
+      (Some(AstState::FunctionPrimary), Some(AstStackSymbol::Token(_)), TokenType::LParen) => {
+        ast_stack.push(AstStackSymbol::Token(current_token.clone()));
+        token_index += 1;
+        token_index = consume_optional_newline(tokens, token_index);
+        ast_stack.push(AstStackSymbol::ParamList(Vec::new()));
+        state_stack.push(AstState::FunctionParameters);
+      }
+      (Some(AstState::FunctionPrimary), Some(AstStackSymbol::ParamList(_)), TokenType::RParen) => {
+        ast_stack.push(AstStackSymbol::Token(current_token.clone()));
+        token_index += 1;
+        token_index = consume_optional_newline(tokens, token_index);
+        state_stack.goto(AstState::FunctionArrow);
+      }
+      (Some(AstState::FunctionParameters), Some(AstStackSymbol::ParamList(_)), TokenType::RParen) => {
+        state_stack.pop();
+      }
+      (Some(AstState::FunctionParameters), Some(AstStackSymbol::ParamList(_)), _) => {
+        state_stack.push(AstState::TypeVar);
+      }
+      (Some(AstState::FunctionParameters), Some(AstStackSymbol::TypeVar(_)), TokenType::Newline) => {
+        token_index = consume_optional_newline(tokens, token_index);
+      }
+      (Some(AstState::FunctionParameters), Some(AstStackSymbol::TypeVar(param)), TokenType::RParen) => {
+        ast_stack.pop();
+        let param_list_sym = ast_stack.pop_panic();
+        match param_list_sym {
+          Some(AstStackSymbol::ParamList(mut param_list)) => {
+            param_list.push(Parameter::new(param));
+            ast_stack.push(AstStackSymbol::ParamList(param_list));
+          }
+          _ => panic!("Stack bust function parameters")
+        }
+      }
+      (Some(AstState::FunctionParameters), Some(AstStackSymbol::TypeVar(param)), TokenType::Comma) => {
+        ast_stack.pop();
+        let param_list_sym = ast_stack.pop_panic();
+        match param_list_sym {
+          Some(AstStackSymbol::ParamList(mut param_list)) => {
+            param_list.push(Parameter::new(param));
+            ast_stack.push(AstStackSymbol::ParamList(param_list));
+            token_index += 1;
+            token_index = consume_optional_newline(tokens, token_index);
+          }
+          _ => panic!("Stack bust function parameters")
+        }
+      }
+      (Some(AstState::FunctionArrow), _, TokenType::Arrow) => {
+        ast_stack.push(AstStackSymbol::Token(current_token.clone()));
+        token_index += 1;
+        token_index = consume_optional_newline(tokens, token_index);
+      }
+      (Some(AstState::FunctionArrow), _, TokenType::LParen) => {
+        ast_stack.push(AstStackSymbol::Token(current_token.clone()));
+        token_index += 1;
+        token_index = consume_optional_newline(tokens, token_index);
+        ast_stack.push(AstStackSymbol::ReturnList(Vec::new()));
+        state_stack.push(AstState::FunctionReturns);
+      }
+      (Some(AstState::FunctionArrow), _, TokenType::RParen) => {
+        ast_stack.push(AstStackSymbol::Token(current_token.clone()));
+        token_index += 1;
+        //token_index = consume_optional_newline(tokens, token_index);
+        state_stack.goto(AstState::FunctionSignatureFollow);
+      }
+      (Some(AstState::FunctionReturns), Some(AstStackSymbol::ReturnList(_)), TokenType::RParen) => {
+        state_stack.pop();
+      }
+      (Some(AstState::FunctionReturns), Some(AstStackSymbol::ReturnList(_)), _) => {
+        state_stack.push(AstState::FunctionReturnEntry);
+      }
+      (Some(AstState::FunctionReturns), Some(AstStackSymbol::ReturnEntry(_)), TokenType::Newline) => {
+        token_index = consume_optional_newline(tokens, token_index);
+      }
+      (Some(AstState::FunctionReturns), Some(AstStackSymbol::ReturnEntry(entry)), TokenType::Comma) => {
+        ast_stack.pop();
+        let return_list_sym = ast_stack.pop_panic();
+        match return_list_sym {
+          Some(AstStackSymbol::ReturnList(mut return_list)) => {
+            return_list.push(entry);
+            ast_stack.push(AstStackSymbol::ReturnList(return_list));
+            token_index += 1;
+            token_index = consume_optional_newline(tokens, token_index);
+          }
+          _ => panic!("stack bust function returns")
+        }
+      }
+      (Some(AstState::FunctionReturns), Some(AstStackSymbol::ReturnEntry(entry)), TokenType::RParen) => {
+        ast_stack.pop();
+        let return_list_sym = ast_stack.pop_panic();
+        match return_list_sym {
+          Some(AstStackSymbol::ReturnList(mut return_list)) => {
+            return_list.push(entry);
+            ast_stack.push(AstStackSymbol::ReturnList(return_list));
+          }
+          _ => panic!("stack bust function returns")
+        }
+      }
+      (Some(AstState::FunctionReturnEntry), Some(AstStackSymbol::Expr(expression)), _) => {
+        ast_stack.pop();
+        let equal_sym = ast_stack.pop_panic();
+        let type_var_sym = ast_stack.pop_panic();
+        match (type_var_sym, equal_sym) {
+          (Some(AstStackSymbol::TypeVar(type_var)), Some(AstStackSymbol::Token(equal))) => {
+            ast_stack.push(AstStackSymbol::ReturnEntry(ReturnEntry::new(type_var, Some(equal), Some(Box::new(expression)))));
+            state_stack.pop();
+          }
+          _ => panic!("bad stack :(")
+        }
+      }
+      (Some(AstState::FunctionReturnEntry), Some(AstStackSymbol::TypeVar(var)), TokenType::Symbol) => {
+        if current_token.lexeme == "=" {
+          token_index += 1;
+          token_index = consume_optional_newline(tokens, token_index);
+          ast_stack.push(AstStackSymbol::Token(current_token.clone()));
+          state_stack.push(AstState::Expression);
+        } else {
+          ast_stack.pop();
+          ast_stack.push(AstStackSymbol::ReturnEntry(ReturnEntry::new(var, None, None)));
+          state_stack.pop();
+        }
+      }
+      (Some(AstState::FunctionReturnEntry), _, TokenType::Identifier) => {
+        state_stack.push(AstState::TypeVar);
+      }
+      (Some(AstState::FunctionSignatureFollow), _, TokenType::Colon) => {
+        panic!();
+      }
+      (Some(AstState::FunctionSignatureFollow), _, _) => {
+        let return_rparen_sym = ast_stack.pop_panic();
+        let return_list_sym = ast_stack.pop_panic();
+        let return_lparen_sym = ast_stack.pop_panic();
+        let arrow_sym = ast_stack.pop_panic();
+        let param_rparen_sym = ast_stack.pop_panic();
+        let param_list_sym = ast_stack.pop_panic();
+        let param_lparen_sym = ast_stack.pop_panic();
+        let func_sym = ast_stack.pop_panic();
+        match (func_sym, param_lparen_sym, param_list_sym, param_rparen_sym, arrow_sym, return_lparen_sym, return_list_sym, return_rparen_sym) {
+          (
+            Some(AstStackSymbol::Token(func)),
+            Some(AstStackSymbol::Token(param_lparen)),
+            Some(AstStackSymbol::ParamList(parameter_list)),
+            Some(AstStackSymbol::Token(param_rparen)),
+            Some(AstStackSymbol::Token(arrow)),
+            Some(AstStackSymbol::Token(return_lparen)),
+            Some(AstStackSymbol::ReturnList(return_list)),
+            Some(AstStackSymbol::Token(return_rparen)),
+          ) => {
+            ast_stack.push(AstStackSymbol::Expr(Expression::Literal(Literal::Function(Function::new(func, param_lparen, ParameterList::new(parameter_list), param_rparen, arrow, return_lparen, ReturnList::new(return_list), return_rparen, None, None, Vec::new(), None)))));
+            state_stack.pop();
+          }
+          _ => panic!("bad stack")
+        }
       }
       (Some(AstState::SubExpression), _, TokenType::LParen) => {
         token_index += 1;

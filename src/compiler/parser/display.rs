@@ -519,7 +519,7 @@ impl fmt::Display for VarType {
 impl fmt::Display for ParameterList {
   fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
     fmt.write_str("(ParameterList")?;
-    for (param, _comma) in &self.params {
+    for param in &self.params {
       fmt.write_str(format!(" {}", param).as_str())?;
     }
     fmt.write_str(")")?;
@@ -529,21 +529,14 @@ impl fmt::Display for ParameterList {
 
 impl fmt::Display for Parameter {
   fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-    match &self.type_var {
-      Some(x) => fmt.write_str(format!("(Parameter {})", x).as_str())?,
-      None => match &self.var_arg_token {
-        Some(x) => fmt.write_str(format!("(Parameter {})", x.lexeme).as_str())?,
-        None => {}
-      },
-    };
-    Ok(())
+    fmt.write_str(format!("(Parameter {})", self.type_var).as_str())
   }
 }
 
 impl fmt::Display for ReturnList {
   fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
     fmt.write_str("(ReturnList")?;
-    for (ret, _comma) in &self.returns {
+    for ret in &self.returns {
       fmt.write_str(format!(" {}", ret).as_str())?;
     }
     fmt.write_str(")")?;

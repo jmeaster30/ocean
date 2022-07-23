@@ -1,6 +1,8 @@
 use std.io as io
 
 let morph = 
-  (value: auto T, callback: func(T:T)) 
+  func (value: auto T, callback: func(T:T))
   -> 
   (result: T = callback(value))
+
+let swap = func (a: auto T, b: T) -> (c: T = b, d: T = a)

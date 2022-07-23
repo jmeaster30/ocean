@@ -577,6 +577,7 @@ pub enum Literal {
 
 #[derive(Clone)]
 pub struct Function {
+  pub func_token: Token,
   pub param_left_paren: Token,
   pub param_list: ParameterList,
   pub param_right_paren: Token,
@@ -592,6 +593,7 @@ pub struct Function {
 
 impl Function {
   pub fn new(
+    func_token: Token,
     param_left_paren: Token,
     param_list: ParameterList,
     param_right_paren: Token,
@@ -605,6 +607,7 @@ impl Function {
     right_curly: Option<Token>,
   ) -> Self {
     Self {
+      func_token,
       param_left_paren,
       param_list,
       param_right_paren,
@@ -877,37 +880,35 @@ impl VarType {
 
 #[derive(Clone)]
 pub struct ParameterList {
-  pub params: Vec<(Parameter, Option<Token>)>,
+  pub params: Vec<Parameter>,
 }
 
 impl ParameterList {
-  pub fn new(params: Vec<(Parameter, Option<Token>)>) -> Self {
+  pub fn new(params: Vec<Parameter>) -> Self {
     Self { params }
   }
 }
 
 #[derive(Clone)]
 pub struct Parameter {
-  pub type_var: Option<TypeVar>,
-  pub var_arg_token: Option<Token>,
+  pub type_var: TypeVar,
 }
 
 impl Parameter {
-  pub fn new(type_var: Option<TypeVar>, var_arg_token: Option<Token>) -> Self {
+  pub fn new(type_var: TypeVar) -> Self {
     Self {
-      type_var,
-      var_arg_token,
+      type_var
     }
   }
 }
 
 #[derive(Clone)]
 pub struct ReturnList {
-  pub returns: Vec<(ReturnEntry, Option<Token>)>,
+  pub returns: Vec<ReturnEntry>,
 }
 
 impl ReturnList {
-  pub fn new(returns: Vec<(ReturnEntry, Option<Token>)>) -> Self {
+  pub fn new(returns: Vec<ReturnEntry>) -> Self {
     Self { returns }
   }
 }
