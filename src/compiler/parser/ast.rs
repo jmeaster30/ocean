@@ -896,9 +896,7 @@ pub struct Parameter {
 
 impl Parameter {
   pub fn new(type_var: TypeVar) -> Self {
-    Self {
-      type_var
-    }
+    Self { type_var }
   }
 }
 

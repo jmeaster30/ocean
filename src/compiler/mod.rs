@@ -25,7 +25,7 @@ impl CompilationUnit {
   }
 
   pub fn compile(&mut self, max_pass: Option<i32>) {
-    println!("{}", self.filename);
+    println!("Compiling '{}'...", self.filename);
 
     let pass_list: Vec<(fn(&CompilationUnit) -> Pass, fn(&Pass) -> bool)> = vec![
       (lexer_pass, |pass| {

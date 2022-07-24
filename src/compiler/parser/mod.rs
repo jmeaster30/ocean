@@ -2412,16 +2412,28 @@ pub fn parse(
         token_index = consume_optional_newline(tokens, token_index);
         state_stack.goto(AstState::FunctionArrow);
       }
-      (Some(AstState::FunctionParameters), Some(AstStackSymbol::ParamList(_)), TokenType::RParen) => {
+      (
+        Some(AstState::FunctionParameters),
+        Some(AstStackSymbol::ParamList(_)),
+        TokenType::RParen,
+      ) => {
         state_stack.pop();
       }
       (Some(AstState::FunctionParameters), Some(AstStackSymbol::ParamList(_)), _) => {
         state_stack.push(AstState::TypeVar);
       }
-      (Some(AstState::FunctionParameters), Some(AstStackSymbol::TypeVar(_)), TokenType::Newline) => {
+      (
+        Some(AstState::FunctionParameters),
+        Some(AstStackSymbol::TypeVar(_)),
+        TokenType::Newline,
+      ) => {
         token_index = consume_optional_newline(tokens, token_index);
       }
-      (Some(AstState::FunctionParameters), Some(AstStackSymbol::TypeVar(param)), TokenType::RParen) => {
+      (
+        Some(AstState::FunctionParameters),
+        Some(AstStackSymbol::TypeVar(param)),
+        TokenType::RParen,
+      ) => {
         ast_stack.pop();
         let param_list_sym = ast_stack.pop_panic();
         match param_list_sym {
@@ -2429,10 +2441,14 @@ pub fn parse(
             param_list.push(Parameter::new(param));
             ast_stack.push(AstStackSymbol::ParamList(param_list));
           }
-          _ => panic!("Stack bust function parameters")
+          _ => panic!("Stack bust function parameters"),
         }
       }
-      (Some(AstState::FunctionParameters), Some(AstStackSymbol::TypeVar(param)), TokenType::Comma) => {
+      (
+        Some(AstState::FunctionParameters),
+        Some(AstStackSymbol::TypeVar(param)),
+        TokenType::Comma,
+      ) => {
         ast_stack.pop();
         let param_list_sym = ast_stack.pop_panic();
         match param_list_sym {
@@ -2442,7 +2458,7 @@ pub fn parse(
             token_index += 1;
             token_index = consume_optional_newline(tokens, token_index);
           }
-          _ => panic!("Stack bust function parameters")
+          _ => panic!("Stack bust function parameters"),
         }
       }
       (Some(AstState::FunctionArrow), _, TokenType::Arrow) => {
@@ -2469,10 +2485,18 @@ pub fn parse(
       (Some(AstState::FunctionReturns), Some(AstStackSymbol::ReturnList(_)), _) => {
         state_stack.push(AstState::FunctionReturnEntry);
       }
-      (Some(AstState::FunctionReturns), Some(AstStackSymbol::ReturnEntry(_)), TokenType::Newline) => {
+      (
+        Some(AstState::FunctionReturns),
+        Some(AstStackSymbol::ReturnEntry(_)),
+        TokenType::Newline,
+      ) => {
         token_index = consume_optional_newline(tokens, token_index);
       }
-      (Some(AstState::FunctionReturns), Some(AstStackSymbol::ReturnEntry(entry)), TokenType::Comma) => {
+      (
+        Some(AstState::FunctionReturns),
+        Some(AstStackSymbol::ReturnEntry(entry)),
+        TokenType::Comma,
+      ) => {
         ast_stack.pop();
         let return_list_sym = ast_stack.pop_panic();
         match return_list_sym {
@@ -2482,10 +2506,14 @@ pub fn parse(
             token_index += 1;
             token_index = consume_optional_newline(tokens, token_index);
           }
-          _ => panic!("stack bust function returns")
+          _ => panic!("stack bust function returns"),
         }
       }
-      (Some(AstState::FunctionReturns), Some(AstStackSymbol::ReturnEntry(entry)), TokenType::RParen) => {
+      (
+        Some(AstState::FunctionReturns),
+        Some(AstStackSymbol::ReturnEntry(entry)),
+        TokenType::RParen,
+      ) => {
         ast_stack.pop();
         let return_list_sym = ast_stack.pop_panic();
         match return_list_sym {
@@ -2493,7 +2521,7 @@ pub fn parse(
             return_list.push(entry);
             ast_stack.push(AstStackSymbol::ReturnList(return_list));
           }
-          _ => panic!("stack bust function returns")
+          _ => panic!("stack bust function returns"),
         }
       }
       (Some(AstState::FunctionReturnEntry), Some(AstStackSymbol::Expr(expression)), _) => {
@@ -2502,13 +2530,21 @@ pub fn parse(
         let type_var_sym = ast_stack.pop_panic();
         match (type_var_sym, equal_sym) {
           (Some(AstStackSymbol::TypeVar(type_var)), Some(AstStackSymbol::Token(equal))) => {
-            ast_stack.push(AstStackSymbol::ReturnEntry(ReturnEntry::new(type_var, Some(equal), Some(Box::new(expression)))));
+            ast_stack.push(AstStackSymbol::ReturnEntry(ReturnEntry::new(
+              type_var,
+              Some(equal),
+              Some(Box::new(expression)),
+            )));
             state_stack.pop();
           }
-          _ => panic!("bad stack :(")
+          _ => panic!("bad stack :("),
         }
       }
-      (Some(AstState::FunctionReturnEntry), Some(AstStackSymbol::TypeVar(var)), TokenType::Symbol) => {
+      (
+        Some(AstState::FunctionReturnEntry),
+        Some(AstStackSymbol::TypeVar(var)),
+        TokenType::Symbol,
+      ) => {
         if current_token.lexeme == "=" {
           token_index += 1;
           token_index = consume_optional_newline(tokens, token_index);
@@ -2516,17 +2552,29 @@ pub fn parse(
           state_stack.push(AstState::Expression);
         } else {
           ast_stack.pop();
-          ast_stack.push(AstStackSymbol::ReturnEntry(ReturnEntry::new(var, None, None)));
+          ast_stack.push(AstStackSymbol::ReturnEntry(ReturnEntry::new(
+            var, None, None,
+          )));
           state_stack.pop();
         }
       }
       (Some(AstState::FunctionReturnEntry), _, TokenType::Newline) => {
         token_index = consume_optional_newline(tokens, token_index);
       }
-      (Some(AstState::FunctionReturnEntry), Some(AstStackSymbol::TypeVar(var)), TokenType::RParen) |
-      (Some(AstState::FunctionReturnEntry), Some(AstStackSymbol::TypeVar(var)), TokenType::Comma) => {
+      (
+        Some(AstState::FunctionReturnEntry),
+        Some(AstStackSymbol::TypeVar(var)),
+        TokenType::RParen,
+      )
+      | (
+        Some(AstState::FunctionReturnEntry),
+        Some(AstStackSymbol::TypeVar(var)),
+        TokenType::Comma,
+      ) => {
         ast_stack.pop();
-        ast_stack.push(AstStackSymbol::ReturnEntry(ReturnEntry::new(var, None, None)));
+        ast_stack.push(AstStackSymbol::ReturnEntry(ReturnEntry::new(
+          var, None, None,
+        )));
         state_stack.pop();
       }
       (Some(AstState::FunctionReturnEntry), _, TokenType::Identifier) => {
@@ -2547,7 +2595,16 @@ pub fn parse(
         let param_list_sym = ast_stack.pop_panic();
         let param_lparen_sym = ast_stack.pop_panic();
         let func_sym = ast_stack.pop_panic();
-        match (func_sym, param_lparen_sym, param_list_sym, param_rparen_sym, arrow_sym, return_lparen_sym, return_list_sym, return_rparen_sym) {
+        match (
+          func_sym,
+          param_lparen_sym,
+          param_list_sym,
+          param_rparen_sym,
+          arrow_sym,
+          return_lparen_sym,
+          return_list_sym,
+          return_rparen_sym,
+        ) {
           (
             Some(AstStackSymbol::Token(func)),
             Some(AstStackSymbol::Token(param_lparen)),
@@ -2558,10 +2615,25 @@ pub fn parse(
             Some(AstStackSymbol::ReturnList(return_list)),
             Some(AstStackSymbol::Token(return_rparen)),
           ) => {
-            ast_stack.push(AstStackSymbol::Expr(Expression::Literal(Literal::Function(Function::new(func, param_lparen, ParameterList::new(parameter_list), param_rparen, arrow, return_lparen, ReturnList::new(return_list), return_rparen, None, None, Vec::new(), None)))));
+            ast_stack.push(AstStackSymbol::Expr(Expression::Literal(
+              Literal::Function(Function::new(
+                func,
+                param_lparen,
+                ParameterList::new(parameter_list),
+                param_rparen,
+                arrow,
+                return_lparen,
+                ReturnList::new(return_list),
+                return_rparen,
+                None,
+                None,
+                Vec::new(),
+                None,
+              )),
+            )));
             state_stack.pop();
           }
-          _ => panic!("bad stack")
+          _ => panic!("bad stack"),
         }
       }
       (Some(AstState::FunctionBody), _, TokenType::LCurly) => {
@@ -2571,7 +2643,11 @@ pub fn parse(
         token_index = consume_optional_newline(tokens, token_index);
         state_stack.push(AstState::StmtList);
       }
-      (Some(AstState::FunctionBody), Some(AstStackSymbol::StmtList(statements)), TokenType::RCurly) => {
+      (
+        Some(AstState::FunctionBody),
+        Some(AstStackSymbol::StmtList(statements)),
+        TokenType::RCurly,
+      ) => {
         ast_stack.pop();
         let left_curly_sym = ast_stack.pop_panic();
         let colon_sym = ast_stack.pop_panic();
@@ -2583,7 +2659,18 @@ pub fn parse(
         let param_list_sym = ast_stack.pop_panic();
         let param_lparen_sym = ast_stack.pop_panic();
         let func_sym = ast_stack.pop_panic();
-        match (func_sym, param_lparen_sym, param_list_sym, param_rparen_sym, arrow_sym, return_lparen_sym, return_list_sym, return_rparen_sym, colon_sym, left_curly_sym) {
+        match (
+          func_sym,
+          param_lparen_sym,
+          param_list_sym,
+          param_rparen_sym,
+          arrow_sym,
+          return_lparen_sym,
+          return_list_sym,
+          return_rparen_sym,
+          colon_sym,
+          left_curly_sym,
+        ) {
           (
             Some(AstStackSymbol::Token(func)),
             Some(AstStackSymbol::Token(param_lparen)),
@@ -2596,11 +2683,26 @@ pub fn parse(
             Some(AstStackSymbol::Token(colon)),
             Some(AstStackSymbol::Token(left_curly)),
           ) => {
-            ast_stack.push(AstStackSymbol::Expr(Expression::Literal(Literal::Function(Function::new(func, param_lparen, ParameterList::new(parameter_list), param_rparen, arrow, return_lparen, ReturnList::new(return_list), return_rparen, Some(colon), Some(left_curly), statements, Some(current_token.clone()))))));
+            ast_stack.push(AstStackSymbol::Expr(Expression::Literal(
+              Literal::Function(Function::new(
+                func,
+                param_lparen,
+                ParameterList::new(parameter_list),
+                param_rparen,
+                arrow,
+                return_lparen,
+                ReturnList::new(return_list),
+                return_rparen,
+                Some(colon),
+                Some(left_curly),
+                statements,
+                Some(current_token.clone()),
+              )),
+            )));
             state_stack.pop();
             token_index += 1;
           }
-          _ => panic!("bad stack")
+          _ => panic!("bad stack"),
         }
       }
       (Some(AstState::SubExpression), _, TokenType::LParen) => {
