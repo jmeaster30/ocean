@@ -1,3 +1,4 @@
+use super::hydro::lexer::HydroToken;
 use super::lexer::Token;
 use super::parser::ast::ErrorStatement;
 use super::parser::span::Spanned;
@@ -37,6 +38,12 @@ pub enum OceanError {
   Base(Severity, String),
   LexError(Severity, Token, String),
   ParseError(ErrorStatement),
+}
+
+pub enum HydroError {
+  Base(Severity, String),
+  LexError(Severity, HydroToken, String),
+  ParseError(String),
 }
 
 pub fn display_error(compilation_unit: &CompilationUnit, error: &OceanError) {

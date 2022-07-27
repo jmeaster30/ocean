@@ -1,5 +1,5 @@
 mod compiler;
-use compiler::compile;
+use compiler::{hydro_compile, ocean_compile};
 
 mod util;
 use util::argsparser::{ArgsParser, Argument};
@@ -33,19 +33,40 @@ fn main() -> std::io::Result<()> {
   match parsed_args {
     Ok(x) => {
       let command = x.get("Command").unwrap().clone().unwrap();
-      if command == "version".to_string() {
-        arg_parser.print_version_info();
-      } else if command == "help".to_string() {
-        arg_parser.print_help();
-      } else if command == "run".to_string() || command == "build".to_string() {
-        let source = x.get("Source File").unwrap().clone().unwrap();
-        println!("{}", source);
-        let mut file = File::open(source.clone())?;
-        let mut contents = String::new();
-        file.read_to_string(&mut contents)?;
-        compile(source.to_string(), contents.to_string());
-      } else {
-        todo!();
+      match command.as_str() {
+        "version" => arg_parser.print_version_info(),
+        "help" => arg_parser.print_help(),
+        "build" | "run" => {
+          let source = x.get("Source File").unwrap().clone().unwrap();
+          let file_result = File::open(source.clone());
+          match file_result {
+            Ok(mut file) => {
+              let mut contents = String::new();
+              file.read_to_string(&mut contents)?;
+              ocean_compile(source.to_string(), contents.to_string());
+            }
+            Err(err) => {
+              println!("Unable to open file '{}' :(", source);
+              println!("{}", err);
+            }
+          }
+        }
+        "hydro" => {
+          let source = x.get("Source File").unwrap().clone().unwrap();
+          let file_result = File::open(source.clone());
+          match file_result {
+            Ok(mut file) => {
+              let mut contents = String::new();
+              file.read_to_string(&mut contents)?;
+              hydro_compile(source.to_string(), contents.to_string());
+            }
+            Err(err) => {
+              println!("Unable to open file '{}' :(", source);
+              println!("{}", err);
+            }
+          }
+        }
+        _ => todo!(),
       }
     }
     Err(msg) => {
@@ -54,6 +75,5 @@ fn main() -> std::io::Result<()> {
     }
   }
 
-  
   Ok(())
 }

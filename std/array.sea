@@ -1,0 +1,31 @@
+let window = func (value: auto T [], size: i64) -> (result: T[]):{
+  for i in 0..=(value.length - size) {
+    result ++= [value[i..size]]
+  }
+}
+
+let filter = func (value: auto T [], condition: func(T:bool)) -> (result: T[]):{
+  for v in value {
+    if condition(v) {
+      result ++= [v]
+    }
+  }
+}
+
+let transform = func (value: auto T [], transformer: func(T:auto U)) -> (result: U[]):{
+  for v in value {
+    result ++= [transformer(v)]
+  }
+}
+
+let reduce = func (value: auto T [], reducer_func: func(T,T:T)) -> (result: T):{
+  if value.length == 0 {
+    return
+  } else if value.length == 1 {
+    result = value[0]
+  } else {
+    result = reducer_func(reduce(value[0..(value.length // 2)], reducer_func), reduce(value[(value.length // 2)..value.length], reducer_func))
+  }
+}
+
+

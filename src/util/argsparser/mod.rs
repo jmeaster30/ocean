@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use std::cmp::Ordering;
+use std::collections::HashMap;
 
 #[derive(PartialEq, Eq)]
 pub struct Argument {
@@ -36,7 +36,7 @@ impl Ord for Argument {
   fn cmp(&self, other: &Self) -> Ordering {
     match self.partial_cmp(other) {
       Some(x) => x,
-      None => panic!()
+      None => panic!(),
     }
   }
 }
@@ -162,24 +162,30 @@ impl ArgsParser {
     }
   }
 
-  pub fn parse(
-    &self,
-    mut args: Vec<String>,
-  ) -> Result<HashMap<String, Option<String>>, String> {
+  pub fn parse(&self, args: Vec<String>) -> Result<HashMap<String, Option<String>>, String> {
     let mut clargs = Vec::new();
     for i in 0..args.len() {
       clargs.push((i, args[i].clone()));
     }
     let total = clargs.len();
     let mut args_map = HashMap::new();
-    let mut i = 0;
     for arg_schema in &self.arguments {
       match arg_schema.position {
         Some(x) => {
-          let index = if x == usize::MAX { if clargs.len() == 0 { 0 } else { total - 1 } } else { x };
+          let index = if x == usize::MAX {
+            if clargs.len() == 0 {
+              0
+            } else {
+              total - 1
+            }
+          } else {
+            x
+          };
           let mut value = arg_schema.default_value.clone();
           for (ci, cv) in &clargs {
-            if *ci == index { value = Some(cv.clone()); }
+            if *ci == index {
+              value = Some(cv.clone());
+            }
           }
           match &value {
             Some(value_text) => {
@@ -194,12 +200,25 @@ impl ArgsParser {
                   clargs.remove(index);
                 }
               } else if arg_schema.default_value.is_some() {
-                args_map.insert(arg_schema.arg_name.clone(), arg_schema.default_value.clone());
+                args_map.insert(
+                  arg_schema.arg_name.clone(),
+                  arg_schema.default_value.clone(),
+                );
               } else {
-                return Err(format!("Value '{}' is not valid for '{}' argument. The valid values are: {}", value.unwrap(), arg_schema.arg_name, arg_schema.possible_values.join(", ")));
+                return Err(format!(
+                  "Value '{}' is not valid for '{}' argument. The valid values are: {}",
+                  value.unwrap(),
+                  arg_schema.arg_name,
+                  arg_schema.possible_values.join(", ")
+                ));
               }
             }
-            None => return Err(format!("Could not find positional value '{}'", arg_schema.arg_name)),
+            None => {
+              return Err(format!(
+                "Could not find positional value '{}'",
+                arg_schema.arg_name
+              ))
+            }
           }
         }
         _ => {}

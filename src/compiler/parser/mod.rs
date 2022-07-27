@@ -13,14 +13,12 @@ use super::errors::Severity;
 #[derive(Clone)]
 pub enum AstStackSymbol {
   Token(Token),
-  Program(Program),
   StmtList(Vec<Statement>),
   Stmt(Statement),
   PackDec(PackDeclaration),
   PackDecList(Vec<PackDeclaration>),
   UnionDec(UnionDeclaration),
   UnionDecList(Vec<UnionDeclaration>),
-  MatchEntry(MatchEntry),
   Expr(Expression),
   ExprList(Vec<Box<Expression>>),
   TypeVar(TypeVar),
@@ -29,7 +27,6 @@ pub enum AstStackSymbol {
   TypeList(Vec<Box<Type>>),
   OptType(Option<Type>),
   ParamList(Vec<Parameter>),
-  Param(Parameter),
   ReturnList(Vec<ReturnEntry>),
   ReturnEntry(ReturnEntry),
   IdList(Vec<Token>),
@@ -43,7 +40,6 @@ pub enum AstState {
   UseStmtIdList,
   UseStmtIdListFollow,
   UseStmtAlias,
-  UseStmtFinalize,
 
   PackDecName,
   PackDecStartEntryList,
@@ -77,7 +73,6 @@ pub enum AstState {
   UnionDecStorageStart,
   UnionDecStorage,
   UnionDecStorageFollow,
-  UnionDecStorageEnd,
   UnionDecEntryFinalize,
   UnionDecFinalize,
 
@@ -172,16 +167,16 @@ pub fn parse(
     None => 0,
   };
 
-  println!("Start parse");
+  //println!("Start parse");
 
   ast_stack.push(AstStackSymbol::StmtList(Vec::new()));
   state_stack.goto(AstState::StmtList);
 
   loop {
-    ast_stack.print();
-    state_stack.print();
+    //ast_stack.print();
+    //state_stack.print();
     let current_token = &tokens[token_index];
-    println!("CURRENT TOKEN: {:?}", current_token.clone());
+    //println!("CURRENT TOKEN: {:?}", current_token.clone());
     let stack_top = ast_stack.peek();
     let state = state_stack.current_state();
     match (state, stack_top, &current_token.token_type) {
@@ -190,6 +185,13 @@ pub fn parse(
       }
       (Some(AstState::StmtList), Some(AstStackSymbol::StmtList(_)), TokenType::RCurly) => {
         state_stack.pop();
+      }
+      (Some(AstState::StmtList), Some(_), TokenType::Macro) => {
+        ast_stack.push(AstStackSymbol::Stmt(Statement::Macro(MacroStatement::new(
+          current_token.clone(),
+        ))));
+        token_index += 1;
+        state_stack.push(AstState::StmtFinalize);
       }
       (Some(AstState::StmtList), Some(_), TokenType::Keyword) => {
         if current_token.lexeme == "use" {
@@ -460,11 +462,7 @@ pub fn parse(
         state_stack.push(AstState::StmtList);
       }
       (Some(AstState::IfStmtBody), _, _) => panic!(),
-      (
-        Some(AstState::IfStmtFollow),
-        Some(AstStackSymbol::Token(right_curly)),
-        TokenType::Newline,
-      ) => {
+      (Some(AstState::IfStmtFollow), Some(AstStackSymbol::Token(_)), TokenType::Newline) => {
         token_index = consume_optional_newline(tokens, token_index);
       }
       (
@@ -751,6 +749,11 @@ pub fn parse(
         Some(AstState::UseStmtIdList),
         Some(AstStackSymbol::IdList(mut contents)),
         TokenType::Identifier,
+      )
+      | (
+        Some(AstState::UseStmtIdList),
+        Some(AstStackSymbol::IdList(mut contents)),
+        TokenType::Type,
       ) => {
         ast_stack.pop();
         contents.push(current_token.clone());
@@ -2300,7 +2303,7 @@ pub fn parse(
         if is_default(current_token.lexeme.clone()) {
           ast_stack.push(AstStackSymbol::Token(current_token.clone()));
           state_stack.goto(AstState::DefaultFollow);
-          state_stack.push(AstState::RangeFold);
+          state_stack.push(AstState::DefaultFold);
           state_stack.push(AstState::PrefixOrPrimary);
           token_index += 1;
         } else if is_assignment(current_token.lexeme.clone())
@@ -2825,8 +2828,6 @@ pub fn parse(
           )));
           token_index += 1;
           state_stack.pop();
-        } else if current_token.lexeme == "." {
-          panic!("member access");
         } else {
           state_stack.pop();
         }
@@ -2989,8 +2990,7 @@ pub fn parse(
         }
       }
       (Some(AstState::Prefix), _, TokenType::Symbol) => {
-        if current_token.lexeme == "~" || current_token.lexeme == "!" || current_token.lexeme == "-"
-        {
+        if is_prefix(current_token.lexeme.clone()) {
           ast_stack.push(AstStackSymbol::Token(current_token.clone()));
           token_index += 1;
           state_stack.push(AstState::PrefixContents);
@@ -3081,4 +3081,8 @@ fn is_range(lexeme: String) -> bool {
 
 fn is_default(lexeme: String) -> bool {
   lexeme == "??"
+}
+
+fn is_prefix(lexeme: String) -> bool {
+  lexeme == "~" || lexeme == "!" || lexeme == "-" || lexeme == "..."
 }

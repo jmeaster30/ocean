@@ -5,7 +5,7 @@ use std::fmt;
 pub enum TokenType {
   EndOfInput,
   Error,
-  Comment,
+  //Comment,
   Macro,
   String,
   InterpolatedString,
@@ -158,6 +158,59 @@ pub fn lex(input: String) -> (Vec<Token>, Vec<OceanError>) {
           start_index,
           index,
         ));
+        lexeme.clear();
+      }
+      '@' => {
+        index += 1;
+        if index < input_length && input_chars[index] == '@' {
+          index += 1;
+          let mut found_end = false;
+          while index < input_length {
+            let n = input_chars[index];
+            match n {
+              '@' => {
+                index += 1;
+                if index < input_length && input_chars[index] == '@' {
+                  found_end = true;
+                  break;
+                }
+                index -= 1;
+                lexeme.push_str(&n.to_string());
+              }
+              _ => lexeme.push_str(&n.to_string()),
+            }
+            index += 1;
+          }
+          if !found_end {
+            errors.push(OceanError::LexError(
+              Severity::Error,
+              Token::new(TokenType::Macro, lexeme.clone(), start_index, index),
+              "Unending block macro".to_string(),
+            ));
+          } else {
+            tokens.push(Token::new(
+              TokenType::Macro,
+              lexeme.clone(),
+              start_index,
+              index,
+            ));
+          }
+        } else {
+          while index < input_length {
+            let n = input_chars[index];
+            match n {
+              '\n' => break,
+              _ => lexeme.push_str(&n.to_string()),
+            }
+            index += 1;
+          }
+          tokens.push(Token::new(
+            TokenType::Macro,
+            lexeme.clone(),
+            start_index,
+            index,
+          ));
+        }
         lexeme.clear();
       }
       '\"' | '\'' | '`' => {

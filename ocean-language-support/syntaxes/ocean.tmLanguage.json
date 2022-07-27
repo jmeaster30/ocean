@@ -8,6 +8,8 @@
 		{ "include": "#keywords_other" },
 		{ "include": "#identifier" },
 		{ "include": "#numbers" },
+		{ "include": "#block_macro" },
+		{ "include": "#macro" },
 		{ "include": "#block_comment" },
 		{ "include": "#comment" },
 		{ "include": "#strings" },
@@ -49,6 +51,17 @@
 			"patterns": [{
 				"name": "constant.numeric.ocean",
 				"match": "\\b([0-9]+(\\.[0-9]+)?)\\b"
+			}]
+		},
+		"block_macro": {
+			"name": "meta.preprocessor.ocean",
+			"begin": "@@",
+			"end": "@@"
+		},
+		"macro": {
+			"patterns": [{
+				"name": "meta.preprocessor.ocean",
+				"match": "@.*$"
 			}]
 		},
 		"block_comment": {

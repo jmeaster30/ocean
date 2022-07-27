@@ -1,13 +1,16 @@
 pub mod errors;
+pub mod hydro;
 pub mod lexer;
 pub mod parser;
 pub mod passes;
 
 use self::errors::*;
+use self::hydro::lexer::*;
 use self::lexer::*;
 use self::passes::*;
 
 pub struct CompilationUnit {
+  pub is_hydro: bool,
   pub filename: String,
   pub file_content: String,
   pub dependencies: Vec<CompilationUnit>,
@@ -15,8 +18,19 @@ pub struct CompilationUnit {
 }
 
 impl CompilationUnit {
-  pub fn new(filename: String, file_content: String) -> CompilationUnit {
+  pub fn ocean(filename: String, file_content: String) -> CompilationUnit {
     CompilationUnit {
+      is_hydro: false,
+      filename,
+      file_content,
+      dependencies: Vec::new(),
+      passes: Vec::new(),
+    }
+  }
+
+  pub fn hydro(filename: String, file_content: String) -> CompilationUnit {
+    CompilationUnit {
+      is_hydro: true,
       filename,
       file_content,
       dependencies: Vec::new(),
@@ -25,6 +39,59 @@ impl CompilationUnit {
   }
 
   pub fn compile(&mut self, max_pass: Option<i32>) {
+    if self.is_hydro {
+      self.hydro_compile(max_pass);
+    } else {
+      self.ocean_compile(max_pass);
+    }
+  }
+
+  fn hydro_compile(&mut self, max_pass: Option<i32>) {
+    println!("Compiling (hydro) '{}'...", self.filename);
+
+    let pass_list: Vec<(fn(&CompilationUnit) -> Pass, fn(&Pass) -> bool)> = vec![
+      (hydro_lexer_pass, |pass| {
+        println!("hydro lex check");
+        match pass {
+          Pass::HydroLexer(tokens, _) => {
+            for token in tokens {
+              println!("{}", token);
+            }
+            !tokens.is_empty()
+          }
+          _ => false,
+        }
+      }),
+      (hydro_parser_pass, |pass| {
+        println!("hydro parse check");
+        match pass {
+          Pass::HydroParser(insts, _) => {
+            println!("{:#?}", insts);
+            true
+          }
+          _ => false,
+        }
+      }),
+    ];
+
+    let mut pass_index = 0;
+    for (pass, success) in pass_list {
+      let pass_result = pass(&self);
+      pass_index += 1;
+      if !success(&pass_result) || (max_pass.is_some() && pass_index >= max_pass.unwrap()) {
+        self.passes.push(pass_result);
+        println!("fail");
+        break;
+      }
+      self.passes.push(pass_result);
+    }
+
+    self.print_errors();
+
+    println!("Good :)");
+  }
+
+  fn ocean_compile(&mut self, max_pass: Option<i32>) {
     println!("Compiling '{}'...", self.filename);
 
     let pass_list: Vec<(fn(&CompilationUnit) -> Pass, fn(&Pass) -> bool)> = vec![
@@ -32,9 +99,9 @@ impl CompilationUnit {
         println!("lex check");
         match pass {
           Pass::Lexer(tokens, _) => {
-            for token in tokens {
-              println!("{}", token);
-            }
+            //for token in tokens {
+            //  println!("{}", token);
+            //}
             !tokens.is_empty()
           }
           _ => false,
@@ -83,7 +150,12 @@ impl CompilationUnit {
   }
 }
 
-pub fn compile(filename: String, file_content: String) {
-  let mut main = CompilationUnit::new(filename, file_content);
+pub fn ocean_compile(filename: String, file_content: String) {
+  let mut main = CompilationUnit::ocean(filename, file_content);
+  main.compile(None);
+}
+
+pub fn hydro_compile(filename: String, file_content: String) {
+  let mut main = CompilationUnit::hydro(filename, file_content);
   main.compile(None);
 }
