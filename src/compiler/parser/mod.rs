@@ -2436,7 +2436,9 @@ pub fn parse(
         state_stack.goto(AstState::TupleEntryNamedEnd);
         state_stack.push(AstState::Expression);
       }
-      (Some(AstState::TupleEntryFollow), _, _) => {
+      (Some(AstState::TupleEntryFollow), Some(AstStackSymbol::Token(id)), _) => {
+        ast_stack.pop();
+        ast_stack.push(AstStackSymbol::Expr(Expression::Var(UntypedVar::new(id))));
         state_stack.goto(AstState::TupleEntryUnnamedEnd);
         state_stack.push(AstState::ExpressionFollow);
         state_stack.push(AstState::PrimaryFollow);

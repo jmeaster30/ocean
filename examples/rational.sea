@@ -39,7 +39,7 @@ pack rational {
   denominator: i64
 }
 
-let add = func (a: rational, b: rational) -> (result: rational):{
+let add = func (a: rational, b: rational) -> (res: rational):{
   let mul: i64 = lcm(a.denominator, b.denominator)
   res = { a.numerator * mul + b.numerator * mul, mul }
 }
