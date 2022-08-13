@@ -1,10 +1,10 @@
-let gcd = (a: i64, b: i64) -> (result: i64) {
+let gcd = func (a: i64, b: i64) -> (result: i64):{
   # If A=0 then GCD(A, B)=B since the Greatest Common Divisor of 0 and B is B.
   # If B=0 then GCD(A, B)=A since the Greatest Common Divisor of 0 and A is A.
   # Let R be the remainder of dividing A by B assuming A > B. (R = A % B)
   # Find GCD( B, R ) because GCD( A, B ) = GCD( B, R ). Use the above steps again.
   
-  loop a != 0 || b != 0 {
+  while a != 0 || b != 0 {
     let new_a = b
     let new_b = a % b
     a = new_a
@@ -18,7 +18,7 @@ let gcd = (a: i64, b: i64) -> (result: i64) {
   }
 }
 
-let abs = (a: i64) -> (result: i64) {
+let abs = func (a: i64) -> (result: i64):{
   if a < 0 {
     result = -a
   } else {
@@ -26,7 +26,7 @@ let abs = (a: i64) -> (result: i64) {
   }
 }
 
-let lcm = (a: i64, b: i64) -> (result: i64 = abs(a) * abs(b) / gcd(a, b))
+let lcm = func (a: i64, b: i64) -> (result: i64 = abs(a) * abs(b) / gcd(a, b))
 
 #/
 op + = (x: auto T, y: T) -> (result: T = add(x, y))
@@ -39,12 +39,12 @@ pack rational {
   denominator: i64
 }
 
-let add = (a: rational, b: rational) -> (result: rational) {
-  mul: i64 = lcm(a.denominator, b.denominator)
-  res = { a.numerator * mul + b.numerator * mul, mul };
+let add = func (a: rational, b: rational) -> (result: rational):{
+  let mul: i64 = lcm(a.denominator, b.denominator)
+  res = { a.numerator * mul + b.numerator * mul, mul }
 }
 
-let subtract = (a: rational, b: rational) -> (res: rational) {
-  mul: i64 = lcm(a.denominator, b.denominator)
-  res = { a.numerator * mul - b.numerator * mul, mul };
+let subtract = func (a: rational, b: rational) -> (res: rational):{
+  let mul: i64 = lcm(a.denominator, b.denominator)
+  res = { a.numerator * mul - b.numerator * mul, mul }
 }

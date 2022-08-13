@@ -625,21 +625,34 @@ impl Function {
 
 #[derive(Clone)]
 pub struct Tuple {
-  pub left_paren: Token,
-  pub contents: Vec<(Box<Expression>, Option<Token>)>,
-  pub right_paren: Token,
+  pub left_curly: Token,
+  pub contents: Vec<TupleEntry>,
+  pub right_curly: Token,
 }
 
 impl Tuple {
-  pub fn new(
-    left_paren: Token,
-    contents: Vec<(Box<Expression>, Option<Token>)>,
-    right_paren: Token,
-  ) -> Self {
+  pub fn new(left_curly: Token, contents: Vec<TupleEntry>, right_curly: Token) -> Self {
     Self {
-      left_paren,
+      left_curly,
       contents,
-      right_paren,
+      right_curly,
+    }
+  }
+}
+
+#[derive(Clone)]
+pub struct TupleEntry {
+  pub name: Option<Token>,
+  pub colon: Option<Token>,
+  pub expression: Expression,
+}
+
+impl TupleEntry {
+  pub fn new(name: Option<Token>, colon: Option<Token>, expression: Expression) -> Self {
+    Self {
+      name,
+      colon,
+      expression,
     }
   }
 }

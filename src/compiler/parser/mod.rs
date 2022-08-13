@@ -30,6 +30,8 @@ pub enum AstStackSymbol {
   ReturnList(Vec<ReturnEntry>),
   ReturnEntry(ReturnEntry),
   IdList(Vec<Token>),
+  TupleEntry(TupleEntry),
+  TupleEntryList(Vec<TupleEntry>),
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -115,6 +117,14 @@ pub enum AstState {
   Prefix,
   PrefixContents,
 
+  TupleStart,
+  TupleContents,
+  TupleEntry,
+  TupleEntryFollow,
+  TupleEntryNamedEnd,
+  TupleEntryUnnamedEnd,
+  TupleEnd,
+
   FunctionPrimary,
   FunctionParameters,
   FunctionArrow,
@@ -173,10 +183,10 @@ pub fn parse(
   state_stack.goto(AstState::StmtList);
 
   loop {
-    //ast_stack.print();
-    //state_stack.print();
+    ast_stack.print();
+    state_stack.print();
     let current_token = &tokens[token_index];
-    //println!("CURRENT TOKEN: {:?}", current_token.clone());
+    println!("CURRENT TOKEN: {:?}", current_token.clone());
     let stack_top = ast_stack.peek();
     let state = state_stack.current_state();
     match (state, stack_top, &current_token.token_type) {
@@ -1603,18 +1613,9 @@ pub fn parse(
         panic!("expr stmt error :(");
       }
 
-      (Some(AstState::Expression), _, TokenType::EndOfInput)
-      | (Some(AstState::Expression), _, TokenType::LCurly)
-      | (Some(AstState::Expression), _, TokenType::RCurly)
-      | (Some(AstState::Expression), _, TokenType::RParen)
-      | (Some(AstState::Expression), _, TokenType::RSquare)
-      | (Some(AstState::Expression), _, TokenType::Comma)
-      | (Some(AstState::Expression), _, TokenType::Newline) => {
-        state_stack.pop();
-      }
-
       (Some(AstState::Expression), _, TokenType::LParen)
       | (Some(AstState::Expression), _, TokenType::LSquare)
+      | (Some(AstState::Expression), _, TokenType::LCurly)
       | (Some(AstState::Expression), _, TokenType::Identifier)
       | (Some(AstState::Expression), _, TokenType::Number)
       | (Some(AstState::Expression), _, TokenType::String)
@@ -1622,7 +1623,7 @@ pub fn parse(
       | (Some(AstState::Expression), _, TokenType::Keyword)
       | (Some(AstState::Expression), _, TokenType::Symbol)
       | (Some(AstState::Expression), _, TokenType::Type) => {
-        state_stack.push(AstState::ExpressionFollow);
+        state_stack.goto(AstState::ExpressionFollow);
         state_stack.push(AstState::PrefixOrPrimary);
       }
 
@@ -2360,6 +2361,7 @@ pub fn parse(
 
       (Some(AstState::PrefixOrPrimary), _, TokenType::LParen)
       | (Some(AstState::PrefixOrPrimary), _, TokenType::LSquare)
+      | (Some(AstState::PrefixOrPrimary), _, TokenType::LCurly)
       | (Some(AstState::PrefixOrPrimary), _, TokenType::Identifier)
       | (Some(AstState::PrefixOrPrimary), _, TokenType::Number)
       | (Some(AstState::PrefixOrPrimary), _, TokenType::String)
@@ -2373,8 +2375,11 @@ pub fn parse(
         state_stack.goto(AstState::Prefix);
       }
 
+      (Some(AstState::Primary), _, TokenType::LCurly) => {
+        state_stack.goto(AstState::TupleStart);
+      }
+
       (Some(AstState::Primary), _, TokenType::EndOfInput)
-      | (Some(AstState::Primary), _, TokenType::LCurly)
       | (Some(AstState::Primary), _, TokenType::RParen)
       | (Some(AstState::Primary), _, TokenType::RSquare)
       | (Some(AstState::Primary), _, TokenType::Comma)
@@ -2393,6 +2398,119 @@ pub fn parse(
         ast_stack.push(AstStackSymbol::ExprList(Vec::new()));
         state_stack.goto(AstState::ArrayLiteralContents);
       }
+
+      (Some(AstState::TupleStart), _, TokenType::LCurly) => {
+        token_index += 1;
+        token_index = consume_optional_newline(tokens, token_index);
+        ast_stack.push(AstStackSymbol::Token(current_token.clone()));
+        ast_stack.push(AstStackSymbol::TupleEntryList(Vec::new()));
+        state_stack.goto(AstState::TupleContents);
+        state_stack.push(AstState::TupleEntry);
+      }
+      (Some(AstState::TupleEntry), _, TokenType::LParen)
+      | (Some(AstState::TupleEntry), _, TokenType::LSquare)
+      | (Some(AstState::TupleEntry), _, TokenType::LCurly)
+      | (Some(AstState::TupleEntry), _, TokenType::Number)
+      | (Some(AstState::TupleEntry), _, TokenType::String)
+      | (Some(AstState::TupleEntry), _, TokenType::InterpolatedString)
+      | (Some(AstState::TupleEntry), _, TokenType::Keyword)
+      | (Some(AstState::TupleEntry), _, TokenType::Symbol)
+      | (Some(AstState::TupleEntry), _, TokenType::Type) => {
+        state_stack.goto(AstState::TupleEntryUnnamedEnd);
+        state_stack.push(AstState::ExpressionFollow);
+        state_stack.push(AstState::PrefixOrPrimary);
+      }
+      (Some(AstState::TupleEntry), _, TokenType::Identifier) => {
+        token_index += 1;
+        token_index = consume_optional_newline(tokens, token_index);
+        ast_stack.push(AstStackSymbol::Token(current_token.clone()));
+        state_stack.goto(AstState::TupleEntryFollow);
+      }
+      (Some(AstState::TupleEntry), _, TokenType::RCurly) => {
+        state_stack.pop();
+      }
+      (Some(AstState::TupleEntryFollow), _, TokenType::Colon) => {
+        token_index += 1;
+        token_index = consume_optional_newline(tokens, token_index);
+        ast_stack.push(AstStackSymbol::Token(current_token.clone()));
+        state_stack.goto(AstState::TupleEntryNamedEnd);
+        state_stack.push(AstState::Expression);
+      }
+      (Some(AstState::TupleEntryFollow), _, _) => {
+        state_stack.goto(AstState::TupleEntryUnnamedEnd);
+        state_stack.push(AstState::ExpressionFollow);
+        state_stack.push(AstState::PrimaryFollow);
+      }
+      (Some(AstState::TupleEntryUnnamedEnd), Some(AstStackSymbol::Expr(expression)), TokenType::Newline) |
+      (Some(AstState::TupleEntryUnnamedEnd), Some(AstStackSymbol::Expr(expression)), TokenType::RCurly) |
+      (Some(AstState::TupleEntryUnnamedEnd), Some(AstStackSymbol::Expr(expression)), TokenType::Comma) => {
+        ast_stack.pop();
+        ast_stack.push(AstStackSymbol::TupleEntry(TupleEntry::new(None, None, expression)));
+        state_stack.pop();
+      }
+
+      (Some(AstState::TupleEntryNamedEnd), Some(AstStackSymbol::Expr(expression)), TokenType::Newline) |
+      (Some(AstState::TupleEntryNamedEnd), Some(AstStackSymbol::Expr(expression)), TokenType::RCurly) |
+      (Some(AstState::TupleEntryNamedEnd), Some(AstStackSymbol::Expr(expression)), TokenType::Comma) => {
+        ast_stack.pop();
+        let colon_sym = ast_stack.pop_panic();
+        let name_sym = ast_stack.pop_panic();
+        match (name_sym, colon_sym) {
+          (Some(AstStackSymbol::Token(name)), Some(AstStackSymbol::Token(colon))) => {
+            ast_stack.push(AstStackSymbol::TupleEntry(TupleEntry::new(Some(name), Some(colon), expression)));
+            state_stack.pop();
+          }
+          _ => panic!()
+        }
+      }
+      
+      (Some(AstState::TupleContents), _, TokenType::Newline) => {
+        token_index = consume_optional_newline(tokens, token_index);
+      }
+      (Some(AstState::TupleContents), Some(AstStackSymbol::TupleEntryList(_)), TokenType::RCurly) => {
+        state_stack.goto(AstState::TupleEnd);
+      }
+      (Some(AstState::TupleContents), Some(AstStackSymbol::TupleEntry(entry)), TokenType::Comma) => {
+        token_index += 1;
+        token_index = consume_optional_newline(tokens, token_index);
+        ast_stack.pop();
+        let mut entry_list = ast_stack.pop_panic();
+        match entry_list {
+          Some(AstStackSymbol::TupleEntryList(mut contents)) => {
+            contents.push(entry);
+            ast_stack.push(AstStackSymbol::TupleEntryList(contents));
+            state_stack.push(AstState::TupleEntry);
+          }
+          _ => panic!("bad stack")
+        }
+      }
+      (Some(AstState::TupleContents), Some(AstStackSymbol::TupleEntry(entry)), TokenType::RCurly) => {
+        ast_stack.pop();
+        let entry_list = ast_stack.pop_panic();
+        match entry_list {
+          Some(AstStackSymbol::TupleEntryList(mut contents)) => {
+            contents.push(entry);
+            ast_stack.push(AstStackSymbol::TupleEntryList(contents));
+            state_stack.goto(AstState::TupleEnd);
+          }
+          _ => panic!("bad stack")
+        }
+      }
+      (Some(AstState::TupleEnd), Some(AstStackSymbol::TupleEntryList(entry_list)), TokenType::RCurly) => {
+        ast_stack.pop();
+        let l_curly_sym = ast_stack.pop_panic();
+        match l_curly_sym {
+          Some(AstStackSymbol::Token(x)) if x.token_type == TokenType::LCurly => {
+            token_index += 1;
+            ast_stack.push(AstStackSymbol::Expr(Expression::Literal(Literal::Tuple(Tuple::new(x, entry_list, current_token.clone())))));
+            state_stack.goto(AstState::PrimaryFollow);
+          }
+          _ => panic!()
+        }
+      }
+
+      // add in tuple contents, tuple entry, tuple entry value, and tuple end here
+
       (Some(AstState::FunctionPrimary), _, TokenType::Type) => {
         if current_token.lexeme == "func" {
           ast_stack.push(AstStackSymbol::Token(current_token.clone()));

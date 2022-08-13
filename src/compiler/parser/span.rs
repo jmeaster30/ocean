@@ -287,7 +287,18 @@ impl Spanned for Literal {
 
 impl Spanned for Tuple {
   fn get_span(&self) -> (usize, usize) {
-    (self.left_paren.start, self.right_paren.end)
+    (self.left_curly.start, self.right_curly.end)
+  }
+}
+
+impl Spanned for TupleEntry {
+  fn get_span(&self) -> (usize, usize) {
+    let (expr_span_start, expr_span_end) = self.expression.get_span();
+    let start = match &self.name {
+      Some(x) => x.start,
+      None => expr_span_start
+    };
+    (start, expr_span_end)
   }
 }
 

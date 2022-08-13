@@ -3,14 +3,14 @@ let array: i32[] = 1..7
 
 println(array)
 
-let double = (a: auto T) -> (result: T = 2 * a)
+let double = func (a: auto T) -> (result: T = 2 * a)
 
 # create array [2, 4, 6, 8, 10, 12, 14]
 let doubled = array >. double
 
 println(doubled)
 
-let sum: func = (input: (auto T)[]) -> (result: T):{
+let sum = func (input: (auto T)[]) -> (result: T):{
   result = 0
   for val in input {
     result += val
@@ -19,7 +19,7 @@ let sum: func = (input: (auto T)[]) -> (result: T):{
 
 let total = array.sum()
 
-let mod2 = (a: auto T) -> (result: T):{
+let mod2 = func (a: auto T) -> (result: T):{
   result = a % 2
 }
 

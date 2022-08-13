@@ -14,7 +14,11 @@ pub fn hydro_parse(tokens: &Vec<HydroToken>) -> Vec<Instruction> {
   instruction_list
 }
 
-fn parse_instructions(tokens: &Vec<HydroToken>, token_index: usize, end: HydroTokenType) -> (Vec<Instruction>, usize) {
+fn parse_instructions(
+  tokens: &Vec<HydroToken>,
+  token_index: usize,
+  end: HydroTokenType,
+) -> (Vec<Instruction>, usize) {
   let mut instructions_list = Vec::new();
   let mut index = token_index;
 
@@ -159,7 +163,7 @@ fn parse_operation(tokens: &Vec<HydroToken>, token_index: usize) -> (Instruction
     while index < tokens.len() {
       let current_token = tokens[index].clone();
       match current_token.token_type {
-        HydroTokenType::Identifier 
+        HydroTokenType::Identifier
         | HydroTokenType::StringLiteral
         | HydroTokenType::CharLiteral
         | HydroTokenType::BooleanLiteral
@@ -185,23 +189,33 @@ fn parse_function(tokens: &Vec<HydroToken>, token_index: usize) -> (Instruction,
     let func_token = tokens[index].clone();
     index += 1;
     let func_name = match tokens[index].token_type {
-      HydroTokenType::Identifier => {
-        tokens[index].clone()
-      }
-      _ => panic!("{:?}", tokens[index])
+      HydroTokenType::Identifier => tokens[index].clone(),
+      _ => panic!("{:?}", tokens[index]),
     };
     index += 1;
     let (func_params, new_index) = parse_function_parameters(tokens, index);
     let (func_return_type, new_new_index) = parse_optional_type(tokens, new_index);
     let (func_body, new_new_new_index) = parse_compound(tokens, new_new_index);
     index = new_new_new_index;
-    (Instruction::Function(Function::new(func_token, func_name, func_params, func_return_type, func_body)), index)
+    (
+      Instruction::Function(Function::new(
+        func_token,
+        func_name,
+        func_params,
+        func_return_type,
+        func_body,
+      )),
+      index,
+    )
   } else {
     panic!("out of range {} > {}", token_index, tokens.len());
   }
 }
 
-fn parse_function_parameters(tokens: &Vec<HydroToken>, token_index: usize) -> (Vec<TypeVar>, usize) {
+fn parse_function_parameters(
+  tokens: &Vec<HydroToken>,
+  token_index: usize,
+) -> (Vec<TypeVar>, usize) {
   let mut index = token_index;
   if tokens[index].token_type == HydroTokenType::LParen {
     let left_paren = tokens[index].clone();
@@ -245,8 +259,11 @@ fn parse_optional_type(tokens: &Vec<HydroToken>, token_index: usize) -> (Option<
 fn parse_type(tokens: &Vec<HydroToken>, token_index: usize) -> (Type, usize) {
   if token_index < tokens.len() {
     match tokens[token_index].token_type {
-      HydroTokenType::Identifier | HydroTokenType::Type => (Type::BaseType(BaseType::new(tokens[token_index].clone())), token_index + 1),
-      _ => panic!("{:?}", tokens[token_index])
+      HydroTokenType::Identifier | HydroTokenType::Type => (
+        Type::BaseType(BaseType::new(tokens[token_index].clone())),
+        token_index + 1,
+      ),
+      _ => panic!("{:?}", tokens[token_index]),
     }
   } else {
     panic!("out of range {} > {}", token_index, tokens.len())
@@ -267,10 +284,10 @@ fn parse_compound(tokens: &Vec<HydroToken>, token_index: usize) -> (Vec<Instruct
             println!("here {}", index);
             (instructions, index)
           }
-          _ => panic!("{:?}", tokens[new_index])
+          _ => panic!("{:?}", tokens[new_index]),
         }
       }
-      _ => panic!("{:?}", tokens[index])
+      _ => panic!("{:?}", tokens[index]),
     }
   } else {
     panic!("out of range {} > {}", token_index, tokens.len())
@@ -295,9 +312,15 @@ fn parse_if(tokens: &Vec<HydroToken>, token_index: usize) -> (Instruction, usize
       HydroTokenType::Keyword if tokens[new_index].lexeme == "else" => {
         // TODO add else if
         let (false_insts, new_new_index) = parse_compound(tokens, new_index + 1);
-        (Instruction::If(If::new(operation, true_insts, false_insts)), new_new_index)
+        (
+          Instruction::If(If::new(operation, true_insts, false_insts)),
+          new_new_index,
+        )
       }
-      _ => (Instruction::If(If::new(operation, true_insts, Vec::new())), new_index)
+      _ => (
+        Instruction::If(If::new(operation, true_insts, Vec::new())),
+        new_index,
+      ),
     }
   } else {
     panic!("out of range {} > {}", token_index, tokens.len())
@@ -346,10 +369,10 @@ fn parse_type_var(tokens: &Vec<HydroToken>, token_index: usize) -> (TypeVar, usi
             let (var_type, new_index) = parse_type(tokens, index);
             (TypeVar::new(var_name, var_type), new_index)
           }
-          _ => panic!("{:?}", tokens[index].token_type)
+          _ => panic!("{:?}", tokens[index].token_type),
         }
       }
-      _ => panic!("{:?}", tokens[index].token_type)
+      _ => panic!("{:?}", tokens[index].token_type),
     }
   } else {
     panic!("out of range {} > {}", token_index, tokens.len())

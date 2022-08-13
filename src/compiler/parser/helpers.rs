@@ -25,6 +25,8 @@ impl fmt::Display for AstStackSymbol {
       AstStackSymbol::ReturnList(_) => "ReturnList",
       AstStackSymbol::ReturnEntry(_) => "ReturnEntry",
       AstStackSymbol::IdList(_) => "IdList",
+      AstStackSymbol::TupleEntry(_) => "TupleEntry",
+      AstStackSymbol::TupleEntryList(_) => "TupleEntryList",
     })
   }
 }

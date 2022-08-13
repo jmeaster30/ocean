@@ -55,19 +55,19 @@ impl Assignment {
 pub struct If {
   condition: OperationOrPrimary,
   true_body: Vec<Instruction>,
-  else_body: Vec<Instruction>
+  else_body: Vec<Instruction>,
 }
 
 impl If {
   pub fn new(
     condition: OperationOrPrimary,
     true_body: Vec<Instruction>,
-    else_body: Vec<Instruction>
+    else_body: Vec<Instruction>,
   ) -> Self {
     Self {
       condition,
       true_body,
-      else_body
+      else_body,
     }
   }
 }
@@ -78,24 +78,20 @@ pub struct Return {
 }
 
 impl Return {
-    pub fn new(value: OperationOrPrimary) -> Self { Self { value } }
+  pub fn new(value: OperationOrPrimary) -> Self {
+    Self { value }
+  }
 }
 
 #[derive(Clone, Debug)]
 pub struct Loop {
   condition: OperationOrPrimary,
-  body: Vec<Instruction>
+  body: Vec<Instruction>,
 }
 
 impl Loop {
-  pub fn new(
-    condition: OperationOrPrimary,
-    body: Vec<Instruction>,
-  ) -> Self {
-    Self {
-      condition,
-      body
-    }
+  pub fn new(condition: OperationOrPrimary, body: Vec<Instruction>) -> Self {
+    Self { condition, body }
   }
 }
 

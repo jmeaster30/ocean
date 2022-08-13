@@ -368,9 +368,22 @@ impl fmt::Display for Literal {
 impl fmt::Display for Tuple {
   fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
     fmt.write_str("(Tuple")?;
-    for (exp, _comma) in &self.contents {
-      fmt.write_str(format!(" {}", exp).as_str())?;
+    for entry in &self.contents {
+      fmt.write_str(format!(" {}", entry).as_str())?;
     }
+    fmt.write_str(")")?;
+    Ok(())
+  }
+}
+
+impl fmt::Display for TupleEntry {
+  fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+    fmt.write_str("(TupleEntry ")?;
+    match &self.name {
+      Some(x) => fmt.write_str(format!("(Name '{}') ", x.lexeme).as_str())?,
+      None => fmt.write_str("(Anon) ")?
+    }
+    self.expression.fmt(fmt)?;
     fmt.write_str(")")?;
     Ok(())
   }
