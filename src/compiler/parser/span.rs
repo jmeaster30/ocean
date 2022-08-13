@@ -330,7 +330,7 @@ impl Spanned for Type {
       Type::Base(x) => x.get_span(),
       Type::Lazy(x) => x.get_span(),
       Type::Ref(x) => x.get_span(),
-      Type::Optional(x) => x.get_span(),
+      Type::Mutable(x) => x.get_span(),
       Type::Array(x) => x.get_span(),
       Type::VarType(x) => x.get_span(),
     }
@@ -388,10 +388,10 @@ impl Spanned for RefType {
   }
 }
 
-impl Spanned for OptionalType {
+impl Spanned for MutableType {
   fn get_span(&self) -> (usize, usize) {
     let (_, sub_type_end) = (*self.sub_type).get_span();
-    (self.optional_token.start, sub_type_end)
+    (self.mut_token.start, sub_type_end)
   }
 }
 

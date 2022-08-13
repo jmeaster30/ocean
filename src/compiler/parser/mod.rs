@@ -1036,7 +1036,7 @@ pub fn parse(
         } else if current_token.lexeme == "comp"
           || current_token.lexeme == "lazy"
           || current_token.lexeme == "ref"
-          || current_token.lexeme == "optional"
+          || current_token.lexeme == "mut"
         {
           ast_stack.push(AstStackSymbol::Token(current_token.clone()));
           token_index += 1;
@@ -1104,7 +1104,7 @@ pub fn parse(
             auto_token, None,
           ))));
         }
-        state_stack.goto(AstState::BaseTypeFollow); // resolve typechain
+        state_stack.goto(AstState::BaseTypeFollow);
       }
       (Some(AstState::AutoTypeFollow), _, _) => {
         panic!("I don't understand what happened here in state 11")
@@ -1177,8 +1177,8 @@ pub fn parse(
                   token,
                   Box::new(base),
                 ))));
-              } else if token.lexeme == "optional" {
-                ast_stack.push(AstStackSymbol::Type(Type::Optional(OptionalType::new(
+              } else if token.lexeme == "mut" {
+                ast_stack.push(AstStackSymbol::Type(Type::Mutable(MutableType::new(
                   token,
                   Box::new(base),
                 ))));

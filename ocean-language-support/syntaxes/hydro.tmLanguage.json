@@ -1,0 +1,88 @@
+{
+	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+	"name": "hydro",
+	"patterns": [
+		{ "include": "#types" },
+		{ "include": "#keywords_control" },
+		{ "include": "#keywords_literal" },
+		{ "include": "#variable" },
+		{ "include": "#identifier" },
+		{ "include": "#numbers" },
+		{ "include": "#block_comment" },
+		{ "include": "#comment" },
+		{ "include": "#strings" },
+		{ "include": "#strings_single" }
+	],
+	"repository": {
+		"types": {
+			"patterns": [{
+				"name": "storage.type.hydro",
+				"match": "\\b(i8|i16|i32|i64|f32|f64|u8|u16|u32|u64|string|auto|bool|void|ref)\\b"
+			}]
+		},
+		"keywords_control": {
+			"patterns": [{
+				"name": "keyword.control.hydro",
+				"match": "\\b(if|while|return|continue|break|else|func)\\b"
+			}]
+		},
+		"keywords_literal": {
+			"patterns": [{
+				"name": "constant.language.hydro",
+				"match": "\\b(true|false)\\b"
+			}]
+		},
+		"identifier": {
+			"patterns": [{
+				"name": "entity.name.function.hydro",
+				"match": "[a-zA-Z_][a-zA-Z0-9_]*"
+			}]
+		},
+		"variable": {
+			"patterns": [{
+				"name": "variable.name.hydro",
+				"match": "@[a-zA-Z_][a-zA-Z0-9_]*"
+			}]
+		},
+		"numbers": {
+			"patterns": [{
+				"name": "constant.numeric.hydro",
+				"match": "\\b([0-9]+(\\.[0-9]+)?)\\b"
+			}]
+		},
+		"block_comment": {
+			"name": "comment.block.hydro",
+			"begin": "#/",
+			"end": "/#"
+		},
+		"comment": {
+			"patterns": [{
+				"name": "comment.line.number-sign.hydro",
+				"match": "#.*$"
+			}]
+		},
+		"strings": {
+			"name": "string.quoted.double.hydro",
+			"begin": "\"",
+			"end": "\"",
+			"patterns": [
+				{
+					"name": "constant.character.escape.hydro",
+					"match": "\\\\."
+				}
+			]
+		},
+		"strings_single": {
+			"name": "string.quoted.single.hydro",
+			"begin": "'",
+			"end": "'",
+			"patterns": [
+				{
+					"name": "constant.character.escape.hydro",
+					"match": "\\\\."
+				}
+			]
+		}
+	},
+	"scopeName": "source.hydro"
+}

@@ -420,7 +420,7 @@ impl fmt::Display for Type {
       Type::Base(x) => x.fmt(fmt)?,
       Type::Lazy(x) => x.fmt(fmt)?,
       Type::Ref(x) => x.fmt(fmt)?,
-      Type::Optional(x) => x.fmt(fmt)?,
+      Type::Mutable(x) => x.fmt(fmt)?,
       Type::Array(x) => x.fmt(fmt)?,
       Type::VarType(x) => x.fmt(fmt)?,
     };
@@ -492,9 +492,9 @@ impl fmt::Display for RefType {
   }
 }
 
-impl fmt::Display for OptionalType {
+impl fmt::Display for MutableType {
   fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-    fmt.write_str(format!("(OptionalType {})", self.sub_type).as_str())?;
+    fmt.write_str(format!("(MutableType {})", self.sub_type).as_str())?;
     Ok(())
   }
 }

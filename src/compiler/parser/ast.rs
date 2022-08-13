@@ -704,7 +704,7 @@ pub enum Type {
   Base(BaseType),
   Lazy(LazyType),
   Ref(RefType),
-  Optional(OptionalType),
+  Mutable(MutableType),
   Array(ArrayType),
   VarType(VarType),
 }
@@ -828,15 +828,15 @@ impl RefType {
 }
 
 #[derive(Clone)]
-pub struct OptionalType {
-  pub optional_token: Token,
+pub struct MutableType {
+  pub mut_token: Token,
   pub sub_type: Box<Type>,
 }
 
-impl OptionalType {
-  pub fn new(optional_token: Token, sub_type: Box<Type>) -> Self {
+impl MutableType {
+  pub fn new(mut_token: Token, sub_type: Box<Type>) -> Self {
     Self {
-      optional_token,
+      mut_token,
       sub_type,
     }
   }

@@ -8,6 +8,9 @@ pub enum Instruction {
   Loop(Loop),
   Function(Function),
   TypeDefinition(TypeDefinition),
+  Return(Return),
+  Break,
+  Continue,
 }
 
 #[derive(Clone, Debug)]
@@ -50,66 +53,48 @@ impl Assignment {
 
 #[derive(Clone, Debug)]
 pub struct If {
-  if_token: HydroToken,
-  condition: Operation,
-  left_curly: HydroToken,
+  condition: OperationOrPrimary,
   true_body: Vec<Instruction>,
-  right_curly: HydroToken,
-  else_token: Option<HydroToken>,
-  else_left_curly: Option<HydroToken>,
-  else_body: Vec<Instruction>,
-  else_right_curly: Option<HydroToken>,
+  else_body: Vec<Instruction>
 }
 
 impl If {
   pub fn new(
-    if_token: HydroToken,
-    condition: Operation,
-    left_curly: HydroToken,
+    condition: OperationOrPrimary,
     true_body: Vec<Instruction>,
-    right_curly: HydroToken,
-    else_token: Option<HydroToken>,
-    else_left_curly: Option<HydroToken>,
-    else_body: Vec<Instruction>,
-    else_right_curly: Option<HydroToken>,
+    else_body: Vec<Instruction>
   ) -> Self {
     Self {
-      if_token,
       condition,
-      left_curly,
       true_body,
-      right_curly,
-      else_token,
-      else_left_curly,
-      else_body,
-      else_right_curly,
+      else_body
     }
   }
 }
 
 #[derive(Clone, Debug)]
+pub struct Return {
+  value: OperationOrPrimary,
+}
+
+impl Return {
+    pub fn new(value: OperationOrPrimary) -> Self { Self { value } }
+}
+
+#[derive(Clone, Debug)]
 pub struct Loop {
-  while_token: HydroToken,
-  condition: Operation,
-  left_curly: HydroToken,
-  body: Vec<Instruction>,
-  right_curly: HydroToken,
+  condition: OperationOrPrimary,
+  body: Vec<Instruction>
 }
 
 impl Loop {
   pub fn new(
-    while_token: HydroToken,
-    condition: Operation,
-    left_curly: HydroToken,
+    condition: OperationOrPrimary,
     body: Vec<Instruction>,
-    right_curly: HydroToken,
   ) -> Self {
     Self {
-      while_token,
       condition,
-      left_curly,
-      body,
-      right_curly,
+      body
     }
   }
 }
@@ -118,48 +103,25 @@ impl Loop {
 pub struct Function {
   func_token: HydroToken,
   identifier: HydroToken,
-  parameter_list: Option<ParameterList>,
-  return_type: Option<HydroToken>,
-  left_curly: HydroToken,
+  parameter_list: Vec<TypeVar>,
+  return_type: Option<Type>,
   body: Vec<Instruction>,
-  right_curly: HydroToken,
 }
 
 impl Function {
   pub fn new(
     func_token: HydroToken,
     identifier: HydroToken,
-    parameter_list: Option<ParameterList>,
-    return_type: Option<HydroToken>,
-    left_curly: HydroToken,
+    parameter_list: Vec<TypeVar>,
+    return_type: Option<Type>,
     body: Vec<Instruction>,
-    right_curly: HydroToken,
   ) -> Self {
     Self {
       func_token,
       identifier,
       parameter_list,
       return_type,
-      left_curly,
       body,
-      right_curly,
-    }
-  }
-}
-
-#[derive(Clone, Debug)]
-pub struct ParameterList {
-  left_paren: HydroToken,
-  params: Vec<TypeVar>,
-  right_paren: HydroToken,
-}
-
-impl ParameterList {
-  pub fn new(left_paren: HydroToken, params: Vec<TypeVar>, right_paren: HydroToken) -> Self {
-    Self {
-      left_paren,
-      params,
-      right_paren,
     }
   }
 }
@@ -194,15 +156,13 @@ impl TypeDefinition {
 #[derive(Clone, Debug)]
 pub struct TypeVar {
   identifier: HydroToken,
-  colon: HydroToken,
   type_def: Type,
 }
 
 impl TypeVar {
-  pub fn new(identifier: HydroToken, colon: HydroToken, type_def: Type) -> Self {
+  pub fn new(identifier: HydroToken, type_def: Type) -> Self {
     Self {
       identifier,
-      colon,
       type_def,
     }
   }
