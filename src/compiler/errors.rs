@@ -188,7 +188,7 @@ fn print_source_line(
       c = b' ';
     }
 
-    if (index >= start_offset && index < end_offset)
+    if (index >= start_offset && index <= end_offset)
       || (start_offset == end_offset && index == start_offset)
     {
       // In the error span

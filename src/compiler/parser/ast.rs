@@ -447,7 +447,24 @@ pub enum Expression {
   Literal(Literal),
   Var(UntypedVar),
   FunctionCall(FunctionCall),
-  //Error(Severity, String, Vec<Token>)
+  Error(ErrorExpression),
+}
+
+#[derive(Clone)]
+pub struct ErrorExpression {
+  pub severity: Severity,
+  pub message: String,
+  pub tokens: Vec<Token>,
+}
+
+impl ErrorExpression {
+  pub fn new(severity: Severity, message: String, tokens: Vec<Token>) -> Self {
+    Self {
+      severity,
+      message,
+      tokens,
+    }
+  }
 }
 
 #[derive(Clone)]

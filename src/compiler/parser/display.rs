@@ -281,7 +281,15 @@ impl fmt::Display for Expression {
       Expression::Literal(x) => x.fmt(fmt),
       Expression::Var(x) => x.fmt(fmt),
       Expression::FunctionCall(x) => x.fmt(fmt),
+      Expression::Error(x) => x.fmt(fmt),
     }
+  }
+}
+
+impl fmt::Display for ErrorExpression {
+  fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+    fmt.write_str(format!("(ErrorExpression '{:?}' '{}')", self.severity, self.message).as_str())?;
+    Ok(())
   }
 }
 
@@ -381,7 +389,7 @@ impl fmt::Display for TupleEntry {
     fmt.write_str("(TupleEntry ")?;
     match &self.name {
       Some(x) => fmt.write_str(format!("(Name '{}') ", x.lexeme).as_str())?,
-      None => fmt.write_str("(Anon) ")?
+      None => fmt.write_str("(Anon) ")?,
     }
     self.expression.fmt(fmt)?;
     fmt.write_str(")")?;

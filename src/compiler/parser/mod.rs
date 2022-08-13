@@ -38,6 +38,7 @@ pub enum AstStackSymbol {
 pub enum AstState {
   StmtList,
   StmtFinalize,
+  Error,
 
   UseStmtIdList,
   UseStmtIdListFollow,
@@ -288,10 +289,9 @@ pub fn parse(
           token_index += 1;
           token_index = consume_optional_newline(tokens, token_index);
         } else {
-          panic!("I SHOULD NOT BE HERE INF LOOP STMT");
+          state_stack.push(AstState::Error);
         }
       }
-      (Some(AstState::InfiniteLoopStmt), _, _) => panic!("I SHOULD NOT BE HERE INF LOOP STMT"),
       (Some(AstState::InfiniteLoopBody), _, TokenType::LCurly) => {
         ast_stack.push(AstStackSymbol::Token(current_token.clone()));
         ast_stack.push(AstStackSymbol::StmtList(Vec::new()));
@@ -318,7 +318,6 @@ pub fn parse(
           _ => panic!("bad stack infinite loop body"),
         }
       }
-      (Some(AstState::InfiniteLoopBody), _, _) => panic!("unexpected case infinite loop body :("),
       (Some(AstState::WhileLoopStmt), Some(AstStackSymbol::Expr(_)), _) => {
         token_index = consume_optional_newline(tokens, token_index);
         state_stack.goto(AstState::WhileLoopBody);
@@ -329,10 +328,9 @@ pub fn parse(
           state_stack.push(AstState::Expression);
           token_index += 1;
         } else {
-          panic!("I SHOULD NOT BE HERE WHILE LOOP STMT");
+          state_stack.push(AstState::Error);
         }
       }
-      (Some(AstState::WhileLoopStmt), _, _) => panic!("I SHOULD NOT BE HERE WHILE LOOP STMT"),
       (Some(AstState::WhileLoopBody), _, TokenType::LCurly) => {
         ast_stack.push(AstStackSymbol::Token(current_token.clone()));
         ast_stack.push(AstStackSymbol::StmtList(Vec::new()));
@@ -366,23 +364,20 @@ pub fn parse(
           _ => panic!("bad stack infinite loop body"),
         }
       }
-      (Some(AstState::WhileLoopBody), _, _) => panic!("unexpected case while loop body :("),
       (Some(AstState::ForLoopStmt), _, TokenType::Keyword) => {
         if current_token.lexeme == "for" {
           ast_stack.push(AstStackSymbol::Token(current_token.clone()));
           state_stack.goto(AstState::ForLoopIterator);
           token_index += 1;
         } else {
-          panic!("I SHOULD NOT BE HERE WHILE LOOP STMT");
+          state_stack.push(AstState::Error);
         }
       }
-      (Some(AstState::ForLoopStmt), _, _) => panic!("I SHOULD NOT BE HERE WHILE LOOP STMT"),
       (Some(AstState::ForLoopIterator), _, TokenType::Identifier) => {
         ast_stack.push(AstStackSymbol::Token(current_token.clone()));
         state_stack.goto(AstState::ForLoopExpression);
         token_index += 1;
       }
-      (Some(AstState::ForLoopIterator), _, _) => panic!("for loop iterator unexpected token"),
       (Some(AstState::ForLoopExpression), Some(AstStackSymbol::Expr(_)), _) => {
         state_stack.goto(AstState::ForLoopBody);
         token_index = consume_optional_newline(tokens, token_index);
@@ -393,10 +388,9 @@ pub fn parse(
           token_index += 1;
           state_stack.push(AstState::Expression);
         } else {
-          panic!("Unexpected keyword {} expected 'in'", current_token);
+          state_stack.push(AstState::Error);
         }
       }
-      (Some(AstState::ForLoopExpression), _, _) => panic!("unexpected token for loop expression"),
       (Some(AstState::ForLoopBody), _, TokenType::LCurly) => {
         ast_stack.push(AstStackSymbol::Token(current_token.clone()));
         ast_stack.push(AstStackSymbol::StmtList(Vec::new()));
@@ -442,7 +436,6 @@ pub fn parse(
           _ => panic!("bad stack infinite loop body"),
         }
       }
-      (Some(AstState::ForLoopBody), _, _) => panic!("unexpected case while loop body :("),
       (Some(AstState::IfStmt), Some(AstStackSymbol::Expr(_)), TokenType::Newline) => {
         token_index = consume_optional_newline(tokens, token_index);
       }
@@ -458,10 +451,9 @@ pub fn parse(
           token_index += 1;
           state_stack.push(AstState::Expression);
         } else {
-          panic!();
+          state_stack.push(AstState::Error);
         }
       }
-      (Some(AstState::IfStmt), _, _) => panic!(),
       (Some(AstState::IfStmtBody), Some(AstStackSymbol::StmtList(_)), TokenType::RCurly) => {
         ast_stack.push(AstStackSymbol::Token(current_token.clone()));
         token_index += 1;
@@ -471,7 +463,6 @@ pub fn parse(
         ast_stack.push(AstStackSymbol::StmtList(Vec::new()));
         state_stack.push(AstState::StmtList);
       }
-      (Some(AstState::IfStmtBody), _, _) => panic!(),
       (Some(AstState::IfStmtFollow), Some(AstStackSymbol::Token(_)), TokenType::Newline) => {
         token_index = consume_optional_newline(tokens, token_index);
       }
@@ -544,7 +535,6 @@ pub fn parse(
           _ => panic!(),
         }
       }
-      (Some(AstState::IfStmtFollow), _, _) => panic!(),
       (Some(AstState::IfStmtElseBody), Some(AstStackSymbol::Token(_)), TokenType::LCurly) => {
         ast_stack.push(AstStackSymbol::Token(current_token.clone()));
         ast_stack.push(AstStackSymbol::StmtList(Vec::new()));
@@ -557,7 +547,7 @@ pub fn parse(
         if current_token.lexeme == "if" {
           state_stack.push(AstState::IfStmt);
         } else {
-          panic!();
+          state_stack.push(AstState::Error);
         }
       }
       (Some(AstState::IfStmtElseBody), Some(AstStackSymbol::Stmt(statement)), _) => {
@@ -600,7 +590,6 @@ pub fn parse(
           _ => panic!(),
         }
       }
-      (Some(AstState::IfStmtElseBody), _, _) => panic!(),
       (
         Some(AstState::IfStmtFinalize),
         Some(AstStackSymbol::StmtList(statements)),
@@ -646,7 +635,7 @@ pub fn parse(
             token_index += 1;
             state_stack.pop();
           }
-          _ => panic!(),
+          _ => panic!("bad stack"),
         }
       }
       (Some(AstState::CastDecStmt), _, TokenType::Keyword) => {
@@ -752,9 +741,6 @@ pub fn parse(
           _ => panic!("uhoh we weren't meant to get here :("),
         }
       }
-      (Some(AstState::LetExpression), _, _) => {
-        panic!("Unexpected token let expression :(");
-      }
       (
         Some(AstState::UseStmtIdList),
         Some(AstStackSymbol::IdList(mut contents)),
@@ -770,9 +756,6 @@ pub fn parse(
         ast_stack.push(AstStackSymbol::IdList(contents));
         state_stack.push(AstState::UseStmtIdListFollow);
         token_index += 1;
-      }
-      (Some(AstState::UseStmtIdList), _, _) => {
-        panic!("Unexpected token {}!! expected identifier", current_token)
       }
       (Some(AstState::UseStmtIdListFollow), Some(AstStackSymbol::IdList(_)), TokenType::Dot) => {
         token_index += 1;
@@ -817,9 +800,6 @@ pub fn parse(
         state_stack.pop();
         state_stack.goto(AstState::StmtFinalize);
       }
-      (Some(AstState::UseStmtIdListFollow), _, _) => {
-        panic!("Unexpected token {}!! expected identifier", current_token)
-      }
       (Some(AstState::UseStmtAlias), Some(_), TokenType::Identifier) => {
         let as_token = ast_stack.pop_panic();
         let id_list = ast_stack.pop_panic();
@@ -842,17 +822,11 @@ pub fn parse(
         token_index += 1;
         state_stack.goto(AstState::StmtFinalize);
       }
-      (Some(AstState::UseStmtAlias), _, _) => {
-        panic!("Unexpected token {}!! expected identifier", current_token)
-      }
       (Some(AstState::PackDecName), Some(_), TokenType::Identifier) => {
         ast_stack.push(AstStackSymbol::Token(current_token.clone()));
         token_index += 1;
         token_index = consume_optional_newline(tokens, token_index);
         state_stack.goto(AstState::PackDecStartEntryList);
-      }
-      (Some(AstState::PackDecName), _, _) => {
-        panic!("Unexpected token {}!! expected identifier", current_token)
       }
       (Some(AstState::PackDecStartEntryList), Some(_), TokenType::LCurly) => {
         ast_stack.push(AstStackSymbol::Token(current_token.clone()));
@@ -860,9 +834,6 @@ pub fn parse(
         token_index += 1;
         token_index = consume_optional_newline(tokens, token_index);
         state_stack.goto(AstState::PackDecEntry);
-      }
-      (Some(AstState::PackDecStartEntryList), _, _) => {
-        panic!("Unexpected token {}!! expected left curly", current_token)
       }
       (
         Some(AstState::PackDecEntry),
@@ -884,7 +855,6 @@ pub fn parse(
       (Some(AstState::PackDecEntry), Some(AstStackSymbol::PackDecList(_)), TokenType::RCurly) => {
         state_stack.goto(AstState::PackDecFinalize);
       }
-      (Some(AstState::PackDecEntry), _, _) => panic!("PackDecEntry error {}", current_token),
       (Some(AstState::PackDecEntryExpression), Some(AstStackSymbol::Expr(expression)), _) => {
         ast_stack.pop();
         let assign_token_sym = ast_stack.pop_panic();
@@ -902,9 +872,6 @@ pub fn parse(
       (Some(AstState::PackDecEntryExpression), Some(_), _) => {
         state_stack.push(AstState::Expression);
       }
-      (Some(AstState::PackDecEntryExpression), _, _) => {
-        panic!("Unexpected token in pack dec entry expression")
-      }
       (
         Some(AstState::PackDecEntryFinalize),
         Some(AstStackSymbol::PackDec(_)),
@@ -915,7 +882,7 @@ pub fn parse(
           state_stack.push(AstState::PackDecEntryExpression);
           token_index += 1;
         } else {
-          panic!("unexpected symbol following a pack declaration");
+          state_stack.push(AstState::Error);
         }
       }
       (
@@ -957,9 +924,6 @@ pub fn parse(
           _ => panic!("Pack dec finalize has busted stack rcurly"),
         }
       }
-      (Some(AstState::PackDecEntryFinalize), _, _) => {
-        panic!("unexpected pack dec entry finalize {}", current_token)
-      }
       (
         Some(AstState::PackDecFinalize),
         Some(AstStackSymbol::PackDecList(contents)),
@@ -984,7 +948,6 @@ pub fn parse(
           _ => panic!("Unexpected stack contents!!!! pack dec finalize"),
         }
       }
-      (Some(AstState::PackDecFinalize), _, _) => panic!("Pack dec finalize mismove"),
       (Some(AstState::Var), _, TokenType::Identifier) => {
         ast_stack.push(AstStackSymbol::Token(current_token.clone()));
         token_index += 1;
@@ -1012,14 +975,10 @@ pub fn parse(
       (Some(AstState::TypeVar), Some(AstStackSymbol::Type(_)), _) => {
         state_stack.goto(AstState::TypeVarFinalize);
       }
-      (Some(AstState::TypeVar), _, _) => panic!("aw crap :("),
       (Some(AstState::TypeVarColon), Some(_), TokenType::Colon) => {
         ast_stack.push(AstStackSymbol::Token(current_token.clone()));
         token_index += 1;
         state_stack.goto(AstState::Type);
-      }
-      (Some(AstState::TypeVarColon), _, _) => {
-        panic!("Unexpected token {}!! expected colon", current_token)
       }
       (Some(AstState::TypeVarFinalize), Some(AstStackSymbol::Type(x)), _) => {
         ast_stack.pop();
@@ -1037,7 +996,6 @@ pub fn parse(
           _ => panic!("busted type var finalize stack"),
         }
       }
-      (Some(AstState::TypeVarFinalize), _, _) => panic!("type var finalize error"),
       (Some(AstState::Type), _, TokenType::Type) => {
         if current_token.lexeme == "auto" {
           ast_stack.push(AstStackSymbol::Token(current_token.clone()));
@@ -1100,7 +1058,6 @@ pub fn parse(
       (Some(AstState::SubType), _, TokenType::Type) => {
         state_stack.push(AstState::Type);
       }
-      (Some(AstState::SubType), _, _) => panic!("aw crap :( subtype"),
       (Some(AstState::AutoTypeFollow), Some(AstStackSymbol::Token(auto_token)), _) => {
         ast_stack.pop();
         if current_token.token_type == TokenType::Identifier {
@@ -1116,9 +1073,6 @@ pub fn parse(
         }
         state_stack.goto(AstState::BaseTypeFollow);
       }
-      (Some(AstState::AutoTypeFollow), _, _) => {
-        panic!("I don't understand what happened here in state 11")
-      }
       (Some(AstState::BaseTypeFollow), Some(AstStackSymbol::Type(_)), TokenType::LSquare) => {
         ast_stack.push(AstStackSymbol::Token(current_token.clone()));
         ast_stack.push(AstStackSymbol::OptType(None));
@@ -1127,9 +1081,6 @@ pub fn parse(
       }
       (Some(AstState::BaseTypeFollow), Some(AstStackSymbol::Type(_)), _) => {
         state_stack.goto(AstState::TypeChainResolve);
-      }
-      (Some(AstState::BaseTypeFollow), _, _) => {
-        panic!("whoops :(");
       }
       (
         Some(AstState::BaseTypeFollowEnd),
@@ -1193,7 +1144,7 @@ pub fn parse(
                   Box::new(base),
                 ))));
               } else {
-                panic!("unexpected type token. Expected a type modifier");
+                state_stack.push(AstState::Error);
               }
             }
             _ => {
@@ -1247,7 +1198,6 @@ pub fn parse(
         ))));
         state_stack.goto(AstState::BaseTypeFollow);
       }
-      (Some(AstState::FuncTypeParamListStart), _, _) => panic!("func type param list start :("),
       (Some(AstState::FuncTypeParamList), Some(AstStackSymbol::TypeList(_)), TokenType::Colon) => {
         ast_stack.push(AstStackSymbol::Token(current_token.clone()));
         ast_stack.push(AstStackSymbol::TypeList(Vec::new()));
@@ -1275,9 +1225,6 @@ pub fn parse(
           }
           _ => panic!("busted state stack func type param list after type"),
         }
-      }
-      (Some(AstState::FuncTypeParamList), _, _) => {
-        panic!("unexpected token {} at func type param list", current_token);
       }
       (Some(AstState::FuncTypeParamListFollow), _, TokenType::Newline) => {
         token_index = consume_optional_newline(tokens, token_index);
@@ -1318,10 +1265,6 @@ pub fn parse(
           _ => panic!("wacked out stack"),
         }
       }
-      (Some(AstState::FuncTypeParamListFollow), _, _) => panic!(
-        "unexpected token {} at func type param list follow",
-        current_token
-      ),
       (
         Some(AstState::FuncTypeReturnList),
         Some(AstStackSymbol::TypeList(_)),
@@ -1350,12 +1293,6 @@ pub fn parse(
           }
           _ => panic!("busted state stack func type return list after type"),
         }
-      }
-      (Some(AstState::FuncTypeReturnList), _, _) => {
-        panic!(
-          "unexpected token {} at func type return list",
-          current_token
-        );
       }
       (Some(AstState::FuncTypeReturnListFollow), _, TokenType::Comma) => {
         token_index += 1;
@@ -1401,18 +1338,11 @@ pub fn parse(
           _ => panic!("wacked out stack"),
         }
       }
-      (Some(AstState::FuncTypeReturnListFollow), _, _) => panic!(
-        "unexpected token {} at func type return list follow",
-        current_token
-      ),
       (Some(AstState::UnionDecName), Some(_), TokenType::Identifier) => {
         ast_stack.push(AstStackSymbol::Token(current_token.clone()));
         token_index += 1;
         token_index = consume_optional_newline(tokens, token_index);
         state_stack.goto(AstState::UnionDecStartEntryList);
-      }
-      (Some(AstState::UnionDecName), _, _) => {
-        panic!("Unexpected token {}!! expected identifier", current_token)
       }
       (Some(AstState::UnionDecStartEntryList), Some(_), TokenType::LCurly) => {
         ast_stack.push(AstStackSymbol::Token(current_token.clone()));
@@ -1420,9 +1350,6 @@ pub fn parse(
         token_index += 1;
         token_index = consume_optional_newline(tokens, token_index);
         state_stack.goto(AstState::UnionDecEntry);
-      }
-      (Some(AstState::UnionDecStartEntryList), _, _) => {
-        panic!("Unexpected token {}!! expected left curly", current_token)
       }
       (
         Some(AstState::UnionDecEntry),
@@ -1443,7 +1370,7 @@ pub fn parse(
       (Some(AstState::UnionDecEntry), Some(AstStackSymbol::UnionDecList(_)), TokenType::RCurly) => {
         state_stack.goto(AstState::UnionDecFinalize);
       }
-      (Some(AstState::UnionDecEntry), _, _) => panic!("UnionDecEntry error {}", current_token),
+      (Some(AstState::UnionDecEntry), _, _) => state_stack.push(AstState::Error),
       (Some(AstState::UnionDecStorageStart), Some(_), TokenType::LParen) => {
         ast_stack.push(AstStackSymbol::Token(current_token.clone()));
         ast_stack.push(AstStackSymbol::TypeList(Vec::new()));
@@ -1470,7 +1397,7 @@ pub fn parse(
         )));
         state_stack.goto(AstState::UnionDecEntryFinalize);
       }
-      (Some(AstState::UnionDecStorageStart), _, _) => panic!("aw crap no paren {}", current_token),
+      (Some(AstState::UnionDecStorageStart), _, _) => state_stack.push(AstState::Error),
       (Some(AstState::UnionDecStorage), Some(AstStackSymbol::TypeList(_)), TokenType::RParen) => {
         state_stack.goto(AstState::UnionDecStorageFollow);
       }
@@ -1529,7 +1456,7 @@ pub fn parse(
       ) => {
         token_index = consume_optional_newline(tokens, token_index);
       }
-      (Some(AstState::UnionDecStorageFollow), _, _) => panic!("whoops :("),
+      (Some(AstState::UnionDecStorageFollow), _, _) => state_stack.push(AstState::Error),
       (
         Some(AstState::UnionDecEntryFinalize),
         Some(AstStackSymbol::UnionDec(entry)),
@@ -1570,7 +1497,7 @@ pub fn parse(
         }
       }
       (Some(AstState::UnionDecEntryFinalize), _, _) => {
-        panic!("unexpected union dec entry finalize {}", current_token)
+        state_stack.push(AstState::Error);
       }
       (
         Some(AstState::UnionDecFinalize),
@@ -1596,7 +1523,7 @@ pub fn parse(
           _ => panic!("Unexpected stack contents!!!! union dec finalize"),
         }
       }
-      (Some(AstState::UnionDecFinalize), _, _) => panic!("Pack dec finalize mismove"),
+      (Some(AstState::UnionDecFinalize), _, _) => state_stack.push(AstState::Error),
 
       //* EXPRESSION SECTION
       (Some(AstState::ExprStmt), Some(AstStackSymbol::Expr(expression)), _) => {
@@ -1610,7 +1537,7 @@ pub fn parse(
         state_stack.push(AstState::Expression);
       }
       (Some(AstState::ExprStmt), _, _) => {
-        panic!("expr stmt error :(");
+        state_stack.push(AstState::Error);
       }
 
       (Some(AstState::Expression), _, TokenType::LParen)
@@ -1701,7 +1628,7 @@ pub fn parse(
             )));
             state_stack.pop();
           }
-          _ => panic!("unexpected stack default"),
+          _ => panic!("unexpected stack expression"),
         }
       }
 
@@ -1766,7 +1693,7 @@ pub fn parse(
             )));
             state_stack.pop();
           }
-          _ => panic!("unexpected stack default"),
+          _ => panic!("unexpected stack equality"),
         }
       }
 
@@ -1852,7 +1779,7 @@ pub fn parse(
             )));
             state_stack.pop();
           }
-          _ => panic!("unexpected stack default"),
+          _ => panic!("unexpected stack comparison"),
         }
       }
 
@@ -1910,7 +1837,7 @@ pub fn parse(
             )));
             state_stack.pop();
           }
-          _ => panic!("unexpected stack default"),
+          _ => panic!("unexpected stack shift"),
         }
       }
 
@@ -1969,7 +1896,7 @@ pub fn parse(
             )));
             state_stack.pop();
           }
-          _ => panic!("unexpected stack default"),
+          _ => panic!("unexpected stack logical"),
         }
       }
 
@@ -2028,7 +1955,7 @@ pub fn parse(
             )));
             state_stack.pop();
           }
-          _ => panic!("unexpected stack default"),
+          _ => panic!("unexpected stack bitwise"),
         }
       }
 
@@ -2094,7 +2021,7 @@ pub fn parse(
             )));
             state_stack.pop();
           }
-          _ => panic!("unexpected stack default"),
+          _ => panic!("unexpected stack add"),
         }
       }
 
@@ -2180,7 +2107,7 @@ pub fn parse(
             )));
             state_stack.pop();
           }
-          _ => panic!("unexpected stack default"),
+          _ => panic!("unexpected stack multiply"),
         }
       }
 
@@ -2238,7 +2165,7 @@ pub fn parse(
             )));
             state_stack.pop();
           }
-          _ => panic!("unexpected stack default"),
+          _ => panic!("unexpected stack array"),
         }
       }
 
@@ -2296,7 +2223,7 @@ pub fn parse(
             )));
             state_stack.pop();
           }
-          _ => panic!("unexpected stack default"),
+          _ => panic!("unexpected stack range"),
         }
       }
 
@@ -2320,7 +2247,7 @@ pub fn parse(
         {
           state_stack.pop();
         } else {
-          todo!(); // does this actually get hit?
+          panic!("Did not expect to get here :("); // does this actually get hit?
         }
       }
       (Some(AstState::DefaultFollow), _, TokenType::EndOfInput)
@@ -2443,36 +2370,74 @@ pub fn parse(
         state_stack.push(AstState::ExpressionFollow);
         state_stack.push(AstState::PrimaryFollow);
       }
-      (Some(AstState::TupleEntryUnnamedEnd), Some(AstStackSymbol::Expr(expression)), TokenType::Newline) |
-      (Some(AstState::TupleEntryUnnamedEnd), Some(AstStackSymbol::Expr(expression)), TokenType::RCurly) |
-      (Some(AstState::TupleEntryUnnamedEnd), Some(AstStackSymbol::Expr(expression)), TokenType::Comma) => {
+      (
+        Some(AstState::TupleEntryUnnamedEnd),
+        Some(AstStackSymbol::Expr(expression)),
+        TokenType::Newline,
+      )
+      | (
+        Some(AstState::TupleEntryUnnamedEnd),
+        Some(AstStackSymbol::Expr(expression)),
+        TokenType::RCurly,
+      )
+      | (
+        Some(AstState::TupleEntryUnnamedEnd),
+        Some(AstStackSymbol::Expr(expression)),
+        TokenType::Comma,
+      ) => {
         ast_stack.pop();
-        ast_stack.push(AstStackSymbol::TupleEntry(TupleEntry::new(None, None, expression)));
+        ast_stack.push(AstStackSymbol::TupleEntry(TupleEntry::new(
+          None, None, expression,
+        )));
         state_stack.pop();
       }
 
-      (Some(AstState::TupleEntryNamedEnd), Some(AstStackSymbol::Expr(expression)), TokenType::Newline) |
-      (Some(AstState::TupleEntryNamedEnd), Some(AstStackSymbol::Expr(expression)), TokenType::RCurly) |
-      (Some(AstState::TupleEntryNamedEnd), Some(AstStackSymbol::Expr(expression)), TokenType::Comma) => {
+      (
+        Some(AstState::TupleEntryNamedEnd),
+        Some(AstStackSymbol::Expr(expression)),
+        TokenType::Newline,
+      )
+      | (
+        Some(AstState::TupleEntryNamedEnd),
+        Some(AstStackSymbol::Expr(expression)),
+        TokenType::RCurly,
+      )
+      | (
+        Some(AstState::TupleEntryNamedEnd),
+        Some(AstStackSymbol::Expr(expression)),
+        TokenType::Comma,
+      ) => {
         ast_stack.pop();
         let colon_sym = ast_stack.pop_panic();
         let name_sym = ast_stack.pop_panic();
         match (name_sym, colon_sym) {
           (Some(AstStackSymbol::Token(name)), Some(AstStackSymbol::Token(colon))) => {
-            ast_stack.push(AstStackSymbol::TupleEntry(TupleEntry::new(Some(name), Some(colon), expression)));
+            ast_stack.push(AstStackSymbol::TupleEntry(TupleEntry::new(
+              Some(name),
+              Some(colon),
+              expression,
+            )));
             state_stack.pop();
           }
-          _ => panic!()
+          _ => panic!("bad stack tuple entry"),
         }
       }
-      
+
       (Some(AstState::TupleContents), _, TokenType::Newline) => {
         token_index = consume_optional_newline(tokens, token_index);
       }
-      (Some(AstState::TupleContents), Some(AstStackSymbol::TupleEntryList(_)), TokenType::RCurly) => {
+      (
+        Some(AstState::TupleContents),
+        Some(AstStackSymbol::TupleEntryList(_)),
+        TokenType::RCurly,
+      ) => {
         state_stack.goto(AstState::TupleEnd);
       }
-      (Some(AstState::TupleContents), Some(AstStackSymbol::TupleEntry(entry)), TokenType::Comma) => {
+      (
+        Some(AstState::TupleContents),
+        Some(AstStackSymbol::TupleEntry(entry)),
+        TokenType::Comma,
+      ) => {
         token_index += 1;
         token_index = consume_optional_newline(tokens, token_index);
         ast_stack.pop();
@@ -2483,10 +2448,14 @@ pub fn parse(
             ast_stack.push(AstStackSymbol::TupleEntryList(contents));
             state_stack.push(AstState::TupleEntry);
           }
-          _ => panic!("bad stack")
+          _ => panic!("bad stack"),
         }
       }
-      (Some(AstState::TupleContents), Some(AstStackSymbol::TupleEntry(entry)), TokenType::RCurly) => {
+      (
+        Some(AstState::TupleContents),
+        Some(AstStackSymbol::TupleEntry(entry)),
+        TokenType::RCurly,
+      ) => {
         ast_stack.pop();
         let entry_list = ast_stack.pop_panic();
         match entry_list {
@@ -2495,31 +2464,36 @@ pub fn parse(
             ast_stack.push(AstStackSymbol::TupleEntryList(contents));
             state_stack.goto(AstState::TupleEnd);
           }
-          _ => panic!("bad stack")
+          _ => panic!("bad stack"),
         }
       }
-      (Some(AstState::TupleEnd), Some(AstStackSymbol::TupleEntryList(entry_list)), TokenType::RCurly) => {
+      (
+        Some(AstState::TupleEnd),
+        Some(AstStackSymbol::TupleEntryList(entry_list)),
+        TokenType::RCurly,
+      ) => {
         ast_stack.pop();
         let l_curly_sym = ast_stack.pop_panic();
         match l_curly_sym {
           Some(AstStackSymbol::Token(x)) if x.token_type == TokenType::LCurly => {
             token_index += 1;
-            ast_stack.push(AstStackSymbol::Expr(Expression::Literal(Literal::Tuple(Tuple::new(x, entry_list, current_token.clone())))));
+            ast_stack.push(AstStackSymbol::Expr(Expression::Literal(Literal::Tuple(
+              Tuple::new(x, entry_list, current_token.clone()),
+            ))));
             state_stack.goto(AstState::PrimaryFollow);
           }
-          _ => panic!()
+          _ => panic!("bad stack"),
         }
       }
 
       // add in tuple contents, tuple entry, tuple entry value, and tuple end here
-
       (Some(AstState::FunctionPrimary), _, TokenType::Type) => {
         if current_token.lexeme == "func" {
           ast_stack.push(AstStackSymbol::Token(current_token.clone()));
           token_index += 1;
           token_index = consume_optional_newline(tokens, token_index);
         } else {
-          panic!("Unexpected type function primary");
+          state_stack.push(AstState::Error);
         }
       }
       (Some(AstState::FunctionPrimary), Some(AstStackSymbol::Token(_)), TokenType::LParen) => {
@@ -2599,7 +2573,6 @@ pub fn parse(
       (Some(AstState::FunctionArrow), _, TokenType::RParen) => {
         ast_stack.push(AstStackSymbol::Token(current_token.clone()));
         token_index += 1;
-        //token_index = consume_optional_newline(tokens, token_index);
         state_stack.goto(AstState::FunctionSignatureFollow);
       }
       (Some(AstState::FunctionReturns), Some(AstStackSymbol::ReturnList(_)), TokenType::RParen) => {
@@ -2836,7 +2809,7 @@ pub fn parse(
         token_index += 1;
         state_stack.goto(AstState::PrimaryFollow);
       }
-      (Some(AstState::SubExpression), _, _) => panic!("Unexpected token sub expression"),
+      (Some(AstState::SubExpression), _, _) => state_stack.push(AstState::Error),
       (
         Some(AstState::ArrayLiteralContents),
         Some(AstStackSymbol::ExprList(_)),
@@ -2860,7 +2833,7 @@ pub fn parse(
         }
       }
       (Some(AstState::ArrayLiteralContents), _, _) => {
-        panic!("unexpected token array literal contents")
+        state_stack.push(AstState::Error);
       }
       (
         Some(AstState::ArrayLiteralContentsFollow),
@@ -2898,7 +2871,7 @@ pub fn parse(
         }
       }
       (Some(AstState::ArrayLiteralContentsFollow), _, _) => {
-        panic!("unexpected array literal contents follow {}", current_token);
+        state_stack.push(AstState::Error);
       }
       (Some(AstState::Primary), _, TokenType::Identifier) => {
         token_index += 1;
@@ -2930,10 +2903,7 @@ pub fn parse(
           ))));
           state_stack.goto(AstState::PrimaryFollow);
         } else {
-          panic!(
-            "Did not expected this keyword in an expression {} :(",
-            current_token
-          );
+          state_stack.push(AstState::Error);
         }
       }
       (
@@ -3031,7 +3001,7 @@ pub fn parse(
         state_stack.push(AstState::Expression);
       }
       (Some(AstState::FunctionCall), _, _) => {
-        panic!("Unexpected token {}!!!! function call", current_token)
+        state_stack.push(AstState::Error);
       }
       (Some(AstState::CastExpr), Some(AstStackSymbol::Type(cast_type)), _) => {
         ast_stack.pop();
@@ -3052,7 +3022,7 @@ pub fn parse(
       (Some(AstState::CastExpr), Some(AstStackSymbol::Token(_)), _) => {
         state_stack.push(AstState::Type);
       }
-      (Some(AstState::CastExpr), _, _) => panic!("asdfhalskdfh cast expr"),
+      (Some(AstState::CastExpr), _, _) => state_stack.push(AstState::Error),
       (Some(AstState::ArrayAccess), Some(AstStackSymbol::Expr(expression)), TokenType::RSquare) => {
         ast_stack.pop();
         let lsq_sym = ast_stack.pop_panic();
@@ -3073,7 +3043,7 @@ pub fn parse(
           _ => panic!("bad array access stack"),
         }
       }
-      (Some(AstState::ArrayAccess), Some(AstStackSymbol::Expr(_)), _) => panic!("aa bad"),
+      (Some(AstState::ArrayAccess), Some(AstStackSymbol::Expr(_)), _) => state_stack.push(AstState::Error),
       (Some(AstState::ArrayAccess), Some(AstStackSymbol::Token(_)), _) => {
         state_stack.push(AstState::Expression);
       }
@@ -3092,9 +3062,6 @@ pub fn parse(
           }
           _ => panic!("could not find an expression to match the member access"),
         }
-      }
-      (Some(AstState::MemberAccess), _, _) => {
-        panic!("unexpected token in member access")
       }
       (Some(AstState::Prefix), Some(AstStackSymbol::Expr(expression)), _) => {
         ast_stack.pop();
@@ -3115,7 +3082,7 @@ pub fn parse(
           token_index += 1;
           state_stack.push(AstState::PrefixContents);
         } else {
-          panic!("Unexpected symbol {}", current_token);
+          state_stack.push(AstState::Error);
         }
       }
 
@@ -3124,8 +3091,16 @@ pub fn parse(
       }
 
       //* END EXPRESSION SECTION
+      (Some(AstState::Error), _, _) => {
+        let (sev, msg, tkns, idx) = build_error(&mut state_stack, &mut ast_stack, &tokens, token_index);
+        let error = ErrorStatement::new(msg, sev, tkns);
+        ast_stack.push(AstStackSymbol::Stmt(Statement::Error(error.clone())));
+        state_stack.push(AstState::StmtFinalize);
+        token_index = idx;
+        errors.push(OceanError::ParseError(error.clone()))
+      }
       (_, _, _) => {
-        panic!("Unknown case :( {}", current_token);
+        state_stack.push(AstState::Error);
       }
     };
   }
@@ -3139,6 +3114,39 @@ pub fn parse(
     (None, errors)
   }
 }
+
+fn build_error(state_stack: &mut StateStack, ast_stack: &mut Stack<AstStackSymbol>, tokens: &Vec<Token>, token_index: usize) -> (Severity, String, Vec<Token>, usize) {
+  eprintln!("ERROR ----------------------------------------------------");
+  let mut ast_current_state = Vec::new();
+  while true {
+    match state_stack.current_state() {
+      Some(AstState::StmtList) | None => break,
+      Some(x) => ast_current_state.insert(0, x)
+    }
+    state_stack.pop();
+  }
+  let mut ast_current_symbols = Vec::new();
+  while true {
+    match ast_stack.peek() {
+      Some(AstStackSymbol::StmtList(_)) | None => break,
+      Some(x) => ast_current_symbols.insert(0, x)
+    }
+    ast_stack.pop();
+  }
+  if state_stack.is_empty() {
+    state_stack.push(AstState::StmtList)
+  }
+  let message = format!("Unexpected token! {} :(", tokens[token_index].clone());
+  let tkns = vec![tokens[token_index].clone()];
+  let mut next_index = token_index;
+  while next_index < tokens.len() {
+    match tokens[next_index].token_type {
+      TokenType::Newline | TokenType::EndOfInput => break,
+      _ => next_index += 1
+    }
+  }
+  (Severity::Error, message, tkns, next_index)
+} 
 
 fn is_assignment(lexeme: String) -> bool {
   lexeme == "="

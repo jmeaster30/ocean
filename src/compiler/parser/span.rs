@@ -217,7 +217,17 @@ impl Spanned for Expression {
       Expression::Literal(x) => x.get_span(),
       Expression::Var(x) => x.get_span(),
       Expression::FunctionCall(x) => x.get_span(),
+      Expression::Error(x) => x.get_span(),
     }
+  }
+}
+
+impl Spanned for ErrorExpression {
+  fn get_span(&self) -> (usize, usize) {
+    if self.tokens.is_empty() {
+      return (0, 0);
+    }
+    (self.tokens[0].start, self.tokens[self.tokens.len() - 1].end)
   }
 }
 
@@ -296,7 +306,7 @@ impl Spanned for TupleEntry {
     let (expr_span_start, expr_span_end) = self.expression.get_span();
     let start = match &self.name {
       Some(x) => x.start,
-      None => expr_span_start
+      None => expr_span_start,
     };
     (start, expr_span_end)
   }

@@ -89,6 +89,10 @@ impl StateStack {
     Self { stack: Vec::new() }
   }
 
+  pub fn is_empty(&self) -> bool {
+    self.stack.len() == 0
+  }
+
   pub fn print(&self) {
     print!("STATE STACK: ");
     for entry in &self.stack {

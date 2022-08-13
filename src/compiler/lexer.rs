@@ -24,8 +24,6 @@ pub enum TokenType {
   Comma,
   Colon,
   Arrow,
-  Underscore,
-  SemiColon,
   Newline,
 }
 
@@ -86,12 +84,6 @@ pub fn lex(input: String) -> (Vec<Token>, Vec<OceanError>) {
 
         //check against every other thing it could be
         match lexeme.as_str() {
-          "_" => tokens.push(Token::new(
-            TokenType::Underscore,
-            lexeme.clone(),
-            start_index,
-            index,
-          )),
           "i8" | "i16" | "i32" | "i64" | "f32" | "f64" | "u8" | "u16" | "u32" | "u64"
           | "string" | "auto" | "bool" | "func" | "void" | "ref" | "mut" | "comp" | "char" => {
             // removed 'lazy'
@@ -385,12 +377,6 @@ pub fn lex(input: String) -> (Vec<Token>, Vec<OceanError>) {
       ',' => tokens.push(Token::new(
         TokenType::Comma,
         ",".to_string(),
-        start_index,
-        index,
-      )),
-      ';' => tokens.push(Token::new(
-        TokenType::SemiColon,
-        ";".to_string(),
         start_index,
         index,
       )),
