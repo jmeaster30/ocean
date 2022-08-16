@@ -288,7 +288,8 @@ impl fmt::Display for Expression {
 
 impl fmt::Display for ErrorExpression {
   fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-    fmt.write_str(format!("(ErrorExpression '{:?}' '{}')", self.severity, self.message).as_str())?;
+    fmt
+      .write_str(format!("(ErrorExpression '{:?}' '{}')", self.severity, self.message).as_str())?;
     Ok(())
   }
 }

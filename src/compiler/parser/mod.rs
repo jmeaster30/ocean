@@ -2441,7 +2441,7 @@ pub fn parse(
         token_index += 1;
         token_index = consume_optional_newline(tokens, token_index);
         ast_stack.pop();
-        let mut entry_list = ast_stack.pop_panic();
+        let entry_list = ast_stack.pop_panic();
         match entry_list {
           Some(AstStackSymbol::TupleEntryList(mut contents)) => {
             contents.push(entry);
@@ -3043,7 +3043,9 @@ pub fn parse(
           _ => panic!("bad array access stack"),
         }
       }
-      (Some(AstState::ArrayAccess), Some(AstStackSymbol::Expr(_)), _) => state_stack.push(AstState::Error),
+      (Some(AstState::ArrayAccess), Some(AstStackSymbol::Expr(_)), _) => {
+        state_stack.push(AstState::Error)
+      }
       (Some(AstState::ArrayAccess), Some(AstStackSymbol::Token(_)), _) => {
         state_stack.push(AstState::Expression);
       }
@@ -3092,7 +3094,8 @@ pub fn parse(
 
       //* END EXPRESSION SECTION
       (Some(AstState::Error), _, _) => {
-        let (sev, msg, tkns, idx) = build_error(&mut state_stack, &mut ast_stack, &tokens, token_index);
+        let (sev, msg, tkns, idx) =
+          build_error(&mut state_stack, &mut ast_stack, &tokens, token_index);
         let error = ErrorStatement::new(msg, sev, tkns);
         ast_stack.push(AstStackSymbol::Stmt(Statement::Error(error.clone())));
         state_stack.push(AstState::StmtFinalize);
@@ -3115,21 +3118,26 @@ pub fn parse(
   }
 }
 
-fn build_error(state_stack: &mut StateStack, ast_stack: &mut Stack<AstStackSymbol>, tokens: &Vec<Token>, token_index: usize) -> (Severity, String, Vec<Token>, usize) {
+fn build_error(
+  state_stack: &mut StateStack,
+  ast_stack: &mut Stack<AstStackSymbol>,
+  tokens: &Vec<Token>,
+  token_index: usize,
+) -> (Severity, String, Vec<Token>, usize) {
   eprintln!("ERROR ----------------------------------------------------");
   let mut ast_current_state = Vec::new();
-  while true {
+  loop {
     match state_stack.current_state() {
       Some(AstState::StmtList) | None => break,
-      Some(x) => ast_current_state.insert(0, x)
+      Some(x) => ast_current_state.insert(0, x),
     }
     state_stack.pop();
   }
   let mut ast_current_symbols = Vec::new();
-  while true {
+  loop {
     match ast_stack.peek() {
       Some(AstStackSymbol::StmtList(_)) | None => break,
-      Some(x) => ast_current_symbols.insert(0, x)
+      Some(x) => ast_current_symbols.insert(0, x),
     }
     ast_stack.pop();
   }
@@ -3142,11 +3150,11 @@ fn build_error(state_stack: &mut StateStack, ast_stack: &mut Stack<AstStackSymbo
   while next_index < tokens.len() {
     match tokens[next_index].token_type {
       TokenType::Newline | TokenType::EndOfInput => break,
-      _ => next_index += 1
+      _ => next_index += 1,
     }
   }
   (Severity::Error, message, tkns, next_index)
-} 
+}
 
 fn is_assignment(lexeme: String) -> bool {
   lexeme == "="

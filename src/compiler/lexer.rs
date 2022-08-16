@@ -85,7 +85,7 @@ pub fn lex(input: String) -> (Vec<Token>, Vec<OceanError>) {
         //check against every other thing it could be
         match lexeme.as_str() {
           "i8" | "i16" | "i32" | "i64" | "f32" | "f64" | "u8" | "u16" | "u32" | "u64"
-          | "string" | "auto" | "bool" | "func" | "void" | "ref" | "mut" | "comp" | "char" => {
+          | "string" | "auto" | "bool" | "func" | "ref" | "mut" | "comp" | "char" => {
             // removed 'lazy'
             tokens.push(Token::new(
               TokenType::Type,

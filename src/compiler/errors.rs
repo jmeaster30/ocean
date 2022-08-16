@@ -38,6 +38,7 @@ pub enum OceanError {
   Base(Severity, String),
   LexError(Severity, Token, String),
   ParseError(ErrorStatement),
+  SemanticError(Severity, (usize, usize), String),
 }
 
 pub enum HydroError {
@@ -68,6 +69,13 @@ pub fn display_error(compilation_unit: &CompilationUnit, error: &OceanError) {
         compilation_unit,
       )
     }
+    OceanError::SemanticError(severity, span, message) => display_message(
+      severity,
+      message.to_string(),
+      span.0,
+      span.1,
+      compilation_unit,
+    ),
   }
 }
 

@@ -3,6 +3,7 @@ pub mod hydro;
 pub mod lexer;
 pub mod parser;
 pub mod passes;
+pub mod semantic_analysis;
 
 use self::errors::*;
 use self::hydro::lexer::*;
@@ -117,6 +118,15 @@ impl CompilationUnit {
           _ => false,
         }
       }),
+      (semantic_pass, |pass| {
+        println!("semantic check");
+        match pass {
+          Pass::SemanticCheck(ast, Some(symbol_table), errors) => {
+            errors.is_empty()
+          }
+          _ => false,
+        }
+      }),
     ];
 
     let mut pass_index = 0;
@@ -139,7 +149,7 @@ impl CompilationUnit {
   pub fn print_errors(&self) {
     for pass in &self.passes {
       match pass {
-        Pass::Lexer(_, errors) | Pass::Parser(_, errors) => {
+        Pass::Lexer(_, errors) | Pass::Parser(_, errors) | Pass::SemanticCheck(_, _, errors) => {
           for error in errors {
             display_error(self, &error)
           }
