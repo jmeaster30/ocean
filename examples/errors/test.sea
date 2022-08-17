@@ -1,5 +1,8 @@
 break
 
-let test = func() -> ():{
-  break
+let hello = func() -> ():{
+  while true {
+    continue
+  }
+  continue
 }
