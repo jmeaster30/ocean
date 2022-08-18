@@ -6,6 +6,7 @@ pub enum Symbol {
   Base(BaseSymbol),
   Modified(ModifiedSymbol),
   Array(ArraySymbol),
+  Unknown,
 }
 
 pub struct ArraySymbol {

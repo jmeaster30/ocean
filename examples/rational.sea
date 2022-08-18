@@ -41,10 +41,10 @@ pack rational {
 
 let add = func (a: rational, b: rational) -> (res: rational):{
   let mul: i64 = lcm(a.denominator, b.denominator)
-  res = { a.numerator * mul + b.numerator * mul, mul }
+  res = ( a.numerator * mul + b.numerator * mul, mul )
 }
 
 let subtract = func (a: rational, b: rational) -> (res: rational):{
   let mul: i64 = lcm(a.denominator, b.denominator)
-  res = { a.numerator * mul - b.numerator * mul, mul }
+  res = ( a.numerator * mul - b.numerator * mul, mul )
 }

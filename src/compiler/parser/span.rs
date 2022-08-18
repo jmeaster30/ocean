@@ -297,7 +297,7 @@ impl Spanned for Literal {
 
 impl Spanned for Tuple {
   fn get_span(&self) -> (usize, usize) {
-    (self.left_curly.start, self.right_curly.end)
+    (self.left_paren.start, self.right_paren.end)
   }
 }
 

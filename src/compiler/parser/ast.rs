@@ -589,7 +589,7 @@ pub enum Literal {
   String(Token),
   Array(ArrayLiteral),
   Tuple(Tuple),
-  Function(Function),
+  Function(Function)
 }
 
 #[derive(Clone)]
@@ -642,17 +642,17 @@ impl Function {
 
 #[derive(Clone)]
 pub struct Tuple {
-  pub left_curly: Token,
+  pub left_paren: Token,
   pub contents: Vec<TupleEntry>,
-  pub right_curly: Token,
+  pub right_paren: Token,
 }
 
 impl Tuple {
-  pub fn new(left_curly: Token, contents: Vec<TupleEntry>, right_curly: Token) -> Self {
+  pub fn new(left_paren: Token, contents: Vec<TupleEntry>, right_paren: Token) -> Self {
     Self {
-      left_curly,
+      left_paren,
       contents,
-      right_curly,
+      right_paren,
     }
   }
 }
