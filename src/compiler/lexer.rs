@@ -207,6 +207,7 @@ pub fn lex(input: String) -> (Vec<Token>, Vec<OceanError>) {
       }
       '\"' | '\'' | '`' => {
         let delim = c;
+        lexeme.push_str(&c.to_string());
         index += 1;
         let mut found_end = false;
         while index < input_length {
@@ -215,6 +216,7 @@ pub fn lex(input: String) -> (Vec<Token>, Vec<OceanError>) {
             '\'' => {
               if delim == '\'' {
                 found_end = true;
+                lexeme.push_str(&n.to_string());
                 break;
               } else {
                 lexeme.push_str(&n.to_string())
@@ -223,6 +225,7 @@ pub fn lex(input: String) -> (Vec<Token>, Vec<OceanError>) {
             '\"' => {
               if delim == '\"' {
                 found_end = true;
+                lexeme.push_str(&n.to_string());
                 break;
               } else {
                 lexeme.push_str(&n.to_string())
@@ -231,6 +234,7 @@ pub fn lex(input: String) -> (Vec<Token>, Vec<OceanError>) {
             '`' => {
               if delim == '`' {
                 found_end = true;
+                lexeme.push_str(&n.to_string());
                 break;
               } else {
                 lexeme.push_str(&n.to_string())

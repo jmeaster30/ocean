@@ -121,9 +121,7 @@ impl CompilationUnit {
       (semantic_pass, |pass| {
         println!("semantic check");
         match pass {
-          Pass::SemanticCheck(ast, Some(symbol_table), errors) => {
-            errors.is_empty()
-          }
+          Pass::SemanticCheck(ast, Some(symbol_table), errors) => errors.is_empty(),
           _ => false,
         }
       }),

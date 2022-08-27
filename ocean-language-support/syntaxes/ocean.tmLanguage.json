@@ -20,7 +20,7 @@
 		"types": {
 			"patterns": [{
 				"name": "storage.type.ocean",
-				"match": "\\b(i8|i16|i32|i64|f32|f64|u8|u16|u32|u64|string|auto|bool|func|void|ref|lazy|optional|comp|char)\\b"
+				"match": "\\b(i8|i16|i32|i64|f32|f64|u8|u16|u32|u64|string|auto|bool|func|void|ref|lazy|comp|char|mut)\\b"
 			}]
 		},
 		"keywords_control": {

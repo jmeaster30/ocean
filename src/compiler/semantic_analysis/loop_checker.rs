@@ -1,9 +1,9 @@
 use crate::compiler::errors::OceanError;
 use crate::compiler::errors::Severity;
+use crate::compiler::parser::ast::Expression;
 use crate::compiler::parser::ast::*;
 use crate::compiler::parser::span::Spanned;
 use crate::compiler::semantic_analysis::Statement::*;
-use crate::compiler::parser::ast::Expression;
 
 pub fn loop_checker(program: &Program) -> Vec<OceanError> {
   let mut errors = Vec::new();
@@ -49,14 +49,14 @@ fn loop_checker_pack(pack_dec: &PackDecStatement, in_loop: bool) -> Vec<OceanErr
 fn loop_checker_pack_dec_entry(pack_dec_entry: &PackDeclaration, in_loop: bool) -> Vec<OceanError> {
   match &pack_dec_entry.expression {
     Some(x) => loop_checker_expression(&x, in_loop),
-    None => Vec::new()
+    None => Vec::new(),
   }
 }
 
 fn loop_checker_var_dec(var_dec: &VarDecStatement, in_loop: bool) -> Vec<OceanError> {
   match &var_dec.expression {
     Some(x) => loop_checker_expression(&x, in_loop),
-    None => Vec::new()
+    None => Vec::new(),
   }
 }
 
@@ -111,34 +111,34 @@ fn loop_checker_expression(expr: &Expression, in_loop: bool) -> Vec<OceanError> 
     Expression::Binary(x) => {
       errors.append(&mut loop_checker_expression(x.lhs.as_ref(), in_loop));
       errors.append(&mut loop_checker_expression(x.rhs.as_ref(), in_loop));
-    },
+    }
     Expression::Prefix(x) => {
       errors.append(&mut loop_checker_expression(x.rhs.as_ref(), in_loop));
-    },
+    }
     Expression::Postfix(x) => {
       errors.append(&mut loop_checker_expression(x.lhs.as_ref(), in_loop));
-    },
+    }
     Expression::Member(x) => {
       errors.append(&mut loop_checker_expression(x.lhs.as_ref(), in_loop));
-    },
+    }
     Expression::ArrayAccess(x) => {
       errors.append(&mut loop_checker_expression(x.lhs.as_ref(), in_loop));
       errors.append(&mut loop_checker_expression(x.expr.as_ref(), in_loop));
-    },
+    }
     Expression::Cast(x) => {
       errors.append(&mut loop_checker_expression(x.lhs.as_ref(), in_loop));
-    },
+    }
     Expression::Literal(x) => {
       errors.append(&mut loop_checker_literal(x, in_loop));
-    },
-    Expression::Var(_) => {},
+    }
+    Expression::Var(_) => {}
     Expression::FunctionCall(x) => {
       errors.append(&mut loop_checker_expression(x.target.as_ref(), in_loop));
       for arg in &x.arguments {
         errors.append(&mut loop_checker_expression(arg.as_ref(), in_loop))
       }
-    },
-    Expression::Error(_) => {},
+    }
+    Expression::Error(_) => {}
   };
   errors
 }
@@ -146,19 +146,17 @@ fn loop_checker_expression(expr: &Expression, in_loop: bool) -> Vec<OceanError> 
 fn loop_checker_literal(literal: &Literal, in_loop: bool) -> Vec<OceanError> {
   let mut errors = Vec::new();
   match literal {
-    Literal::Boolean(_) |
-    Literal::Number(_) |
-    Literal::String(_) => {},
+    Literal::Boolean(_) | Literal::Number(_) | Literal::String(_) => {}
     Literal::Array(x) => {
       for arg in &x.args {
         errors.append(&mut loop_checker_expression(arg.as_ref(), false));
       }
-    },
+    }
     Literal::Tuple(x) => {
       for arg in &x.contents {
         errors.append(&mut loop_checker_expression(&arg.expression, false));
       }
-    },
+    }
     Literal::Function(x) => {
       for ret_entry in &x.return_list.returns {
         match &ret_entry.expression {
@@ -171,7 +169,7 @@ fn loop_checker_literal(literal: &Literal, in_loop: bool) -> Vec<OceanError> {
       for stmt in &x.function_body {
         errors.append(&mut loop_checker_stmt(stmt, false));
       }
-    },
+    }
   }
   errors
 }

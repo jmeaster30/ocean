@@ -105,7 +105,6 @@ pub enum AstState {
 
   ExprStmt,
   Expression,
-  //SubExpression,
   ArrayLiteralContents,
   ArrayLiteralContentsFollow,
   PrefixOrPrimary,
@@ -2367,7 +2366,11 @@ pub fn parse(
         state_stack.push(AstState::Expression);
       }
 
-      (Some(AstState::SubExprTupleUnnamed), Some(AstStackSymbol::Expr(expr)), TokenType::RParen) => {
+      (
+        Some(AstState::SubExprTupleUnnamed),
+        Some(AstStackSymbol::Expr(expr)),
+        TokenType::RParen,
+      ) => {
         token_index += 1;
         ast_stack.pop();
         let garbage_tuple_entry_list = ast_stack.pop_panic();

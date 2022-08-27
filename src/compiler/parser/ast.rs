@@ -589,7 +589,7 @@ pub enum Literal {
   String(Token),
   Array(ArrayLiteral),
   Tuple(Tuple),
-  Function(Function)
+  Function(Function),
 }
 
 #[derive(Clone)]
