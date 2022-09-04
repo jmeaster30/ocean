@@ -1,3 +1,11 @@
+#![allow(
+  unused_variables,
+  unused_imports,
+  unreachable_patterns,
+  unused_assignments,
+  dead_code
+)]
+
 use self::loop_checker::loop_checker;
 use self::symboltable::SymbolTable;
 use self::type_checker::type_checker;

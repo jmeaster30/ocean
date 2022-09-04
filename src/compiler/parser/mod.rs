@@ -1,3 +1,11 @@
+#![allow(
+  unused_variables,
+  unused_imports,
+  unreachable_patterns,
+  unused_assignments,
+  dead_code
+)]
+
 pub mod ast;
 pub mod display;
 pub mod helpers;
@@ -122,7 +130,6 @@ pub enum AstState {
   SubExprTupleIdFollow,
   SubExprTupleUnnamed,
 
-  TupleStart,
   TupleContents,
   TupleEntry,
   TupleEntryFollow,
@@ -1573,6 +1580,7 @@ pub fn parse(
           state_stack.push(AstState::DefaultFollow);
           state_stack.push(AstState::PrefixOrPrimary);
           token_index += 1;
+          token_index = consume_optional_newline(tokens, token_index);
         } else {
           state_stack.push(AstState::EqualityFollow);
         }
@@ -1651,6 +1659,7 @@ pub fn parse(
           state_stack.push(AstState::DefaultFollow);
           state_stack.push(AstState::PrefixOrPrimary);
           token_index += 1;
+          token_index = consume_optional_newline(tokens, token_index);
         } else if is_assignment(current_token.lexeme.clone()) {
           state_stack.pop();
         } else {
@@ -1715,6 +1724,7 @@ pub fn parse(
           state_stack.push(AstState::DefaultFollow);
           state_stack.push(AstState::PrefixOrPrimary);
           token_index += 1;
+          token_index = consume_optional_newline(tokens, token_index);
         } else if is_assignment(current_token.lexeme.clone())
           || is_equality(current_token.lexeme.clone())
         {
@@ -1800,6 +1810,7 @@ pub fn parse(
           state_stack.push(AstState::DefaultFollow);
           state_stack.push(AstState::PrefixOrPrimary);
           token_index += 1;
+          token_index = consume_optional_newline(tokens, token_index);
         } else if is_assignment(current_token.lexeme.clone())
           || is_equality(current_token.lexeme.clone())
           || is_comparison(current_token.lexeme.clone())
@@ -1857,6 +1868,7 @@ pub fn parse(
           state_stack.push(AstState::DefaultFollow);
           state_stack.push(AstState::PrefixOrPrimary);
           token_index += 1;
+          token_index = consume_optional_newline(tokens, token_index);
         } else if is_assignment(current_token.lexeme.clone())
           || is_equality(current_token.lexeme.clone())
           || is_comparison(current_token.lexeme.clone())
@@ -1915,6 +1927,7 @@ pub fn parse(
           state_stack.push(AstState::DefaultFollow);
           state_stack.push(AstState::PrefixOrPrimary);
           token_index += 1;
+          token_index = consume_optional_newline(tokens, token_index);
         } else if is_assignment(current_token.lexeme.clone())
           || is_equality(current_token.lexeme.clone())
           || is_comparison(current_token.lexeme.clone())
@@ -1973,6 +1986,7 @@ pub fn parse(
           state_stack.push(AstState::DefaultFollow);
           state_stack.push(AstState::PrefixOrPrimary);
           token_index += 1;
+          token_index = consume_optional_newline(tokens, token_index);
         } else if is_assignment(current_token.lexeme.clone())
           || is_equality(current_token.lexeme.clone())
           || is_comparison(current_token.lexeme.clone())
@@ -2038,6 +2052,7 @@ pub fn parse(
           state_stack.push(AstState::DefaultFollow);
           state_stack.push(AstState::PrefixOrPrimary);
           token_index += 1;
+          token_index = consume_optional_newline(tokens, token_index);
         } else if is_assignment(current_token.lexeme.clone())
           || is_equality(current_token.lexeme.clone())
           || is_comparison(current_token.lexeme.clone())
@@ -2123,6 +2138,7 @@ pub fn parse(
           state_stack.push(AstState::DefaultFollow);
           state_stack.push(AstState::PrefixOrPrimary);
           token_index += 1;
+          token_index = consume_optional_newline(tokens, token_index);
         } else if is_assignment(current_token.lexeme.clone())
           || is_equality(current_token.lexeme.clone())
           || is_comparison(current_token.lexeme.clone())
@@ -2180,6 +2196,7 @@ pub fn parse(
           state_stack.push(AstState::DefaultFollow);
           state_stack.push(AstState::PrefixOrPrimary);
           token_index += 1;
+          token_index = consume_optional_newline(tokens, token_index);
         } else if is_assignment(current_token.lexeme.clone())
           || is_equality(current_token.lexeme.clone())
           || is_comparison(current_token.lexeme.clone())
@@ -2237,6 +2254,7 @@ pub fn parse(
           state_stack.push(AstState::DefaultFold);
           state_stack.push(AstState::PrefixOrPrimary);
           token_index += 1;
+          token_index = consume_optional_newline(tokens, token_index);
         } else if is_assignment(current_token.lexeme.clone())
           || is_equality(current_token.lexeme.clone())
           || is_comparison(current_token.lexeme.clone())
@@ -2320,6 +2338,7 @@ pub fn parse(
       }
       (Some(AstState::Primary), _, TokenType::LSquare) => {
         token_index += 1;
+        token_index = consume_optional_newline(tokens, token_index);
         ast_stack.push(AstStackSymbol::Token(current_token.clone()));
         ast_stack.push(AstStackSymbol::ExprList(Vec::new()));
         state_stack.goto(AstState::ArrayLiteralContents);
@@ -2327,12 +2346,14 @@ pub fn parse(
 
       (Some(AstState::SubExprTuple), _, TokenType::LParen) => {
         token_index += 1;
+        token_index = consume_optional_newline(tokens, token_index);
         ast_stack.push(AstStackSymbol::Token(current_token.clone()));
         ast_stack.push(AstStackSymbol::TupleEntryList(Vec::new()));
         state_stack.goto(AstState::SubExprTupleId);
       }
       (Some(AstState::SubExprTupleId), _, TokenType::Identifier) => {
         token_index += 1;
+        token_index = consume_optional_newline(tokens, token_index);
         ast_stack.push(AstStackSymbol::Token(current_token.clone()));
         state_stack.goto(AstState::SubExprTupleIdFollow);
       }
@@ -2353,6 +2374,7 @@ pub fn parse(
       }
       (Some(AstState::SubExprTupleIdFollow), _, TokenType::Colon) => {
         token_index += 1;
+        token_index = consume_optional_newline(tokens, token_index);
         ast_stack.push(AstStackSymbol::Token(current_token.clone()));
         state_stack.goto(AstState::TupleContents);
         state_stack.push(AstState::TupleEntryNamedEnd);
@@ -2372,6 +2394,7 @@ pub fn parse(
         TokenType::RParen,
       ) => {
         token_index += 1;
+        token_index = consume_optional_newline(tokens, token_index);
         ast_stack.pop();
         let garbage_tuple_entry_list = ast_stack.pop_panic();
         let garbage_open_paren = ast_stack.pop_panic();
@@ -2384,15 +2407,6 @@ pub fn parse(
         state_stack.push(AstState::TupleEntryUnnamedEnd);
       }
 
-      // this may not get hit ever now :)
-      (Some(AstState::TupleStart), _, TokenType::LCurly) => {
-        token_index += 1;
-        token_index = consume_optional_newline(tokens, token_index);
-        ast_stack.push(AstStackSymbol::Token(current_token.clone()));
-        ast_stack.push(AstStackSymbol::TupleEntryList(Vec::new()));
-        state_stack.goto(AstState::TupleContents);
-        state_stack.push(AstState::TupleEntry);
-      }
       (Some(AstState::TupleEntry), _, TokenType::LParen)
       | (Some(AstState::TupleEntry), _, TokenType::LSquare)
       | (Some(AstState::TupleEntry), _, TokenType::LCurly)
@@ -2545,7 +2559,6 @@ pub fn parse(
         }
       }
 
-      // add in tuple contents, tuple entry, tuple entry value, and tuple end here
       (Some(AstState::FunctionPrimary), _, TokenType::Type) => {
         if current_token.lexeme == "func" {
           ast_stack.push(AstStackSymbol::Token(current_token.clone()));

@@ -1,3 +1,11 @@
+#![allow(
+  unused_variables,
+  unused_imports,
+  unreachable_patterns,
+  unused_assignments,
+  dead_code
+)]
+
 pub mod errors;
 pub mod hydro;
 pub mod lexer;

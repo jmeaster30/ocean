@@ -1,3 +1,5 @@
+#![allow(unused_variables, dead_code)]
+
 use std::cmp::Ordering;
 
 use crate::compiler::errors::*;
@@ -5,11 +7,13 @@ use crate::compiler::parser::ast::*;
 use crate::compiler::{errors::OceanError, parser::span::Spanned};
 
 use super::symboltable::{
-  ArraySymbol, OceanType, Symbol, SymbolTable, SymbolTableVarEntry, TupleSymbol,
+  get_index_type, get_iterator_type, resolve_binary_operator, resolve_postfix_operator,
+  resolve_prefix_operator, ArraySymbol, OceanType, Symbol, SymbolTable, SymbolTableVarEntry,
+  TupleSymbol,
 };
 
 pub fn type_checker(program: &Program) -> (SymbolTable, Vec<OceanError>) {
-  let mut symbol_table = SymbolTable::new();
+  let mut symbol_table = SymbolTable::hard_scope(None);
   let mut errors = Vec::new();
 
   for statement in &program.statements {
@@ -25,21 +29,134 @@ pub fn type_checker_stmt(
   errors: &mut Vec<OceanError>,
 ) {
   match statement {
-    Statement::Error(x) => todo!(),
+    Statement::Error(x) => { /* I don't think I need to do anything here */ }
     Statement::Macro(x) => todo!(),
-    Statement::Continue(x) => todo!(),
-    Statement::Break(x) => todo!(),
-    Statement::Return(x) => todo!(),
+    Statement::Continue(x) => {}
+    Statement::Break(x) => {}
+    Statement::Return(x) => {}
     Statement::PackDec(x) => todo!(),
     Statement::UnionDec(x) => todo!(),
     Statement::VarDec(var_dec) => type_checker_var_dec(var_dec, symbol_table, errors),
     Statement::Cast(x) => todo!(),
-    Statement::Match(x) => todo!(),
+    Statement::Match(x) => panic!(),
     Statement::Use(x) => todo!(),
-    Statement::If(x) => todo!(),
-    Statement::ForLoop(x) => todo!(),
-    Statement::WhileLoop(x) => todo!(),
-    Statement::InfiniteLoop(x) => todo!(),
+    Statement::If(x) => {
+      let condition_sym = get_expression_type(&x.condition, symbol_table, errors);
+      if let Some(condition) = condition_sym {
+        let is_bool = symbol_table.match_types(&condition, &Symbol::Base(OceanType::Bool));
+        if is_bool.is_none() {
+          errors.push(OceanError::SemanticError(
+            Severity::Error,
+            x.condition.get_span(),
+            format!(
+              "Condition of an if statement must evaluate to a boolean but got {:?}",
+              condition
+            ),
+          ));
+        }
+      }
+
+      // TODO I think because we clone the parent scope we won't be able to modify the parent scope
+      let soft_symbol_table = SymbolTable::soft_scope(Some(Box::new(symbol_table.clone())));
+      for stmt in &x.true_body {
+        type_checker_stmt(stmt, symbol_table, errors);
+      }
+
+      match x.else_token {
+        Some(_) => {
+          let soft_symbol_table = SymbolTable::soft_scope(Some(Box::new(symbol_table.clone())));
+          for stmt in &x.else_body {
+            type_checker_stmt(stmt, symbol_table, errors);
+          }
+        }
+        None => {}
+      }
+    }
+    Statement::ForLoop(x) => {
+      let mut soft_symbol_table = SymbolTable::soft_scope(Some(Box::new(symbol_table.clone())));
+      let iterable_sym = get_expression_type(&x.iterable, symbol_table, errors);
+      match iterable_sym {
+        Some(iterable) => {
+          let iterator_type_sym = get_iterator_type(&iterable);
+          let index_type_sym = get_index_type(&iterable);
+          match (iterator_type_sym, index_type_sym) {
+            (Some(iterator_type), Some(index_type)) => {
+              let matched_type =
+                symbol_table.match_types(&index_type, &Symbol::Base(OceanType::Unsigned(64)));
+              if matched_type.is_some() {
+                soft_symbol_table.add_var(
+                  x.iterator.lexeme.clone(),
+                  (x.iterator.start, x.iterator.end),
+                  iterator_type,
+                );
+              } else {
+                let mut tuple_sym = TupleSymbol::new();
+                tuple_sym.add_named("key".to_string(), index_type);
+                tuple_sym.add_named("value".to_string(), iterator_type);
+                soft_symbol_table.add_var(
+                  x.iterator.lexeme.clone(),
+                  (x.iterator.start, x.iterator.end),
+                  Symbol::Tuple(tuple_sym),
+                );
+              }
+            }
+            _ => {
+              errors.push(OceanError::SemanticError(
+                Severity::Error,
+                x.iterable.get_span(),
+                format!("This expression of type {:?} is not iterable", iterable),
+              ));
+              soft_symbol_table.add_var(
+                x.iterator.lexeme.clone(),
+                (x.iterator.start, x.iterator.end),
+                Symbol::Unknown,
+              );
+            }
+          }
+        }
+        None => soft_symbol_table.add_var(
+          x.iterator.lexeme.clone(),
+          (x.iterator.start, x.iterator.end),
+          Symbol::Unknown,
+        ),
+      };
+
+      println!("{:?}", soft_symbol_table);
+
+      for stmt in &x.loop_body {
+        type_checker_stmt(stmt, &mut soft_symbol_table, errors);
+      }
+    }
+    Statement::WhileLoop(x) => {
+      let condition_sym = get_expression_type(&x.condition, symbol_table, errors);
+      match condition_sym {
+        Some(condition) => {
+          let is_bool = symbol_table.match_types(&condition, &Symbol::Base(OceanType::Bool));
+          if is_bool.is_none() {
+            errors.push(OceanError::SemanticError(
+              Severity::Error,
+              x.condition.get_span(),
+              format!(
+                "Condition of while loop must evaluate to a boolean but got {:?}",
+                condition
+              ),
+            ))
+          }
+        }
+        None => {}
+      }
+
+      let soft_symbol_table = SymbolTable::soft_scope(Some(Box::new(symbol_table.clone())));
+      for stmt in &x.loop_body {
+        type_checker_stmt(stmt, symbol_table, errors);
+      }
+    }
+    Statement::InfiniteLoop(x) => {
+      let mut soft_symbol_table = SymbolTable::soft_scope(Some(Box::new(symbol_table.clone())));
+      for stmt in &x.loop_body {
+        type_checker_stmt(stmt, &mut soft_symbol_table, errors);
+      }
+    }
     Statement::Expression(x) => {
       get_expression_type(&x.expression, symbol_table, errors);
     }
@@ -75,6 +192,26 @@ pub fn get_var_type(
   }
 }
 
+pub fn get_untyped_var_type(
+  var: &UntypedVar,
+  symbol_table: &SymbolTable,
+  errors: &mut Vec<OceanError>,
+) -> Option<Symbol> {
+  let name = var.id.lexeme.clone();
+  let found = symbol_table.find_variable(&name);
+  match found {
+    Some(symbol_table_var_entry) => Some(symbol_table_var_entry.symbol.clone()),
+    None => {
+      errors.push(OceanError::SemanticError(
+        Severity::Error,
+        var.get_span(),
+        format!("Variable '{}' not declared", name),
+      ));
+      None
+    }
+  }
+}
+
 pub fn type_checker_var_dec(
   var_dec: &VarDecStatement,
   symbol_table: &mut SymbolTable,
@@ -104,18 +241,149 @@ pub fn get_expression_type(
   errors: &mut Vec<OceanError>,
 ) -> Option<Symbol> {
   match expr {
-    Expression::Binary(_) => todo!(),
-    Expression::Prefix(_) => todo!(),
-    Expression::Postfix(_) => todo!(),
-    Expression::Member(_) => todo!(),
-    Expression::ArrayAccess(_) => todo!(),
+    Expression::Binary(binary) => {
+      let lhs_expr_sym = get_expression_type(binary.lhs.as_ref(), symbol_table, errors);
+      let rhs_expr_sym = get_expression_type(binary.rhs.as_ref(), symbol_table, errors);
+      match (lhs_expr_sym, rhs_expr_sym) {
+        (Some(lhs_expr), Some(rhs_expr)) => {
+          let result = resolve_binary_operator(
+            binary.operator.lexeme.to_string(),
+            &lhs_expr,
+            &rhs_expr,
+            &symbol_table,
+          );
+          match result {
+            Some(x) => {
+              println!("binary result: {:?}", x);
+              Some(x)
+            }
+            None => {
+              errors.push(OceanError::SemanticError(
+                Severity::Error,
+                binary.get_span(),
+                format!(
+                  "Unknown operator {} for lhs type of {:?} and rhs type of {:?}",
+                  binary.operator.lexeme, lhs_expr, rhs_expr
+                ),
+              ));
+              None
+            }
+          }
+        }
+        _ => None,
+      }
+    }
+    Expression::Prefix(prefix) => {
+      let pre_expr_sym = get_expression_type(prefix.rhs.as_ref(), symbol_table, errors);
+      match pre_expr_sym {
+        Some(pre_expr) => {
+          let result =
+            resolve_prefix_operator(prefix.operator.lexeme.to_string(), &pre_expr, &symbol_table);
+          match result {
+            Some(x) => {
+              println!("prefix result: {:?}", x);
+              Some(x)
+            }
+            None => {
+              errors.push(OceanError::SemanticError(
+                Severity::Error,
+                prefix.get_span(),
+                format!(
+                  "Unknown operator {} for expression of type {:?}",
+                  prefix.operator.lexeme, pre_expr
+                ),
+              ));
+              None
+            }
+          }
+        }
+        None => None,
+      }
+    }
+    Expression::Postfix(postfix) => {
+      let post_expr_sym = get_expression_type(postfix.lhs.as_ref(), symbol_table, errors);
+      match post_expr_sym {
+        Some(post_expr) => {
+          let result = resolve_postfix_operator(
+            postfix.operator.lexeme.to_string(),
+            &post_expr,
+            &symbol_table,
+          );
+          match result {
+            Some(x) => {
+              println!("postfix result: {:?}", x);
+              Some(x)
+            }
+            None => {
+              errors.push(OceanError::SemanticError(
+                Severity::Error,
+                postfix.get_span(),
+                format!(
+                  "Unknown operator {} for expression of type {:?}",
+                  postfix.operator.lexeme, post_expr
+                ),
+              ));
+              None
+            }
+          }
+        }
+        None => None,
+      }
+    }
+    Expression::Member(_) => {
+      todo!("should I think about doing the functions as member variables at this point?")
+    }
+    Expression::ArrayAccess(access) => {
+      let target_sym = get_expression_type(access.lhs.as_ref(), symbol_table, errors);
+      let index_sym = get_expression_type(access.expr.as_ref(), symbol_table, errors);
+      match (target_sym, index_sym) {
+        (Some(target), Some(index)) => match get_iterator_type(&target) {
+          Some(iterator) => match get_index_type(&target) {
+            Some(target_index) => {
+              let matched_index = symbol_table.match_types(&index, &target_index);
+              if matched_index.is_some() {
+                println!("iterator: {:?}", iterator);
+                Some(iterator)
+              } else {
+                errors.push(OceanError::SemanticError(
+                  Severity::Error,
+                  access.expr.as_ref().get_span(),
+                  format!(
+                    "Cannot index the {:?} type using an {:?} it must be indexed by an {:?}",
+                    target, index, target_index
+                  ),
+                ));
+                None
+              }
+            }
+            None => {
+              errors.push(OceanError::SemanticError(Severity::Error, access.expr.as_ref().get_span(), "Cannot index the [add type] type using an [add index] it must be index by an '[add correct index]'".to_string()));
+              None
+            }
+          },
+          None => {
+            errors.push(OceanError::SemanticError(
+              Severity::Error,
+              access.lhs.as_ref().get_span(),
+              "Target expression is not iterable".to_string(),
+            ));
+            None
+          }
+        },
+        _ => None,
+      }
+    }
     Expression::Cast(_) => todo!(),
     Expression::Literal(x) => {
       let t = get_literal_type(x, symbol_table, errors);
       println!("{:?}", t);
       t
     }
-    Expression::Var(_) => todo!(),
+    Expression::Var(var) => {
+      let t = get_untyped_var_type(var, symbol_table, errors);
+      println!("{:?}", t);
+      t
+    }
     Expression::FunctionCall(x) => {
       let t = get_function_call_type(x, symbol_table, errors);
       println!("{:?}", t);
@@ -136,18 +404,22 @@ pub fn get_literal_type(
       // these numbers are always positive
       let val = x.lexeme.as_str();
       match val {
+        val if val.contains(".") => {
+          // TODO make this way better
+          Some(Symbol::Base(OceanType::Float(64)))
+        }
         val if val.len() <= 3 && val.parse::<u64>().unwrap() < 256 => {
-          Some(Symbol::Base(OceanType::U8))
+          Some(Symbol::Base(OceanType::Unsigned(8)))
         }
         val if val.len() <= 5 && val.parse::<u64>().unwrap() < 65536 => {
-          Some(Symbol::Base(OceanType::U16))
+          Some(Symbol::Base(OceanType::Unsigned(16)))
         }
         val if val.len() <= 10 && val.parse::<u64>().unwrap() < 4294967296 => {
-          Some(Symbol::Base(OceanType::U32))
+          Some(Symbol::Base(OceanType::Unsigned(32)))
         }
-        val if val.len() < 19 => Some(Symbol::Base(OceanType::U64)),
+        val if val.len() < 19 => Some(Symbol::Base(OceanType::Unsigned(64))),
         val if val.len() == 20 && val.cmp("18446744073709551616") == Ordering::Less => {
-          Some(Symbol::Base(OceanType::U64))
+          Some(Symbol::Base(OceanType::Unsigned(64)))
         }
         _ => {
           errors.push(OceanError::SemanticError(
@@ -184,7 +456,7 @@ pub fn get_literal_type(
       }
       Some(Symbol::Array(ArraySymbol::new(
         Box::new(storage_symbol),
-        Box::new(Symbol::Base(OceanType::U64)),
+        Box::new(Symbol::Base(OceanType::Unsigned(64))),
       )))
     }
     Literal::Tuple(x) => {
@@ -221,10 +493,26 @@ pub fn get_function_call_type(
           arg_symbols.push(get_expression_type(arg.as_ref(), symbol_table, errors));
         }
         for i in 0..call.arguments.len() {
-          // if arg_symbols[i] doesn't match the x.parameter[i] symbol then
-          //   give error
-          // else
-          //   yay!!!!
+          let arg_type = get_expression_type(call.arguments[i].as_ref(), symbol_table, errors);
+          match arg_type {
+            Some(arg) => {
+              let matched_param_type = symbol_table.match_types(&arg, &x.parameters[i].1);
+              match matched_param_type {
+                Some(_) => {}
+                None => {
+                  errors.push(OceanError::SemanticError(
+                    Severity::Error,
+                    call.arguments[i].get_span(),
+                    format!(
+                      "Mismatch type for function call argument '{}'. Expected {:?} but got {:?}",
+                      x.parameters[i].0, x.parameters[i].1, arg
+                    ),
+                  ));
+                }
+              }
+            }
+            None => {}
+          }
         }
       } else {
         errors.push(OceanError::SemanticError(
