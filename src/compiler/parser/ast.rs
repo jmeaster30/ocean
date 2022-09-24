@@ -34,17 +34,19 @@ pub enum Statement {
 
 #[derive(Clone)]
 pub struct MacroStatement {
+  pub type_id: Option<i32>,
   pub token: Token,
 }
 
 impl MacroStatement {
   pub fn new(token: Token) -> Self {
-    Self { token }
+    Self { type_id: None, token }
   }
 }
 
 #[derive(Clone)]
 pub struct ErrorStatement {
+  pub type_id: Option<i32>,
   pub message: String,
   pub severity: Severity,
   pub tokens: Vec<Token>,
@@ -53,6 +55,7 @@ pub struct ErrorStatement {
 impl ErrorStatement {
   pub fn new(message: String, severity: Severity, tokens: Vec<Token>) -> Self {
     Self {
+      type_id: None,
       message,
       severity,
       tokens,
@@ -95,6 +98,7 @@ impl ReturnStatement {
 
 #[derive(Clone)]
 pub struct PackDecStatement {
+  pub type_id: Option<i32>,
   pub pack_token: Token,
   pub name_token: Token,
   pub open_brace: Token,
@@ -111,6 +115,7 @@ impl PackDecStatement {
     close_brace: Token,
   ) -> Self {
     Self {
+      type_id: None,
       pack_token,
       name_token,
       open_brace,
@@ -122,6 +127,7 @@ impl PackDecStatement {
 
 #[derive(Clone)]
 pub struct PackDeclaration {
+  pub type_id: Option<i32>,
   pub type_var: TypeVar,
   pub assignment: Option<Token>,
   pub expression: Option<Expression>,
@@ -130,6 +136,7 @@ pub struct PackDeclaration {
 impl PackDeclaration {
   pub fn new(type_var: TypeVar, assignment: Option<Token>, expression: Option<Expression>) -> Self {
     Self {
+      type_id: None,
       type_var,
       assignment,
       expression,
@@ -139,6 +146,7 @@ impl PackDeclaration {
 
 #[derive(Clone)]
 pub struct UnionDecStatement {
+  pub type_id: Option<i32>,
   pub union_token: Token,
   pub name_token: Token,
   pub open_brace: Token,
@@ -155,6 +163,7 @@ impl UnionDecStatement {
     close_brace: Token,
   ) -> Self {
     Self {
+      type_id: None,
       union_token,
       name_token,
       open_brace,
@@ -166,6 +175,7 @@ impl UnionDecStatement {
 
 #[derive(Clone)]
 pub struct UnionDeclaration {
+  pub type_id: Option<i32>,
   pub identifier: Token,
   pub left_paren: Option<Token>,
   pub type_list: Vec<Box<Type>>,
@@ -180,6 +190,7 @@ impl UnionDeclaration {
     right_paren: Option<Token>,
   ) -> Self {
     Self {
+      type_id: None,
       identifier,
       left_paren,
       type_list,
@@ -190,6 +201,7 @@ impl UnionDeclaration {
 
 #[derive(Clone)]
 pub struct VarDecStatement {
+  pub type_id: Option<i32>,
   pub let_token: Token,
   pub var: Var,
   pub assignment: Option<Token>,
@@ -204,6 +216,7 @@ impl VarDecStatement {
     expression: Option<Expression>,
   ) -> Self {
     Self {
+      type_id: None,
       let_token,
       var,
       assignment,
@@ -214,6 +227,7 @@ impl VarDecStatement {
 
 #[derive(Clone)]
 pub struct CastStatement {
+  pub type_id: Option<i32>,
   pub cast_token: Token,
   pub function: Expression,
 }
@@ -221,6 +235,7 @@ pub struct CastStatement {
 impl CastStatement {
   pub fn new(cast_token: Token, function: Expression) -> Self {
     Self {
+      type_id: None,
       cast_token,
       function,
     }
@@ -280,6 +295,7 @@ impl MatchEntry {
 
 #[derive(Clone)]
 pub struct IfStatement {
+  pub type_id: Option<i32>,
   pub if_token: Token,
   pub condition: Expression,
   pub left_curly: Token,
@@ -304,6 +320,7 @@ impl IfStatement {
     else_right_curly: Option<Token>,
   ) -> Self {
     Self {
+      type_id: None,
       if_token,
       condition,
       left_curly,
@@ -319,6 +336,7 @@ impl IfStatement {
 
 #[derive(Clone)]
 pub struct UseStatement {
+  pub type_id: Option<i32>,
   pub use_token: Token,
   pub id_tokens: Vec<Token>,
   pub as_token: Option<Token>,
@@ -333,6 +351,7 @@ impl UseStatement {
     alias_token: Option<Token>,
   ) -> Self {
     Self {
+      type_id: None,
       use_token,
       id_tokens,
       as_token,
@@ -343,6 +362,7 @@ impl UseStatement {
 
 #[derive(Clone)]
 pub struct ForLoopStatement {
+  pub type_id: Option<i32>,
   pub loop_token: Token,
   pub iterator: Token,
   pub in_token: Token,
@@ -363,6 +383,7 @@ impl ForLoopStatement {
     right_curly: Token,
   ) -> Self {
     Self {
+      type_id: None,
       loop_token,
       iterator,
       in_token,
@@ -376,6 +397,7 @@ impl ForLoopStatement {
 
 #[derive(Clone)]
 pub struct WhileStatement {
+  pub type_id: Option<i32>,
   pub loop_token: Token,
   pub condition: Expression,
   pub left_curly: Token,
@@ -392,6 +414,7 @@ impl WhileStatement {
     right_curly: Token,
   ) -> Self {
     Self {
+      type_id: None,
       loop_token,
       condition,
       left_curly,
@@ -403,6 +426,7 @@ impl WhileStatement {
 
 #[derive(Clone)]
 pub struct InfiniteLoopStatement {
+  pub type_id: Option<i32>,
   pub loop_token: Token,
   pub left_curly: Token,
   pub loop_body: Vec<Statement>,
@@ -417,6 +441,7 @@ impl InfiniteLoopStatement {
     right_curly: Token,
   ) -> Self {
     Self {
+      type_id: None,
       loop_token,
       left_curly,
       loop_body,
@@ -427,12 +452,13 @@ impl InfiniteLoopStatement {
 
 #[derive(Clone)]
 pub struct ExpressionStatement {
+  pub type_id: Option<i32>,
   pub expression: Expression,
 }
 
 impl ExpressionStatement {
   pub fn new(expression: Expression) -> Self {
-    Self { expression }
+    Self { type_id: None, expression }
   }
 }
 
@@ -452,6 +478,7 @@ pub enum Expression {
 
 #[derive(Clone)]
 pub struct ErrorExpression {
+  pub type_id: Option<i32>,
   pub severity: Severity,
   pub message: String,
   pub tokens: Vec<Token>,
@@ -460,6 +487,7 @@ pub struct ErrorExpression {
 impl ErrorExpression {
   pub fn new(severity: Severity, message: String, tokens: Vec<Token>) -> Self {
     Self {
+      type_id: None,
       severity,
       message,
       tokens,
@@ -469,6 +497,7 @@ impl ErrorExpression {
 
 #[derive(Clone)]
 pub struct BinaryExpression {
+  pub type_id: Option<i32>,
   pub lhs: Box<Expression>,
   pub operator: Token,
   pub rhs: Box<Expression>,
@@ -476,36 +505,39 @@ pub struct BinaryExpression {
 
 impl BinaryExpression {
   pub fn new(lhs: Box<Expression>, operator: Token, rhs: Box<Expression>) -> Self {
-    Self { lhs, operator, rhs }
+    Self { lhs, operator, rhs, type_id: None }
   }
 }
 
 #[derive(Clone)]
 pub struct PrefixExpression {
+  pub type_id: Option<i32>,
   pub operator: Token,
   pub rhs: Box<Expression>,
 }
 
 impl PrefixExpression {
   pub fn new(operator: Token, rhs: Box<Expression>) -> Self {
-    Self { operator, rhs }
+    Self { operator, rhs, type_id: None }
   }
 }
 
 #[derive(Clone)]
 pub struct PostfixExpression {
+  pub type_id: Option<i32>,
   pub lhs: Box<Expression>,
   pub operator: Token,
 }
 
 impl PostfixExpression {
   pub fn new(lhs: Box<Expression>, operator: Token) -> Self {
-    Self { lhs, operator }
+    Self { lhs, operator, type_id: None }
   }
 }
 
 #[derive(Clone)]
 pub struct MemberAccess {
+  pub type_id: Option<i32>,
   pub lhs: Box<Expression>,
   pub dot: Token,
   pub id: Token,
@@ -513,12 +545,13 @@ pub struct MemberAccess {
 
 impl MemberAccess {
   pub fn new(lhs: Box<Expression>, dot: Token, id: Token) -> Self {
-    Self { lhs, dot, id }
+    Self { lhs, dot, id, type_id: None }
   }
 }
 
 #[derive(Clone)]
 pub struct ArrayAccess {
+  pub type_id: Option<i32>,
   pub lhs: Box<Expression>,
   pub left_square: Token,
   pub expr: Box<Expression>,
@@ -533,6 +566,7 @@ impl ArrayAccess {
     right_square: Token,
   ) -> Self {
     Self {
+      type_id: None,
       lhs,
       left_square,
       expr,
@@ -543,6 +577,7 @@ impl ArrayAccess {
 
 #[derive(Clone)]
 pub struct CastExpression {
+  pub type_id: Option<i32>,
   pub lhs: Box<Expression>,
   pub as_token: Token,
   pub cast_type: Type,
@@ -551,6 +586,7 @@ pub struct CastExpression {
 impl CastExpression {
   pub fn new(lhs: Box<Expression>, as_token: Token, cast_type: Type) -> Self {
     Self {
+      type_id: None,
       lhs,
       as_token,
       cast_type,
@@ -560,6 +596,7 @@ impl CastExpression {
 
 #[derive(Clone)]
 pub struct FunctionCall {
+  pub type_id: Option<i32>,
   pub target: Box<Expression>,
   pub left_paren: Token,
   pub arguments: Vec<Box<Expression>>,
@@ -574,6 +611,7 @@ impl FunctionCall {
     right_paren: Token,
   ) -> Self {
     Self {
+      type_id: None,
       target,
       left_paren,
       arguments,
@@ -594,6 +632,7 @@ pub enum Literal {
 
 #[derive(Clone)]
 pub struct Function {
+  pub type_id: Option<i32>,
   pub func_token: Token,
   pub param_left_paren: Token,
   pub param_list: ParameterList,
@@ -624,6 +663,7 @@ impl Function {
     right_curly: Option<Token>,
   ) -> Self {
     Self {
+      type_id: None,
       func_token,
       param_left_paren,
       param_list,
@@ -642,6 +682,7 @@ impl Function {
 
 #[derive(Clone)]
 pub struct Tuple {
+  pub type_id: Option<i32>,
   pub left_paren: Token,
   pub contents: Vec<TupleEntry>,
   pub right_paren: Token,
@@ -650,6 +691,7 @@ pub struct Tuple {
 impl Tuple {
   pub fn new(left_paren: Token, contents: Vec<TupleEntry>, right_paren: Token) -> Self {
     Self {
+      type_id: None,
       left_paren,
       contents,
       right_paren,
@@ -659,6 +701,7 @@ impl Tuple {
 
 #[derive(Clone)]
 pub struct TupleEntry {
+  pub type_id: Option<i32>,
   pub name: Option<Token>,
   pub colon: Option<Token>,
   pub expression: Expression,
@@ -667,6 +710,7 @@ pub struct TupleEntry {
 impl TupleEntry {
   pub fn new(name: Option<Token>, colon: Option<Token>, expression: Expression) -> Self {
     Self {
+      type_id: None,
       name,
       colon,
       expression,
@@ -676,6 +720,7 @@ impl TupleEntry {
 
 #[derive(Clone)]
 pub struct ArrayLiteral {
+  pub type_id: Option<i32>,
   pub left_square: Token,
   pub args: Vec<Box<Expression>>,
   pub right_square: Token,
@@ -684,6 +729,7 @@ pub struct ArrayLiteral {
 impl ArrayLiteral {
   pub fn new(left_square: Token, args: Vec<Box<Expression>>, right_square: Token) -> Self {
     Self {
+      type_id: None,
       left_square,
       args,
       right_square,
@@ -699,6 +745,7 @@ pub enum Var {
 
 #[derive(Clone)]
 pub struct TypeVar {
+  pub type_id: Option<i32>,
   pub var: UntypedVar,
   pub colon: Token,
   pub var_type: Box<Type>,
@@ -707,6 +754,7 @@ pub struct TypeVar {
 impl TypeVar {
   pub fn new(var: UntypedVar, colon: Token, var_type: Box<Type>) -> Self {
     Self {
+      type_id: None,
       var,
       colon,
       var_type,
@@ -716,12 +764,13 @@ impl TypeVar {
 
 #[derive(Clone)]
 pub struct UntypedVar {
+  pub type_id: Option<i32>,
   pub id: Token,
 }
 
 impl UntypedVar {
   pub fn new(id: Token) -> Self {
-    Self { id }
+    Self { id, type_id: None }
   }
 }
 
@@ -910,39 +959,43 @@ impl VarType {
 
 #[derive(Clone)]
 pub struct ParameterList {
+  pub type_id: Option<i32>,
   pub params: Vec<Parameter>,
 }
 
 impl ParameterList {
   pub fn new(params: Vec<Parameter>) -> Self {
-    Self { params }
+    Self { params, type_id: None }
   }
 }
 
 #[derive(Clone)]
 pub struct Parameter {
+  pub type_id: Option<i32>,
   pub type_var: TypeVar,
 }
 
 impl Parameter {
   pub fn new(type_var: TypeVar) -> Self {
-    Self { type_var }
+    Self { type_var, type_id: None }
   }
 }
 
 #[derive(Clone)]
 pub struct ReturnList {
+  pub type_id: Option<i32>,
   pub returns: Vec<ReturnEntry>,
 }
 
 impl ReturnList {
   pub fn new(returns: Vec<ReturnEntry>) -> Self {
-    Self { returns }
+    Self { returns, type_id: None }
   }
 }
 
 #[derive(Clone)]
 pub struct ReturnEntry {
+  pub type_id: Option<i32>,
   pub type_var: TypeVar,
   pub assignment: Option<Token>,
   pub expression: Option<Box<Expression>>,
@@ -958,6 +1011,7 @@ impl ReturnEntry {
       type_var,
       assignment,
       expression,
+      type_id: None
     }
   }
 }

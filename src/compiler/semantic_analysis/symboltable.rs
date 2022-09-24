@@ -13,6 +13,7 @@ pub enum Symbol {
   Modified(ModifiedSymbol),
   Array(ArraySymbol),
   Base(OceanType),
+  Cache(i32),
   Unknown,
 }
 
@@ -108,11 +109,11 @@ pub fn is_compat_type(a: &OceanType, b: &OceanType) -> bool {
   return is_type_subset(a, b) || is_type_subset(b, a);
 }
 
-pub fn get_greater_type(a: &OceanType, b: &OceanType) -> Option<Symbol> {
+pub fn get_greater_type(a: &OceanType, b: &OceanType) -> Option<OceanType> {
   if is_type_subset(a, b) {
-    Some(Symbol::Base(b.clone()))
+    Some(b.clone())
   } else if is_type_subset(b, a) {
-    Some(Symbol::Base(a.clone()))
+    Some(a.clone())
   } else {
     None
   }
@@ -180,20 +181,21 @@ impl TupleSymbol {
 
 #[derive(Clone, Debug)]
 pub struct SymbolTableVarEntry {
-  pub symbol: Symbol,
+  pub type_id: i32,
   pub span: (usize, usize),
 }
 
 impl SymbolTableVarEntry {
-  pub fn new(symbol: Symbol, span: (usize, usize)) -> Self {
-    Self { symbol, span }
+  pub fn new(type_id: i32, span: (usize, usize)) -> Self {
+    Self { type_id, span }
   }
 }
 
 #[derive(Clone, Debug)]
 pub struct SymbolTable {
   is_soft_scope: bool,
-  types: HashMap<String, Symbol>,
+  symbols: HashMap<i32, Symbol>,
+  types: HashMap<String, i32>,
   variables: HashMap<String, Vec<SymbolTableVarEntry>>,
   parent_scope: Option<Box<SymbolTable>>,
 }
@@ -202,6 +204,7 @@ impl SymbolTable {
   pub fn soft_scope(parent_scope: Option<Box<SymbolTable>>) -> Self {
     Self {
       is_soft_scope: true,
+      symbols: HashMap::new(),
       types: HashMap::new(),
       variables: HashMap::new(),
       parent_scope,
@@ -211,13 +214,14 @@ impl SymbolTable {
   pub fn hard_scope(parent_scope: Option<Box<SymbolTable>>) -> Self {
     Self {
       is_soft_scope: false,
+      symbols: HashMap::new(),
       types: HashMap::new(),
       variables: HashMap::new(),
       parent_scope,
     }
   }
 
-  pub fn add_var(&mut self, name: String, span: (usize, usize), symbol: Symbol) {
+  pub fn add_var(&mut self, name: String, span: (usize, usize), type_id: i32) {
     let found = self.variables.get(&name);
     if let Some(current_value) = found {
       // TODO maybe create a warning here if we try to add a variable that exists in a higher scope
@@ -225,116 +229,71 @@ impl SymbolTable {
       for a in current_value {
         new_value.push(a.clone());
       }
-      new_value.push(SymbolTableVarEntry::new(symbol, span));
+      new_value.push(SymbolTableVarEntry::new(type_id, span));
       self.variables.remove_entry(&name);
       self.variables.insert(name, new_value);
     } else {
       self
         .variables
-        .insert(name, vec![SymbolTableVarEntry::new(symbol, span)]);
+        .insert(name, vec![SymbolTableVarEntry::new(type_id, span)]);
     }
   }
 
   pub fn find_variable(&self, name: &String) -> Option<&SymbolTableVarEntry> {
-    let found_variable_list = self.variables.get(name);
-    let mut final_result = None;
-    match found_variable_list {
-      Some(variable_list) => {
-        let mut result = None;
-        for variable in variable_list {
-          match variable.symbol {
-            Symbol::Function(_) => {}
-            _ => result = Some(variable),
-          }
-        }
-        match result {
-          Some(res) => final_result = result,
-          None => {
-            if self.is_soft_scope && self.parent_scope.is_some() {
-              final_result = self.parent_scope.as_ref().unwrap().find_variable(name);
-            } else {
-              final_result = None
-            }
-          }
-        }
-      }
-      None => {
-        if self.is_soft_scope && self.parent_scope.is_some() {
-          final_result = self.parent_scope.as_ref().unwrap().find_variable(name);
-        } else {
-          final_result = None
-        }
-      }
+    None
+  }
+
+  pub fn add_symbol(&mut self, sym: Symbol) -> i32 {
+    let index = self.get_new_symbol_id();
+    self.symbols.insert(index, sym);
+    index
+  }
+
+  pub fn get_new_symbol_id(&self) -> i32 {
+    match (self.symbols.len(), self.parent_scope.as_ref()) {
+      (0, None) => 0,
+      (0, Some(p_scope)) => p_scope.get_new_symbol_id(),
+      _ => *self.symbols.keys().max().unwrap()
     }
-    final_result
   }
 
-  pub fn resolve_type_ast(&self, type_ast: &Type) -> Symbol {
-    Symbol::Unknown
-  }
-
-  pub fn match_types(&self, a: &Symbol, b: &Symbol) -> Option<Symbol> {
-    match (a, b) {
-      (Symbol::Unknown, x) => {
-        eprintln!("TODO: UPDATE UNKNOWN VARIABLE");
-        Some(x.clone())
+  pub fn match_types(&mut self, a: i32, b: i32) -> Option<i32> {
+    let resolved_a = self.symbols.get(&a).cloned();
+    let resolved_b = self.symbols.get(&b).cloned();
+    match (resolved_a, resolved_b) {
+      (Some(sym_a), Some(Symbol::Unknown)) => {
+        self.update_symbol(b, sym_a.clone());
+        Some(a)
       }
-      (x, Symbol::Unknown) => {
-        eprintln!("TODO: UPDATE UNKNOWN VARIABLE");
-        Some(x.clone())
+      (Some(Symbol::Unknown), Some(sym_b)) => {
+        self.update_symbol(a, sym_b.clone());
+        Some(b)
       }
-      (Symbol::Base(x), Symbol::Base(y)) => {
-        if is_type_subset(x, y) {
-          Some(Symbol::Base(y.clone()))
-        } else if is_type_subset(y, x) {
-          Some(Symbol::Base(x.clone()))
+      (Some(Symbol::Base(type_a)), Some(Symbol::Base(type_b))) => {
+        let result = get_greater_type(&type_a, &type_b);
+        if result == Some(type_a.clone()) {
+          Some(a)
+        } else if result == Some(type_b.clone()) {
+          Some(b)
         } else {
           None
         }
       }
-      (Symbol::Array(x), Symbol::Array(y)) => {
-        let storage_match = self.match_types(x.storage.as_ref(), y.storage.as_ref());
-        let index_match = self.match_types(x.index.as_ref(), y.index.as_ref());
-        match (storage_match, index_match) {
-          (Some(storage), Some(index)) => Some(Symbol::Array(ArraySymbol::new(
-            Box::new(storage),
-            Box::new(index),
-          ))),
-          _ => None,
-        }
-      }
       _ => {
-        eprintln!("ERROR UNHANDLED TYPE MATCH CASE!!!!!!!!");
         None
       }
     }
   }
+
+  fn update_symbol(&mut self, type_id: i32, sym: Symbol) {
+    if self.symbols.contains_key(&type_id) {
+      self.symbols.remove(&type_id);
+      self.symbols.insert(type_id, sym);
+    } else if self.parent_scope.is_some() {
+      self.parent_scope.as_mut().unwrap().update_symbol(type_id, sym);
+    } else {
+      //do nothing i guess
+    }
+  }
 }
 
-pub fn resolve_postfix_operator(
-  operator: String,
-  expr_symbol: &Symbol,
-  symbol_table: &SymbolTable,
-) -> Option<Symbol> {
-  let option = get_postfix_operator_type(operator, expr_symbol);
-  option
-}
-
-pub fn resolve_prefix_operator(
-  operator: String,
-  expr_symbol: &Symbol,
-  symbol_table: &SymbolTable,
-) -> Option<Symbol> {
-  let option = get_prefix_operator_type(operator, expr_symbol);
-  option
-}
-
-pub fn resolve_binary_operator(
-  operator: String,
-  lhs_symbol: &Symbol,
-  rhs_symbol: &Symbol,
-  symbol_table: &SymbolTable,
-) -> Option<Symbol> {
-  let option = get_infix_operator_type(operator, lhs_symbol, rhs_symbol);
-  option
-}

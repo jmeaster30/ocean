@@ -1,6 +1,6 @@
 use super::symboltable::*;
 
-pub fn get_postfix_operator_type(operator: String, input: &Symbol) -> Option<Symbol> {
+/*pub fn get_postfix_operator_type(operator: String, input: &Symbol) -> Option<Symbol> {
   match (operator.as_str(), input) {
     _ => None,
   }
@@ -137,4 +137,5 @@ pub fn get_infix_operator_type(
   < > <= >=
   == !=
 
+*/
 */
