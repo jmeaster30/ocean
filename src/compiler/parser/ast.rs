@@ -40,7 +40,10 @@ pub struct MacroStatement {
 
 impl MacroStatement {
   pub fn new(token: Token) -> Self {
-    Self { type_id: None, token }
+    Self {
+      type_id: None,
+      token,
+    }
   }
 }
 
@@ -458,7 +461,10 @@ pub struct ExpressionStatement {
 
 impl ExpressionStatement {
   pub fn new(expression: Expression) -> Self {
-    Self { type_id: None, expression }
+    Self {
+      type_id: None,
+      expression,
+    }
   }
 }
 
@@ -505,7 +511,12 @@ pub struct BinaryExpression {
 
 impl BinaryExpression {
   pub fn new(lhs: Box<Expression>, operator: Token, rhs: Box<Expression>) -> Self {
-    Self { lhs, operator, rhs, type_id: None }
+    Self {
+      lhs,
+      operator,
+      rhs,
+      type_id: None,
+    }
   }
 }
 
@@ -518,7 +529,11 @@ pub struct PrefixExpression {
 
 impl PrefixExpression {
   pub fn new(operator: Token, rhs: Box<Expression>) -> Self {
-    Self { operator, rhs, type_id: None }
+    Self {
+      operator,
+      rhs,
+      type_id: None,
+    }
   }
 }
 
@@ -531,7 +546,11 @@ pub struct PostfixExpression {
 
 impl PostfixExpression {
   pub fn new(lhs: Box<Expression>, operator: Token) -> Self {
-    Self { lhs, operator, type_id: None }
+    Self {
+      lhs,
+      operator,
+      type_id: None,
+    }
   }
 }
 
@@ -545,7 +564,12 @@ pub struct MemberAccess {
 
 impl MemberAccess {
   pub fn new(lhs: Box<Expression>, dot: Token, id: Token) -> Self {
-    Self { lhs, dot, id, type_id: None }
+    Self {
+      lhs,
+      dot,
+      id,
+      type_id: None,
+    }
   }
 }
 
@@ -638,7 +662,10 @@ pub struct BoolLiteral {
 
 impl BoolLiteral {
   pub fn new(token: Token) -> Self {
-    Self { type_id: None, token }
+    Self {
+      type_id: None,
+      token,
+    }
   }
 }
 
@@ -650,7 +677,10 @@ pub struct NumberLiteral {
 
 impl NumberLiteral {
   pub fn new(token: Token) -> Self {
-    Self { type_id: None, token }
+    Self {
+      type_id: None,
+      token,
+    }
   }
 }
 
@@ -662,7 +692,10 @@ pub struct StringLiteral {
 
 impl StringLiteral {
   pub fn new(token: Token) -> Self {
-    Self { type_id: None, token }
+    Self {
+      type_id: None,
+      token,
+    }
   }
 }
 
@@ -737,7 +770,6 @@ impl Tuple {
 
 #[derive(Clone)]
 pub struct TupleEntry {
-  pub type_id: Option<i32>,
   pub name: Option<Token>,
   pub colon: Option<Token>,
   pub expression: Expression,
@@ -746,7 +778,6 @@ pub struct TupleEntry {
 impl TupleEntry {
   pub fn new(name: Option<Token>, colon: Option<Token>, expression: Expression) -> Self {
     Self {
-      type_id: None,
       name,
       colon,
       expression,
@@ -1001,7 +1032,10 @@ pub struct ParameterList {
 
 impl ParameterList {
   pub fn new(params: Vec<Parameter>) -> Self {
-    Self { params, type_id: None }
+    Self {
+      params,
+      type_id: None,
+    }
   }
 }
 
@@ -1013,7 +1047,10 @@ pub struct Parameter {
 
 impl Parameter {
   pub fn new(type_var: TypeVar) -> Self {
-    Self { type_var, type_id: None }
+    Self {
+      type_var,
+      type_id: None,
+    }
   }
 }
 
@@ -1025,7 +1062,10 @@ pub struct ReturnList {
 
 impl ReturnList {
   pub fn new(returns: Vec<ReturnEntry>) -> Self {
-    Self { returns, type_id: None }
+    Self {
+      returns,
+      type_id: None,
+    }
   }
 }
 
@@ -1047,7 +1087,7 @@ impl ReturnEntry {
       type_var,
       assignment,
       expression,
-      type_id: None
+      type_id: None,
     }
   }
 }

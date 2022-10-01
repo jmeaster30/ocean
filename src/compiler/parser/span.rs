@@ -313,7 +313,6 @@ impl Spanned for StringLiteral {
   }
 }
 
-
 impl Spanned for Tuple {
   fn get_span(&self) -> (usize, usize) {
     (self.left_paren.start, self.right_paren.end)

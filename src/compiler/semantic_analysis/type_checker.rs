@@ -7,8 +7,8 @@ use crate::compiler::parser::ast::*;
 use crate::compiler::{errors::OceanError, parser::span::Spanned};
 
 use super::symboltable::{
-  ArraySymbol, OceanType, Symbol, SymbolTable, SymbolTableVarEntry,
-  TupleSymbol, get_base_type_id
+  get_base_type_id, ArraySymbol, FunctionSymbol, OceanType, Symbol, SymbolTable,
+  SymbolTableVarEntry, TupleSymbol,
 };
 
 pub fn type_checker(program: &mut Program) -> (SymbolTable, Vec<OceanError>) {
@@ -17,7 +17,7 @@ pub fn type_checker(program: &mut Program) -> (SymbolTable, Vec<OceanError>) {
   let mut errors = Vec::new();
 
   for statement in &mut program.statements {
-    type_checker_stmt( statement, &mut symbol_table, &mut errors)
+    type_checker_stmt(statement, &mut symbol_table, &mut errors)
   }
 
   (symbol_table, errors)
@@ -90,13 +90,37 @@ pub fn get_expression_type(
     Expression::ArrayAccess(access) => {
       let target_sym_id = get_expression_type(access.lhs.as_mut(), symbol_table, errors);
       let index_sym_id = get_expression_type(access.expr.as_mut(), symbol_table, errors);
-      let target_sym = symbol_table.get_symbol(target_sym_id);
-      let index_sym = symbol_table.get_symbol(index_sym_id);
-      match (target_sym, index_sym) {
-        (Some(target), Some(index)) => todo!(),
-        _ => todo!(),
-      };
-      0
+      let mut result_id = get_base_type_id(Symbol::Unknown);
+      if !symbol_table.is_iterable(target_sym_id) {
+        errors.push(OceanError::SemanticError(
+          Severity::Error,
+          access.lhs.get_span(),
+          format!(
+            "{:?} is not iterable",
+            symbol_table.get_symbol(target_sym_id)
+          ),
+        ));
+        access.type_id = Some(result_id);
+        return result_id;
+      }
+
+      match symbol_table.get_storage_type_from_indexable(target_sym_id, index_sym_id) {
+        Ok(storage_type_id) => result_id = storage_type_id,
+        Err(_) => {
+          errors.push(OceanError::SemanticError(
+            Severity::Error,
+            access.get_span(),
+            format!(
+              "{:?} is not indexable by {:?}",
+              symbol_table.get_symbol(target_sym_id),
+              symbol_table.get_symbol(index_sym_id)
+            ),
+          ));
+        }
+      }
+
+      access.type_id = Some(result_id);
+      result_id
     }
     Expression::Cast(_) => todo!(),
     Expression::Literal(x) => {
@@ -161,7 +185,7 @@ pub fn get_literal_type(
       };
       num_literal.type_id = Some(type_id);
       type_id
-    },
+    }
     Literal::String(str_literal) => {
       if str_literal.token.lexeme.len() == 3 {
         let id = get_base_type_id(Symbol::Base(OceanType::Char));
@@ -172,7 +196,7 @@ pub fn get_literal_type(
         str_literal.type_id = Some(id);
         id
       }
-    },
+    }
     Literal::Array(array_literal) => {
       let mut storage_id = get_base_type_id(Symbol::Unknown);
       for arg in &mut array_literal.args {
@@ -180,20 +204,42 @@ pub fn get_literal_type(
         match symbol_table.match_types(arg_id, storage_id) {
           Some(x) => storage_id = x,
           None => errors.push(OceanError::SemanticError(
-            Severity::Error, 
-            arg.get_span(), 
-            format!("Unexpected type for array entry. Found {:?} but expected {:?}", symbol_table.get_symbol(arg_id), symbol_table.get_symbol(storage_id))
-          ))
+            Severity::Error,
+            arg.get_span(),
+            format!(
+              "Unexpected type for array entry. Found {:?} but expected {:?}",
+              symbol_table.get_symbol(arg_id),
+              symbol_table.get_symbol(storage_id)
+            ),
+          )),
         }
       }
-      let id = symbol_table.add_symbol(Symbol::Array(ArraySymbol::new(Box::new(Symbol::Cache(storage_id)), Box::new(Symbol::Base(OceanType::Unsigned(64))))));
+      let id = symbol_table.add_symbol(Symbol::Array(ArraySymbol::new(
+        storage_id,
+        get_base_type_id(Symbol::Base(OceanType::Unsigned(64))),
+      )));
       array_literal.type_id = Some(id);
       id
-    },
-    Literal::Tuple(x) => {
-      0
-    },
-    Literal::Function(x) => todo!("functioncall"),
+    }
+    Literal::Tuple(tuple_literal) => {
+      let mut tuple_symbol = TupleSymbol::new();
+      for member in &mut tuple_literal.contents {
+        let member_id = get_expression_type(&mut member.expression, symbol_table, errors);
+        match member.name.clone() {
+          Some(member_name) => tuple_symbol.add_named(member_name.lexeme, member_id),
+          None => tuple_symbol.add_unnamed(member_id),
+        }
+      }
+      let id = symbol_table.add_symbol(Symbol::Tuple(tuple_symbol));
+      tuple_literal.type_id = Some(id);
+      id
+    }
+    Literal::Function(function_literal) => {
+      //let mut func_symbol = FunctionSymbol::new();
+      //for params in &mut function_literal.param_list.params {
+      //}
+      todo!("functions need to have the type var typechecking to work")
+    }
   }
 }
 

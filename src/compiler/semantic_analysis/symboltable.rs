@@ -49,27 +49,7 @@ pub fn get_superset(a: &OceanType) -> Vec<OceanType> {
   }
 }
 
-pub fn get_index_type(a: &Symbol) -> Option<Symbol> {
-  match a {
-    Symbol::Base(ocean_type) if *ocean_type == OceanType::String => {
-      Some(Symbol::Base(OceanType::Unsigned(64)))
-    }
-    Symbol::Array(array_type) => Some(array_type.index.as_ref().clone()),
-    _ => None,
-  }
-}
-
-pub fn get_iterator_type(a: &Symbol) -> Option<Symbol> {
-  match a {
-    Symbol::Base(ocean_type) if *ocean_type == OceanType::String => {
-      Some(Symbol::Base(OceanType::Char))
-    }
-    Symbol::Array(array_type) => Some(array_type.storage.as_ref().clone()),
-    _ => None,
-  }
-}
-
-pub fn build_full_superset(a: &OceanType, current_results: &Vec<OceanType>) -> Vec<OceanType> {
+fn build_full_superset(a: &OceanType, current_results: &Vec<OceanType>) -> Vec<OceanType> {
   let superset = get_superset(a);
   let filtered_set = superset
     .into_iter()
@@ -97,7 +77,7 @@ pub fn build_full_superset(a: &OceanType, current_results: &Vec<OceanType>) -> V
   return result;
 }
 
-pub fn is_type_subset(a: &OceanType, b: &OceanType) -> bool {
+fn is_type_subset(a: &OceanType, b: &OceanType) -> bool {
   if a == b {
     return true;
   }
@@ -105,11 +85,11 @@ pub fn is_type_subset(a: &OceanType, b: &OceanType) -> bool {
   return direct_superset.len() != 0 && direct_superset.contains(b);
 }
 
-pub fn is_compat_type(a: &OceanType, b: &OceanType) -> bool {
+fn is_compat_type(a: &OceanType, b: &OceanType) -> bool {
   return is_type_subset(a, b) || is_type_subset(b, a);
 }
 
-pub fn get_greater_type(a: &OceanType, b: &OceanType) -> Option<OceanType> {
+fn get_greater_type(a: &OceanType, b: &OceanType) -> Option<OceanType> {
   if is_type_subset(a, b) {
     Some(b.clone())
   } else if is_type_subset(b, a) {
@@ -121,12 +101,12 @@ pub fn get_greater_type(a: &OceanType, b: &OceanType) -> Option<OceanType> {
 
 #[derive(Clone, Debug)]
 pub struct ArraySymbol {
-  pub storage: Box<Symbol>,
-  pub index: Box<Symbol>,
+  pub storage: i32,
+  pub index: i32,
 }
 
 impl ArraySymbol {
-  pub fn new(storage: Box<Symbol>, index: Box<Symbol>) -> Self {
+  pub fn new(storage: i32, index: i32) -> Self {
     Self { storage, index }
   }
 }
@@ -134,14 +114,31 @@ impl ArraySymbol {
 #[derive(Clone, Debug)]
 pub struct AutoSymbol {
   pub name: String,
-  pub constraints: Option<Vec<Symbol>>, // Some(Vec::new) <- any.... None <- none
+  //pub constraints: Option<Vec<Symbol>>, // Some(Vec::new) <- any.... None <- none
   pub members: Vec<String>,
 }
 
 #[derive(Clone, Debug)]
 pub struct FunctionSymbol {
-  pub parameters: Vec<(String, Symbol)>,
-  pub returns: Vec<(String, Symbol)>,
+  pub parameters: Vec<(String, i32)>,
+  pub returns: Vec<(String, i32)>,
+}
+
+impl FunctionSymbol {
+  pub fn new() -> Self {
+    Self {
+      parameters: Vec::new(),
+      returns: Vec::new(),
+    }
+  }
+
+  pub fn add_parameter(&mut self, name: String, symbol: i32) {
+    self.parameters.push((name, symbol));
+  }
+
+  pub fn add_return(&mut self, name: String, symbol: i32) {
+    self.returns.push((name, symbol));
+  }
 }
 
 #[derive(Clone, Debug)]
@@ -149,18 +146,18 @@ pub struct ModifiedSymbol {
   pub reference: bool,
   pub mutable: bool,
   pub comp: bool,
-  pub base_type: Box<Symbol>,
+  pub base_type: i32,
 }
 
 #[derive(Clone, Debug)]
 pub struct CustomSymbol {
   pub name: String,
-  pub members: HashMap<String, Symbol>,
+  pub members: HashMap<String, i32>,
 }
 
 #[derive(Clone, Debug)]
 pub struct TupleSymbol {
-  pub members: Vec<(String, Symbol)>,
+  pub members: Vec<(String, i32)>,
 }
 
 impl TupleSymbol {
@@ -170,11 +167,11 @@ impl TupleSymbol {
     }
   }
 
-  pub fn add_named(&mut self, name: String, symbol: Symbol) {
+  pub fn add_named(&mut self, name: String, symbol: i32) {
     self.members.push((name, symbol));
   }
 
-  pub fn add_unnamed(&mut self, symbol: Symbol) {
+  pub fn add_unnamed(&mut self, symbol: i32) {
     self.members.push((self.members.len().to_string(), symbol));
   }
 }
@@ -201,7 +198,7 @@ pub fn get_base_type_id(base_type: Symbol) -> i32 {
     Symbol::Base(OceanType::Signed(x)) => x as i32,
     Symbol::Base(OceanType::Unsigned(x)) => (x + 1) as i32,
     Symbol::Base(OceanType::Float(x)) => (x + 2) as i32,
-    _ => panic!()
+    _ => panic!(),
   }
 }
 
@@ -217,21 +214,63 @@ pub struct SymbolTable {
 impl SymbolTable {
   pub fn init() -> Self {
     let mut base_symbols = HashMap::new();
-    base_symbols.insert(get_base_type_id(Symbol::Base(OceanType::Bool)), Symbol::Base(OceanType::Bool));
-    base_symbols.insert(get_base_type_id(Symbol::Base(OceanType::Char)), Symbol::Base(OceanType::Char));
-    base_symbols.insert(get_base_type_id(Symbol::Base(OceanType::String)), Symbol::Base(OceanType::String));
-    base_symbols.insert(get_base_type_id(Symbol::Base(OceanType::Void)), Symbol::Base(OceanType::Void));
+    base_symbols.insert(
+      get_base_type_id(Symbol::Base(OceanType::Bool)),
+      Symbol::Base(OceanType::Bool),
+    );
+    base_symbols.insert(
+      get_base_type_id(Symbol::Base(OceanType::Char)),
+      Symbol::Base(OceanType::Char),
+    );
+    base_symbols.insert(
+      get_base_type_id(Symbol::Base(OceanType::String)),
+      Symbol::Base(OceanType::String),
+    );
+    base_symbols.insert(
+      get_base_type_id(Symbol::Base(OceanType::Void)),
+      Symbol::Base(OceanType::Void),
+    );
     base_symbols.insert(get_base_type_id(Symbol::Unknown), Symbol::Unknown);
-    base_symbols.insert(get_base_type_id(Symbol::Base(OceanType::Signed(8))), Symbol::Base(OceanType::Signed(8)));
-    base_symbols.insert(get_base_type_id(Symbol::Base(OceanType::Signed(16))), Symbol::Base(OceanType::Signed(16)));
-    base_symbols.insert(get_base_type_id(Symbol::Base(OceanType::Signed(32))), Symbol::Base(OceanType::Signed(32)));
-    base_symbols.insert(get_base_type_id(Symbol::Base(OceanType::Signed(64))), Symbol::Base(OceanType::Signed(64)));
-    base_symbols.insert(get_base_type_id(Symbol::Base(OceanType::Unsigned(8))), Symbol::Base(OceanType::Unsigned(8)));
-    base_symbols.insert(get_base_type_id(Symbol::Base(OceanType::Unsigned(16))), Symbol::Base(OceanType::Unsigned(16)));
-    base_symbols.insert(get_base_type_id(Symbol::Base(OceanType::Unsigned(32))), Symbol::Base(OceanType::Unsigned(32)));
-    base_symbols.insert(get_base_type_id(Symbol::Base(OceanType::Unsigned(64))), Symbol::Base(OceanType::Unsigned(64)));
-    base_symbols.insert(get_base_type_id(Symbol::Base(OceanType::Float(32))), Symbol::Base(OceanType::Float(32)));
-    base_symbols.insert(get_base_type_id(Symbol::Base(OceanType::Float(64))), Symbol::Base(OceanType::Float(64)));
+    base_symbols.insert(
+      get_base_type_id(Symbol::Base(OceanType::Signed(8))),
+      Symbol::Base(OceanType::Signed(8)),
+    );
+    base_symbols.insert(
+      get_base_type_id(Symbol::Base(OceanType::Signed(16))),
+      Symbol::Base(OceanType::Signed(16)),
+    );
+    base_symbols.insert(
+      get_base_type_id(Symbol::Base(OceanType::Signed(32))),
+      Symbol::Base(OceanType::Signed(32)),
+    );
+    base_symbols.insert(
+      get_base_type_id(Symbol::Base(OceanType::Signed(64))),
+      Symbol::Base(OceanType::Signed(64)),
+    );
+    base_symbols.insert(
+      get_base_type_id(Symbol::Base(OceanType::Unsigned(8))),
+      Symbol::Base(OceanType::Unsigned(8)),
+    );
+    base_symbols.insert(
+      get_base_type_id(Symbol::Base(OceanType::Unsigned(16))),
+      Symbol::Base(OceanType::Unsigned(16)),
+    );
+    base_symbols.insert(
+      get_base_type_id(Symbol::Base(OceanType::Unsigned(32))),
+      Symbol::Base(OceanType::Unsigned(32)),
+    );
+    base_symbols.insert(
+      get_base_type_id(Symbol::Base(OceanType::Unsigned(64))),
+      Symbol::Base(OceanType::Unsigned(64)),
+    );
+    base_symbols.insert(
+      get_base_type_id(Symbol::Base(OceanType::Float(32))),
+      Symbol::Base(OceanType::Float(32)),
+    );
+    base_symbols.insert(
+      get_base_type_id(Symbol::Base(OceanType::Float(64))),
+      Symbol::Base(OceanType::Float(64)),
+    );
     Self {
       is_soft_scope: false,
       symbols: base_symbols,
@@ -292,12 +331,10 @@ impl SymbolTable {
   pub fn get_symbol(&self, index: i32) -> Option<Symbol> {
     match self.symbols.get(&index) {
       Some(x) => Some(x.clone()),
-      None => {
-        match &self.parent_scope {
-          Some(p_scope) => p_scope.get_symbol(index),
-          None => None
-        }
-      }
+      None => match &self.parent_scope {
+        Some(p_scope) => p_scope.get_symbol(index),
+        None => None,
+      },
     }
   }
 
@@ -305,7 +342,7 @@ impl SymbolTable {
     match (self.symbols.len(), self.parent_scope.as_ref()) {
       (0, None) => 0,
       (0, Some(p_scope)) => p_scope.get_new_symbol_id(),
-      _ => *self.symbols.keys().max().unwrap()
+      _ => *self.symbols.keys().max().unwrap(),
     }
   }
 
@@ -331,9 +368,7 @@ impl SymbolTable {
           None
         }
       }
-      _ => {
-        None
-      }
+      _ => None,
     }
   }
 
@@ -342,10 +377,49 @@ impl SymbolTable {
       self.symbols.remove(&type_id);
       self.symbols.insert(type_id, sym);
     } else if self.parent_scope.is_some() {
-      self.parent_scope.as_mut().unwrap().update_symbol(type_id, sym);
+      self
+        .parent_scope
+        .as_mut()
+        .unwrap()
+        .update_symbol(type_id, sym);
     } else {
       //do nothing i guess
     }
   }
-}
 
+  fn get_resolved_symbol(&self, target_type_id: i32) -> Option<Symbol> {
+    let resolved_symbol = self.symbols.get(&target_type_id);
+    match resolved_symbol {
+      Some(Symbol::Cache(cache_type_id)) => self.get_resolved_symbol(*cache_type_id),
+      Some(symbol) => Some(symbol.clone()),
+      None => match self.parent_scope.as_ref() {
+        Some(p_scope) => p_scope.get_resolved_symbol(target_type_id),
+        None => panic!("Couldn't find type id {}", target_type_id),
+      },
+    }
+  }
+
+  pub fn is_iterable(&self, type_id: i32) -> bool {
+    let resolved_symbol = self.get_resolved_symbol(type_id);
+    match resolved_symbol {
+      Some(Symbol::Array(array_symbol)) => true,
+      None => panic!("Couldn't find type id {}", type_id),
+      _ => false,
+    }
+  }
+
+  pub fn get_storage_type_from_indexable(
+    &mut self,
+    target_type_id: i32,
+    index_id: i32,
+  ) -> Result<i32, ()> {
+    let resolved_target_symbol = self.get_resolved_symbol(target_type_id);
+    match resolved_target_symbol {
+      Some(Symbol::Array(array_symbol)) => match self.match_types(index_id, array_symbol.index) {
+        Some(x) => Ok(x),
+        None => Err(()),
+      },
+      _ => panic!("Could not find target type {}", target_type_id),
+    }
+  }
+}

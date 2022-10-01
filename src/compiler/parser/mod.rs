@@ -2945,25 +2945,25 @@ pub fn parse(
       }
       (Some(AstState::Primary), _, TokenType::Number) => {
         token_index += 1;
-        ast_stack.push(AstStackSymbol::Expr(Expression::Literal(Literal::Number(NumberLiteral::new(
-          current_token.clone()
-        )))));
+        ast_stack.push(AstStackSymbol::Expr(Expression::Literal(Literal::Number(
+          NumberLiteral::new(current_token.clone()),
+        ))));
         state_stack.goto(AstState::PrimaryFollow);
       }
       (Some(AstState::Primary), _, TokenType::InterpolatedString)
       | (Some(AstState::Primary), _, TokenType::String) => {
         token_index += 1;
-        ast_stack.push(AstStackSymbol::Expr(Expression::Literal(Literal::String(StringLiteral::new(
-          current_token.clone())
+        ast_stack.push(AstStackSymbol::Expr(Expression::Literal(Literal::String(
+          StringLiteral::new(current_token.clone()),
         ))));
         state_stack.goto(AstState::PrimaryFollow);
       }
       (Some(AstState::Primary), _, TokenType::Keyword) => {
         if current_token.lexeme == "true" || current_token.lexeme == "false" {
           token_index += 1;
-          ast_stack.push(AstStackSymbol::Expr(Expression::Literal(Literal::Boolean(BoolLiteral::new(
-            current_token.clone()
-          )))));
+          ast_stack.push(AstStackSymbol::Expr(Expression::Literal(Literal::Boolean(
+            BoolLiteral::new(current_token.clone()),
+          ))));
           state_stack.goto(AstState::PrimaryFollow);
         } else {
           state_stack.push(AstState::Error);
