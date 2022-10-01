@@ -399,7 +399,7 @@ impl SymbolTable {
     }
   }
 
-  pub fn is_iterable(&self, type_id: i32) -> bool {
+  pub fn is_indexable(&self, type_id: i32) -> bool {
     let resolved_symbol = self.get_resolved_symbol(type_id);
     match resolved_symbol {
       Some(Symbol::Array(array_symbol)) => true,

@@ -91,7 +91,7 @@ pub fn get_expression_type(
       let target_sym_id = get_expression_type(access.lhs.as_mut(), symbol_table, errors);
       let index_sym_id = get_expression_type(access.expr.as_mut(), symbol_table, errors);
       let mut result_id = get_base_type_id(Symbol::Unknown);
-      if !symbol_table.is_iterable(target_sym_id) {
+      if !symbol_table.is_indexable(target_sym_id) {
         errors.push(OceanError::SemanticError(
           Severity::Error,
           access.lhs.get_span(),
