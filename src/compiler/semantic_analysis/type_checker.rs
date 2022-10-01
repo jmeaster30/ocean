@@ -8,22 +8,23 @@ use crate::compiler::{errors::OceanError, parser::span::Spanned};
 
 use super::symboltable::{
   ArraySymbol, OceanType, Symbol, SymbolTable, SymbolTableVarEntry,
-  TupleSymbol,
+  TupleSymbol, get_base_type_id
 };
 
-pub fn type_checker(program: &Program) -> (SymbolTable, Vec<OceanError>) {
-  let mut symbol_table = SymbolTable::hard_scope(None);
+pub fn type_checker(program: &mut Program) -> (SymbolTable, Vec<OceanError>) {
+  let mut symbol_table = SymbolTable::init();
+
   let mut errors = Vec::new();
 
-  for statement in &program.statements {
-    type_checker_stmt(statement, &mut symbol_table, &mut errors)
+  for statement in &mut program.statements {
+    type_checker_stmt( statement, &mut symbol_table, &mut errors)
   }
 
   (symbol_table, errors)
 }
 
 pub fn type_checker_stmt(
-  statement: &Statement,
+  statement: &mut Statement,
   symbol_table: &mut SymbolTable,
   errors: &mut Vec<OceanError>,
 ) {
@@ -44,7 +45,8 @@ pub fn type_checker_stmt(
     Statement::WhileLoop(x) => todo!(),
     Statement::InfiniteLoop(x) => todo!(),
     Statement::Expression(x) => {
-      get_expression_type(&x.expression, symbol_table, errors);
+      println!("expr");
+      get_expression_type(&mut x.expression, symbol_table, errors);
     }
   }
 }
@@ -74,10 +76,10 @@ pub fn type_checker_var_dec(
 }
 
 pub fn get_expression_type(
-  expr: &Expression,
+  expr: &mut Expression,
   symbol_table: &mut SymbolTable,
   errors: &mut Vec<OceanError>,
-) -> Option<Symbol> {
+) -> i32 {
   match expr {
     Expression::Binary(binary) => todo!(),
     Expression::Prefix(prefix) => todo!(),
@@ -86,56 +88,120 @@ pub fn get_expression_type(
       todo!("should I think about doing the functions as member variables at this point?")
     }
     Expression::ArrayAccess(access) => {
-      let target_sym = get_expression_type(access.lhs.as_ref(), symbol_table, errors);
-      let index_sym = get_expression_type(access.expr.as_ref(), symbol_table, errors);
+      let target_sym_id = get_expression_type(access.lhs.as_mut(), symbol_table, errors);
+      let index_sym_id = get_expression_type(access.expr.as_mut(), symbol_table, errors);
+      let target_sym = symbol_table.get_symbol(target_sym_id);
+      let index_sym = symbol_table.get_symbol(index_sym_id);
       match (target_sym, index_sym) {
         (Some(target), Some(index)) => todo!(),
-        _ => None,
-      }
+        _ => todo!(),
+      };
+      0
     }
     Expression::Cast(_) => todo!(),
     Expression::Literal(x) => {
+      println!("literal");
       let t = get_literal_type(x, symbol_table, errors);
-      println!("{:?}", t);
+      println!("{:?} {:?}", t, symbol_table.get_symbol(t));
       t
     }
     Expression::Var(var) => {
       let t = get_untyped_var_type(var, symbol_table, errors);
       println!("{:?}", t);
-      t
+      0
     }
     Expression::FunctionCall(x) => {
       let t = get_function_call_type(x, symbol_table, errors);
       println!("{:?}", t);
-      t
+      0
     }
     Expression::Error(_) => todo!(),
   }
 }
 
 pub fn get_literal_type(
-  literal: &Literal,
+  literal: &mut Literal,
   symbol_table: &mut SymbolTable,
   errors: &mut Vec<OceanError>,
-) -> Option<Symbol> {
+) -> i32 {
   match literal {
-    Literal::Boolean(_) => Some(Symbol::Base(OceanType::Bool)),
-    Literal::Number(x) => todo!(),
-    Literal::String(x) => todo!(),
-    Literal::Array(x) => todo!(),
-    Literal::Tuple(x) => todo!(),
-    Literal::Function(x) => todo!(),
+    Literal::Boolean(bool_literal) => {
+      let id = get_base_type_id(Symbol::Base(OceanType::Bool));
+      bool_literal.type_id = Some(id);
+      id
+    }
+    Literal::Number(num_literal) => {
+      let val = num_literal.token.lexeme.as_str();
+      let mut type_id = get_base_type_id(Symbol::Unknown);
+      match val {
+        val if val.contains(".") => {
+          // TODO make this way better
+          type_id = get_base_type_id(Symbol::Base(OceanType::Float(64)))
+        }
+        val if val.len() <= 3 && val.parse::<u64>().unwrap() < 256 => {
+          type_id = get_base_type_id(Symbol::Base(OceanType::Unsigned(8)))
+        }
+        val if val.len() <= 5 && val.parse::<u64>().unwrap() < 65536 => {
+          type_id = get_base_type_id(Symbol::Base(OceanType::Unsigned(16)))
+        }
+        val if val.len() <= 10 && val.parse::<u64>().unwrap() < 4294967296 => {
+          type_id = get_base_type_id(Symbol::Base(OceanType::Unsigned(32)))
+        }
+        val if val.len() < 19 => type_id = get_base_type_id(Symbol::Base(OceanType::Unsigned(64))),
+        val if val.len() == 20 && val.cmp("18446744073709551616") == Ordering::Less => {
+          type_id = get_base_type_id(Symbol::Base(OceanType::Unsigned(64)))
+        }
+        _ => {
+          errors.push(OceanError::SemanticError(
+            Severity::Error,
+            num_literal.get_span(),
+            "This number is too big and cannot fit into an unsigned 64 bit number.".to_string(),
+          ));
+        }
+      };
+      num_literal.type_id = Some(type_id);
+      type_id
+    },
+    Literal::String(str_literal) => {
+      if str_literal.token.lexeme.len() == 3 {
+        let id = get_base_type_id(Symbol::Base(OceanType::Char));
+        str_literal.type_id = Some(id);
+        id
+      } else {
+        let id = get_base_type_id(Symbol::Base(OceanType::String));
+        str_literal.type_id = Some(id);
+        id
+      }
+    },
+    Literal::Array(array_literal) => {
+      let mut storage_id = get_base_type_id(Symbol::Unknown);
+      for arg in &mut array_literal.args {
+        let arg_id = get_expression_type(arg.as_mut(), symbol_table, errors);
+        match symbol_table.match_types(arg_id, storage_id) {
+          Some(x) => storage_id = x,
+          None => errors.push(OceanError::SemanticError(
+            Severity::Error, 
+            arg.get_span(), 
+            format!("Unexpected type for array entry. Found {:?} but expected {:?}", symbol_table.get_symbol(arg_id), symbol_table.get_symbol(storage_id))
+          ))
+        }
+      }
+      let id = symbol_table.add_symbol(Symbol::Array(ArraySymbol::new(Box::new(Symbol::Cache(storage_id)), Box::new(Symbol::Base(OceanType::Unsigned(64))))));
+      array_literal.type_id = Some(id);
+      id
+    },
+    Literal::Tuple(x) => {
+      0
+    },
+    Literal::Function(x) => todo!("functioncall"),
   }
 }
 
 pub fn get_function_call_type(
-  call: &FunctionCall,
+  call: &mut FunctionCall,
   symbol_table: &mut SymbolTable,
   errors: &mut Vec<OceanError>,
-) -> Option<Symbol> {
-  let call_target = get_expression_type(call.target.as_ref(), symbol_table, errors);
-  match call_target {
-    Some(Symbol::Function(x)) => todo!(),
-    Some(_) | None => todo!()
-  }
+) -> i32 {
+  let call_target = get_expression_type(call.target.as_mut(), symbol_table, errors);
+  0
 }

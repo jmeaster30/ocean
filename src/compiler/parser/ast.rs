@@ -622,12 +622,48 @@ impl FunctionCall {
 
 #[derive(Clone)]
 pub enum Literal {
-  Boolean(Token),
-  Number(Token),
-  String(Token),
+  Boolean(BoolLiteral),
+  Number(NumberLiteral),
+  String(StringLiteral),
   Array(ArrayLiteral),
   Tuple(Tuple),
   Function(Function),
+}
+
+#[derive(Clone)]
+pub struct BoolLiteral {
+  pub type_id: Option<i32>,
+  pub token: Token,
+}
+
+impl BoolLiteral {
+  pub fn new(token: Token) -> Self {
+    Self { type_id: None, token }
+  }
+}
+
+#[derive(Clone)]
+pub struct NumberLiteral {
+  pub type_id: Option<i32>,
+  pub token: Token,
+}
+
+impl NumberLiteral {
+  pub fn new(token: Token) -> Self {
+    Self { type_id: None, token }
+  }
+}
+
+#[derive(Clone)]
+pub struct StringLiteral {
+  pub type_id: Option<i32>,
+  pub token: Token,
+}
+
+impl StringLiteral {
+  pub fn new(token: Token) -> Self {
+    Self { type_id: None, token }
+  }
 }
 
 #[derive(Clone)]

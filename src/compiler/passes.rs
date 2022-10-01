@@ -44,7 +44,7 @@ pub fn semantic_pass(comp_unit: &CompilationUnit) -> Pass {
   match last_pass {
     Some(pass) => match pass {
       Pass::Parser(Some(program), _) => {
-        let (symbol_table, type_errors) = semantic_check(program);
+        let (typed_program, symbol_table, type_errors) = semantic_check(program);
         Pass::SemanticCheck(program.clone(), symbol_table, type_errors)
       }
       _ => panic!(),

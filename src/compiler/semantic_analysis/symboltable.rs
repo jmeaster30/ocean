@@ -191,6 +191,20 @@ impl SymbolTableVarEntry {
   }
 }
 
+pub fn get_base_type_id(base_type: Symbol) -> i32 {
+  match base_type {
+    Symbol::Base(OceanType::Bool) => 0,
+    Symbol::Base(OceanType::Char) => 1,
+    Symbol::Base(OceanType::String) => 2,
+    Symbol::Base(OceanType::Void) => 3,
+    Symbol::Unknown => 4,
+    Symbol::Base(OceanType::Signed(x)) => x as i32,
+    Symbol::Base(OceanType::Unsigned(x)) => (x + 1) as i32,
+    Symbol::Base(OceanType::Float(x)) => (x + 2) as i32,
+    _ => panic!()
+  }
+}
+
 #[derive(Clone, Debug)]
 pub struct SymbolTable {
   is_soft_scope: bool,
@@ -201,6 +215,32 @@ pub struct SymbolTable {
 }
 
 impl SymbolTable {
+  pub fn init() -> Self {
+    let mut base_symbols = HashMap::new();
+    base_symbols.insert(get_base_type_id(Symbol::Base(OceanType::Bool)), Symbol::Base(OceanType::Bool));
+    base_symbols.insert(get_base_type_id(Symbol::Base(OceanType::Char)), Symbol::Base(OceanType::Char));
+    base_symbols.insert(get_base_type_id(Symbol::Base(OceanType::String)), Symbol::Base(OceanType::String));
+    base_symbols.insert(get_base_type_id(Symbol::Base(OceanType::Void)), Symbol::Base(OceanType::Void));
+    base_symbols.insert(get_base_type_id(Symbol::Unknown), Symbol::Unknown);
+    base_symbols.insert(get_base_type_id(Symbol::Base(OceanType::Signed(8))), Symbol::Base(OceanType::Signed(8)));
+    base_symbols.insert(get_base_type_id(Symbol::Base(OceanType::Signed(16))), Symbol::Base(OceanType::Signed(16)));
+    base_symbols.insert(get_base_type_id(Symbol::Base(OceanType::Signed(32))), Symbol::Base(OceanType::Signed(32)));
+    base_symbols.insert(get_base_type_id(Symbol::Base(OceanType::Signed(64))), Symbol::Base(OceanType::Signed(64)));
+    base_symbols.insert(get_base_type_id(Symbol::Base(OceanType::Unsigned(8))), Symbol::Base(OceanType::Unsigned(8)));
+    base_symbols.insert(get_base_type_id(Symbol::Base(OceanType::Unsigned(16))), Symbol::Base(OceanType::Unsigned(16)));
+    base_symbols.insert(get_base_type_id(Symbol::Base(OceanType::Unsigned(32))), Symbol::Base(OceanType::Unsigned(32)));
+    base_symbols.insert(get_base_type_id(Symbol::Base(OceanType::Unsigned(64))), Symbol::Base(OceanType::Unsigned(64)));
+    base_symbols.insert(get_base_type_id(Symbol::Base(OceanType::Float(32))), Symbol::Base(OceanType::Float(32)));
+    base_symbols.insert(get_base_type_id(Symbol::Base(OceanType::Float(64))), Symbol::Base(OceanType::Float(64)));
+    Self {
+      is_soft_scope: false,
+      symbols: base_symbols,
+      types: HashMap::new(),
+      variables: HashMap::new(),
+      parent_scope: None,
+    }
+  }
+
   pub fn soft_scope(parent_scope: Option<Box<SymbolTable>>) -> Self {
     Self {
       is_soft_scope: true,
@@ -247,6 +287,18 @@ impl SymbolTable {
     let index = self.get_new_symbol_id();
     self.symbols.insert(index, sym);
     index
+  }
+
+  pub fn get_symbol(&self, index: i32) -> Option<Symbol> {
+    match self.symbols.get(&index) {
+      Some(x) => Some(x.clone()),
+      None => {
+        match &self.parent_scope {
+          Some(p_scope) => p_scope.get_symbol(index),
+          None => None
+        }
+      }
+    }
   }
 
   pub fn get_new_symbol_id(&self) -> i32 {

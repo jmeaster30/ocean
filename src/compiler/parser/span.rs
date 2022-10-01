@@ -285,15 +285,34 @@ impl Spanned for FunctionCall {
 impl Spanned for Literal {
   fn get_span(&self) -> (usize, usize) {
     match self {
-      Literal::Boolean(x) => (x.start, x.end),
-      Literal::Number(x) => (x.start, x.end),
-      Literal::String(x) => (x.start, x.end),
+      Literal::Boolean(x) => x.get_span(),
+      Literal::Number(x) => x.get_span(),
+      Literal::String(x) => x.get_span(),
       Literal::Array(x) => x.get_span(),
       Literal::Tuple(x) => x.get_span(),
       Literal::Function(x) => x.get_span(),
     }
   }
 }
+
+impl Spanned for BoolLiteral {
+  fn get_span(&self) -> (usize, usize) {
+    (self.token.start, self.token.end)
+  }
+}
+
+impl Spanned for NumberLiteral {
+  fn get_span(&self) -> (usize, usize) {
+    (self.token.start, self.token.end)
+  }
+}
+
+impl Spanned for StringLiteral {
+  fn get_span(&self) -> (usize, usize) {
+    (self.token.start, self.token.end)
+  }
+}
+
 
 impl Spanned for Tuple {
   fn get_span(&self) -> (usize, usize) {

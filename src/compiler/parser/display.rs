@@ -363,14 +363,32 @@ impl fmt::Display for FunctionCall {
 impl fmt::Display for Literal {
   fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
     match self {
-      Literal::Boolean(x) => fmt.write_str(format!("(Boolean '{}')", x.lexeme).as_str())?,
-      Literal::Number(x) => fmt.write_str(format!("(Number '{}')", x.lexeme).as_str())?,
-      Literal::String(x) => fmt.write_str(format!("(String '{}')", x.lexeme).as_str())?,
+      Literal::Boolean(x) => x.fmt(fmt)?,
+      Literal::Number(x) => x.fmt(fmt)?,
+      Literal::String(x) => x.fmt(fmt)?,
       Literal::Array(x) => x.fmt(fmt)?,
       Literal::Tuple(x) => x.fmt(fmt)?,
       Literal::Function(x) => x.fmt(fmt)?,
     };
     Ok(())
+  }
+}
+
+impl fmt::Display for BoolLiteral {
+  fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+    fmt.write_str(format!("(Boolean '{}')", self.token.lexeme).as_str())
+  }
+}
+
+impl fmt::Display for NumberLiteral {
+  fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+    fmt.write_str(format!("(Number '{}')", self.token.lexeme).as_str())
+  }
+}
+
+impl fmt::Display for StringLiteral {
+  fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+    fmt.write_str(format!("(String '{}')", self.token.lexeme).as_str())
   }
 }
 
