@@ -5,6 +5,7 @@ impl fmt::Display for AstStackSymbol {
   fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
     fmt.write_str(match self {
       AstStackSymbol::Token(_) => "Token",
+      AstStackSymbol::OptToken(_) => "OptToken",
       //AstStackSymbol::Program(_) => "Program",
       AstStackSymbol::StmtList(_) => "StmtList",
       AstStackSymbol::Stmt(_) => "Stmt",

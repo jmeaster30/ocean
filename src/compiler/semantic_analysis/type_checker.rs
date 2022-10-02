@@ -55,24 +55,65 @@ pub fn get_var_type(
   var: &Var,
   symbol_table: &SymbolTable,
   errors: &mut Vec<OceanError>,
-) -> Option<Symbol> {
+) -> i32 {
   todo!()
 }
 
 pub fn get_untyped_var_type(
-  var: &UntypedVar,
-  symbol_table: &SymbolTable,
+  var: &mut UntypedVar,
+  symbol_table: &mut SymbolTable,
   errors: &mut Vec<OceanError>,
-) -> Option<Symbol> {
+) -> i32 {
   todo!()
 }
 
+pub fn get_type(
+  type_sym: &Type,
+  symbol_table: &SymbolTable,
+  errors: &mut Vec<OceanError>
+) -> Symbol {
+  match type_sym {
+    Type::Auto(auto_type) => {
+      panic!()
+    }
+    Type::Comp(comp_type) => panic!(),
+    Type::Sub(sub_type) => {
+      panic!()
+    }
+    Type::Func(func_type) => {
+      panic!()
+    }
+    Type::Base(base_type) => {
+      panic!()
+    }
+    Type::Lazy(lazy_type) => panic!(),
+    Type::Ref(ref_type) => {
+      panic!()
+    }
+    Type::Mutable(mutable_type) => panic!(),
+    Type::Array(array_type) => {
+      panic!()
+    }
+    Type::VarType(variable_type) => panic!(),
+  }
+}
+
 pub fn type_checker_var_dec(
-  var_dec: &VarDecStatement,
+  var_dec: &mut VarDecStatement,
   symbol_table: &mut SymbolTable,
   errors: &mut Vec<OceanError>,
 ) {
-  todo!()
+  if let Some(original_declaration) = symbol_table.find_variable(&var_dec.var_name.lexeme) {
+    errors.push(OceanError::SemanticError(
+      Severity::Error,
+      (var_dec.var_name.start, var_dec.var_name.end),
+      format!("Variable already declared at {:?}.", original_declaration.span) // TODO show line number and column number here
+    ));
+    return;
+  }
+
+
+
 }
 
 pub fn get_expression_type(
@@ -132,12 +173,12 @@ pub fn get_expression_type(
     Expression::Var(var) => {
       let t = get_untyped_var_type(var, symbol_table, errors);
       println!("{:?}", t);
-      0
+      t
     }
     Expression::FunctionCall(x) => {
       let t = get_function_call_type(x, symbol_table, errors);
       println!("{:?}", t);
-      0
+      t
     }
     Expression::Error(_) => todo!(),
   }

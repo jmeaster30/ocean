@@ -113,9 +113,14 @@ impl Spanned for VarDecStatement {
         let (_, expr_end) = x.get_span();
         (let_start, expr_end)
       }
-      None => {
-        let (_, var_end) = self.var.get_span();
-        (let_start, var_end)
+      None => match &self.var_type {
+        Some(x) => {
+          let (_, var_end) = x.get_span();
+          (let_start, var_end)
+        }
+        None => {
+          (let_start, self.var_name.end)
+        }
       }
     }
   }

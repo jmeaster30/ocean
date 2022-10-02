@@ -18,9 +18,10 @@ use helpers::*;
 
 use super::errors::Severity;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum AstStackSymbol {
   Token(Token),
+  OptToken(Option<Token>),
   StmtList(Vec<Statement>),
   Stmt(Statement),
   PackDec(PackDeclaration),
@@ -88,7 +89,9 @@ pub enum AstState {
   UnionDecFinalize,
 
   LetStmt,
-  LetVar,
+  LetVarName,
+  LetVarNameFollow,
+  LetVarType,
   LetExpression,
 
   InfiniteLoopStmt,
@@ -678,28 +681,38 @@ pub fn parse(
       (Some(AstState::LetStmt), _, TokenType::Keyword) => {
         if current_token.lexeme == "let" {
           ast_stack.push(AstStackSymbol::Token(current_token.clone()));
-          state_stack.goto(AstState::LetVar);
+          state_stack.goto(AstState::LetVarName);
           token_index += 1;
         } else {
           panic!("I SHOULD NOT BE HERE LET STMT");
         }
       }
       (Some(AstState::LetStmt), _, _) => panic!("I SHOULD NOT BE HERE LET STMT"),
-      (Some(AstState::LetVar), Some(AstStackSymbol::Token(_)), _) => {
-        state_stack.push(AstState::Var);
+      (Some(AstState::LetVarName), Some(AstStackSymbol::Token(_)), TokenType::Identifier) => {
+        ast_stack.push(AstStackSymbol::Token(current_token.clone()));
+        state_stack.goto(AstState::LetVarNameFollow);
+        token_index += 1;
       }
-      (Some(AstState::LetVar), Some(AstStackSymbol::Var(var)), TokenType::Symbol) => {
+      (Some(AstState::LetVarName), _, _) => panic!("creeper aw man :( let var"),
+      (Some(AstState::LetVarNameFollow), Some(AstStackSymbol::Token(_)), TokenType::Colon) => {
+        ast_stack.push(AstStackSymbol::OptToken(Some(current_token.clone())));
+        state_stack.goto(AstState::LetVarType);
+        token_index += 1;
+      }
+      (Some(AstState::LetVarNameFollow), Some(AstStackSymbol::Token(name_token)), TokenType::Symbol) => {
         if current_token.lexeme == "=" {
+          ast_stack.push(AstStackSymbol::OptToken(None));
+          ast_stack.push(AstStackSymbol::OptType(None));
           ast_stack.push(AstStackSymbol::Token(current_token.clone()));
-          token_index += 1;
           state_stack.goto(AstState::LetExpression);
+          token_index += 1;
         } else {
           ast_stack.pop();
           let let_token_sym = ast_stack.pop_panic();
           match let_token_sym {
             Some(AstStackSymbol::Token(let_token)) => {
               ast_stack.push(AstStackSymbol::Stmt(Statement::VarDec(
-                VarDecStatement::new(let_token, var, None, None),
+                VarDecStatement::new(let_token, name_token, None, None, None, None),
               )));
               state_stack.goto(AstState::StmtFinalize);
             }
@@ -707,24 +720,61 @@ pub fn parse(
           }
         }
       }
-      (Some(AstState::LetVar), Some(AstStackSymbol::Var(var)), _) => {
+      (Some(AstState::LetVarNameFollow), Some(AstStackSymbol::Token(name_token)), _) => {
         ast_stack.pop();
         let let_token_sym = ast_stack.pop_panic();
         match let_token_sym {
           Some(AstStackSymbol::Token(let_token)) => {
             ast_stack.push(AstStackSymbol::Stmt(Statement::VarDec(
-              VarDecStatement::new(let_token, var, None, None),
+              VarDecStatement::new(let_token, name_token, None, None, None, None)
             )));
             state_stack.goto(AstState::StmtFinalize);
           }
-          _ => panic!("not good :( let var"),
+          _ => panic!("bad stack let var name follow")
         }
       }
-      (Some(AstState::LetVar), Some(AstStackSymbol::TypeVar(type_var)), _) => {
-        ast_stack.pop();
-        ast_stack.push(AstStackSymbol::Var(Var::Typed(type_var)));
+      (Some(AstState::LetVarType), Some(AstStackSymbol::OptToken(_)), _) => {
+        state_stack.push(AstState::Type);
       }
-      (Some(AstState::LetVar), _, _) => panic!("creeper aw man :( let var"),
+      (Some(AstState::LetVarType), Some(AstStackSymbol::Type(type_symbol)), TokenType::Symbol) => {
+        if current_token.lexeme == "=" {
+          ast_stack.pop();
+          ast_stack.push(AstStackSymbol::OptType(Some(type_symbol)));
+          ast_stack.push(AstStackSymbol::Token(current_token.clone()));
+          token_index += 1;
+          state_stack.goto(AstState::LetExpression);
+        } else {
+          ast_stack.pop();
+          let colon_sym = ast_stack.pop_panic();
+          let var_name_sym = ast_stack.pop_panic();
+          let let_sym = ast_stack.pop_panic();
+          match (let_sym, var_name_sym, colon_sym) {
+            (Some(AstStackSymbol::Token(let_token)), Some(AstStackSymbol::Token(var_name)), Some(AstStackSymbol::OptToken(colon))) => {
+              ast_stack.push(AstStackSymbol::Stmt(Statement::VarDec(
+                VarDecStatement::new(let_token, var_name, colon, Some(type_symbol), None, None)
+              )));
+              state_stack.goto(AstState::StmtFinalize);
+            }
+            _ => panic!("something bad happened")
+          }
+        }
+      }
+      (Some(AstState::LetVarType), Some(AstStackSymbol::Type(type_symbol)), _) => {
+        ast_stack.pop();
+        let colon_sym = ast_stack.pop_panic();
+        let var_name_sym = ast_stack.pop_panic();
+        let let_sym = ast_stack.pop_panic();
+        match (let_sym, var_name_sym, colon_sym) {
+          (Some(AstStackSymbol::Token(let_token)), Some(AstStackSymbol::Token(var_name)), Some(AstStackSymbol::OptToken(colon))) => {
+            ast_stack.push(AstStackSymbol::Stmt(Statement::VarDec(
+              VarDecStatement::new(let_token, var_name, colon, Some(type_symbol), None, None)
+            )));
+            state_stack.goto(AstState::StmtFinalize);
+          }
+          _ => panic!("something bad happened")
+        }
+      }
+      (Some(AstState::LetVarType), _, _) => panic!("waaaaaaa i don't want to be here"),
       (Some(AstState::LetExpression), Some(AstStackSymbol::Token(_)), TokenType::Newline) => {
         token_index += 1;
         token_index = consume_optional_newline(tokens, token_index);
@@ -736,20 +786,24 @@ pub fn parse(
       (Some(AstState::LetExpression), Some(AstStackSymbol::Expr(expression)), _) => {
         ast_stack.pop();
         let assignment_token_sym = ast_stack.pop_panic();
-        let var_sym = ast_stack.pop_panic();
+        let opt_type_sym = ast_stack.pop_panic();
+        let opt_colon_sym = ast_stack.pop_panic();
+        let var_name_sym = ast_stack.pop_panic();
         let let_sym = ast_stack.pop_panic();
-        match (let_sym, var_sym, assignment_token_sym) {
+        match (&let_sym, &var_name_sym, &opt_colon_sym, &opt_type_sym, &assignment_token_sym) {
           (
             Some(AstStackSymbol::Token(let_token)),
-            Some(AstStackSymbol::Var(var)),
+            Some(AstStackSymbol::Token(var_name)),
+            Some(AstStackSymbol::OptToken(colon)),
+            Some(AstStackSymbol::OptType(var_type)),
             Some(AstStackSymbol::Token(assignment_token)),
           ) => {
             ast_stack.push(AstStackSymbol::Stmt(Statement::VarDec(
-              VarDecStatement::new(let_token, var, Some(assignment_token), Some(expression)),
+              VarDecStatement::new(let_token.clone(), var_name.clone(), colon.clone(), var_type.clone(), Some(assignment_token.clone()), Some(expression)),
             )));
             state_stack.goto(AstState::StmtFinalize);
           }
-          _ => panic!("uhoh we weren't meant to get here :("),
+          _ => panic!("1111uhoh we weren't meant to get here :( {:?}", opt_colon_sym.clone()),
         }
       }
       (

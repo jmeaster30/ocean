@@ -347,6 +347,12 @@ impl SymbolTable {
   }
 
   pub fn match_types(&mut self, a: i32, b: i32) -> Option<i32> {
+    // Check if the ids are exactly the same
+    if a == b {
+      println!("Shortcut!!! {} == {}", a, b);
+      return Some(a);
+    }
+
     let resolved_a = self.symbols.get(&a).cloned();
     let resolved_b = self.symbols.get(&b).cloned();
     match (resolved_a, resolved_b) {
