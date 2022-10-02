@@ -699,7 +699,11 @@ pub fn parse(
         state_stack.goto(AstState::LetVarType);
         token_index += 1;
       }
-      (Some(AstState::LetVarNameFollow), Some(AstStackSymbol::Token(name_token)), TokenType::Symbol) => {
+      (
+        Some(AstState::LetVarNameFollow),
+        Some(AstStackSymbol::Token(name_token)),
+        TokenType::Symbol,
+      ) => {
         if current_token.lexeme == "=" {
           ast_stack.push(AstStackSymbol::OptToken(None));
           ast_stack.push(AstStackSymbol::OptType(None));
@@ -726,11 +730,11 @@ pub fn parse(
         match let_token_sym {
           Some(AstStackSymbol::Token(let_token)) => {
             ast_stack.push(AstStackSymbol::Stmt(Statement::VarDec(
-              VarDecStatement::new(let_token, name_token, None, None, None, None)
+              VarDecStatement::new(let_token, name_token, None, None, None, None),
             )));
             state_stack.goto(AstState::StmtFinalize);
           }
-          _ => panic!("bad stack let var name follow")
+          _ => panic!("bad stack let var name follow"),
         }
       }
       (Some(AstState::LetVarType), Some(AstStackSymbol::OptToken(_)), _) => {
@@ -749,13 +753,17 @@ pub fn parse(
           let var_name_sym = ast_stack.pop_panic();
           let let_sym = ast_stack.pop_panic();
           match (let_sym, var_name_sym, colon_sym) {
-            (Some(AstStackSymbol::Token(let_token)), Some(AstStackSymbol::Token(var_name)), Some(AstStackSymbol::OptToken(colon))) => {
+            (
+              Some(AstStackSymbol::Token(let_token)),
+              Some(AstStackSymbol::Token(var_name)),
+              Some(AstStackSymbol::OptToken(colon)),
+            ) => {
               ast_stack.push(AstStackSymbol::Stmt(Statement::VarDec(
-                VarDecStatement::new(let_token, var_name, colon, Some(type_symbol), None, None)
+                VarDecStatement::new(let_token, var_name, colon, Some(type_symbol), None, None),
               )));
               state_stack.goto(AstState::StmtFinalize);
             }
-            _ => panic!("something bad happened")
+            _ => panic!("something bad happened"),
           }
         }
       }
@@ -765,13 +773,17 @@ pub fn parse(
         let var_name_sym = ast_stack.pop_panic();
         let let_sym = ast_stack.pop_panic();
         match (let_sym, var_name_sym, colon_sym) {
-          (Some(AstStackSymbol::Token(let_token)), Some(AstStackSymbol::Token(var_name)), Some(AstStackSymbol::OptToken(colon))) => {
+          (
+            Some(AstStackSymbol::Token(let_token)),
+            Some(AstStackSymbol::Token(var_name)),
+            Some(AstStackSymbol::OptToken(colon)),
+          ) => {
             ast_stack.push(AstStackSymbol::Stmt(Statement::VarDec(
-              VarDecStatement::new(let_token, var_name, colon, Some(type_symbol), None, None)
+              VarDecStatement::new(let_token, var_name, colon, Some(type_symbol), None, None),
             )));
             state_stack.goto(AstState::StmtFinalize);
           }
-          _ => panic!("something bad happened")
+          _ => panic!("something bad happened"),
         }
       }
       (Some(AstState::LetVarType), _, _) => panic!("waaaaaaa i don't want to be here"),
@@ -790,7 +802,13 @@ pub fn parse(
         let opt_colon_sym = ast_stack.pop_panic();
         let var_name_sym = ast_stack.pop_panic();
         let let_sym = ast_stack.pop_panic();
-        match (&let_sym, &var_name_sym, &opt_colon_sym, &opt_type_sym, &assignment_token_sym) {
+        match (
+          &let_sym,
+          &var_name_sym,
+          &opt_colon_sym,
+          &opt_type_sym,
+          &assignment_token_sym,
+        ) {
           (
             Some(AstStackSymbol::Token(let_token)),
             Some(AstStackSymbol::Token(var_name)),
@@ -799,11 +817,21 @@ pub fn parse(
             Some(AstStackSymbol::Token(assignment_token)),
           ) => {
             ast_stack.push(AstStackSymbol::Stmt(Statement::VarDec(
-              VarDecStatement::new(let_token.clone(), var_name.clone(), colon.clone(), var_type.clone(), Some(assignment_token.clone()), Some(expression)),
+              VarDecStatement::new(
+                let_token.clone(),
+                var_name.clone(),
+                colon.clone(),
+                var_type.clone(),
+                Some(assignment_token.clone()),
+                Some(expression),
+              ),
             )));
             state_stack.goto(AstState::StmtFinalize);
           }
-          _ => panic!("1111uhoh we weren't meant to get here :( {:?}", opt_colon_sym.clone()),
+          _ => panic!(
+            "1111uhoh we weren't meant to get here :( {:?}",
+            opt_colon_sym.clone()
+          ),
         }
       }
       (

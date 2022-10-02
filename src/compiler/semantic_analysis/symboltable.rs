@@ -28,6 +28,26 @@ pub enum OceanType {
   Signed(u8),
 }
 
+pub fn get_base_type_symbol_from_lexeme(lexeme: &String) -> Symbol {
+  match lexeme.as_str() {
+    "i8" => Symbol::Base(OceanType::Unsigned(8)),
+    "i16" => Symbol::Base(OceanType::Unsigned(16)),
+    "i32" => Symbol::Base(OceanType::Unsigned(32)),
+    "i64" => Symbol::Base(OceanType::Unsigned(64)),
+    "u8" => Symbol::Base(OceanType::Signed(8)),
+    "u16" => Symbol::Base(OceanType::Signed(16)),
+    "u32" => Symbol::Base(OceanType::Signed(32)),
+    "u64" => Symbol::Base(OceanType::Signed(64)),
+    "f32" => Symbol::Base(OceanType::Float(32)),
+    "f64" => Symbol::Base(OceanType::Float(64)),
+    "string" => Symbol::Base(OceanType::String),
+    "char" => Symbol::Base(OceanType::Char),
+    "bool" => Symbol::Base(OceanType::Bool),
+    "void" => Symbol::Base(OceanType::Void),
+    _ => panic!("Unexpected type lexeme '{}'", lexeme),
+  }
+}
+
 pub fn get_superset(a: &OceanType) -> Vec<OceanType> {
   match a {
     OceanType::Void => vec![],
@@ -322,8 +342,22 @@ impl SymbolTable {
     None
   }
 
+  pub fn find_variable_in_scope(&self, name: &String) -> Option<&SymbolTableVarEntry> {
+    match self.variables.get(name) {
+      Some(variable_list) => {
+        if variable_list.is_empty() {
+          None // we shouldn't get here I think
+        } else {
+          Some(&variable_list[0]) // improve this...
+        }
+      }
+      None => None,
+    }
+  }
+
   pub fn add_symbol(&mut self, sym: Symbol) -> i32 {
     let index = self.get_new_symbol_id();
+    println!("{:?} ==>> {}", sym, index);
     self.symbols.insert(index, sym);
     index
   }
@@ -342,7 +376,7 @@ impl SymbolTable {
     match (self.symbols.len(), self.parent_scope.as_ref()) {
       (0, None) => 0,
       (0, Some(p_scope)) => p_scope.get_new_symbol_id(),
-      _ => *self.symbols.keys().max().unwrap(),
+      _ => *self.symbols.keys().max().unwrap() + 1,
     }
   }
 

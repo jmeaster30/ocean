@@ -7,8 +7,8 @@ use crate::compiler::parser::ast::*;
 use crate::compiler::{errors::OceanError, parser::span::Spanned};
 
 use super::symboltable::{
-  get_base_type_id, ArraySymbol, FunctionSymbol, OceanType, Symbol, SymbolTable,
-  SymbolTableVarEntry, TupleSymbol,
+  get_base_type_id, get_base_type_symbol_from_lexeme, ArraySymbol, FunctionSymbol, OceanType,
+  Symbol, SymbolTable, SymbolTableVarEntry, TupleSymbol,
 };
 
 pub fn type_checker(program: &mut Program) -> (SymbolTable, Vec<OceanError>) {
@@ -51,11 +51,7 @@ pub fn type_checker_stmt(
   }
 }
 
-pub fn get_var_type(
-  var: &Var,
-  symbol_table: &SymbolTable,
-  errors: &mut Vec<OceanError>,
-) -> i32 {
+pub fn get_var_type(var: &Var, symbol_table: &SymbolTable, errors: &mut Vec<OceanError>) -> i32 {
   todo!()
 }
 
@@ -67,34 +63,30 @@ pub fn get_untyped_var_type(
   todo!()
 }
 
-pub fn get_type(
-  type_sym: &Type,
+pub fn get_type_symbol(
+  type_node: &Type,
   symbol_table: &SymbolTable,
-  errors: &mut Vec<OceanError>
+  errors: &mut Vec<OceanError>,
 ) -> Symbol {
-  match type_sym {
+  match type_node {
     Type::Auto(auto_type) => {
-      panic!()
+      panic!("auto")
     }
-    Type::Comp(comp_type) => panic!(),
-    Type::Sub(sub_type) => {
-      panic!()
-    }
+    Type::Comp(comp_type) => panic!("comp"),
+    Type::Sub(sub_type) => get_type_symbol(sub_type.sub_type.as_ref(), symbol_table, errors),
     Type::Func(func_type) => {
-      panic!()
+      panic!("func")
     }
-    Type::Base(base_type) => {
-      panic!()
-    }
+    Type::Base(base_type) => get_base_type_symbol_from_lexeme(&base_type.base_token.lexeme),
     Type::Lazy(lazy_type) => panic!(),
     Type::Ref(ref_type) => {
-      panic!()
+      panic!("ref")
     }
-    Type::Mutable(mutable_type) => panic!(),
+    Type::Mutable(mutable_type) => panic!("mut"),
     Type::Array(array_type) => {
-      panic!()
+      panic!("array")
     }
-    Type::VarType(variable_type) => panic!(),
+    Type::VarType(variable_type) => panic!("variadic type"),
   }
 }
 
@@ -103,17 +95,58 @@ pub fn type_checker_var_dec(
   symbol_table: &mut SymbolTable,
   errors: &mut Vec<OceanError>,
 ) {
-  if let Some(original_declaration) = symbol_table.find_variable(&var_dec.var_name.lexeme) {
+  // check if we have this variable already
+  if let Some(original_declaration) = symbol_table.find_variable_in_scope(&var_dec.var_name.lexeme)
+  {
     errors.push(OceanError::SemanticError(
       Severity::Error,
       (var_dec.var_name.start, var_dec.var_name.end),
-      format!("Variable already declared at {:?}.", original_declaration.span) // TODO show line number and column number here
+      format!(
+        "Variable already declared at {:?}.",
+        original_declaration.span
+      ), // TODO show line number and column number here
     ));
     return;
   }
 
+  // get type information
+  let var_type_symbol = match &var_dec.var_type {
+    Some(type_node) => get_type_symbol(type_node, symbol_table, errors),
+    None => Symbol::Unknown,
+  };
 
+  // add variable and symbol to symbol_table
+  let var_type_id = symbol_table.add_symbol(var_type_symbol);
+  symbol_table.add_var(
+    var_dec.var_name.lexeme.clone(),
+    (var_dec.var_name.start, var_dec.var_name.end),
+    var_type_id,
+  );
 
+  match &mut var_dec.expression {
+    Some(expr) => {
+      // type check expression
+      let expression_type_id = get_expression_type(expr, symbol_table, errors);
+
+      println!("types::: {} {}", var_type_id, expression_type_id);
+      // match expression type to variable type
+      match symbol_table.match_types(var_type_id, expression_type_id) {
+        Some(final_type_id) => { /* Shouldn't need to do anything here */ }
+        None => {
+          errors.push(OceanError::SemanticError(
+            Severity::Error,
+            expr.get_span(),
+            format!(
+              "Unexpected type in variable declaration expression. Expected {:?} but found {:?}",
+              symbol_table.get_symbol(var_type_id),
+              symbol_table.get_symbol(expression_type_id)
+            ),
+          ));
+        }
+      }
+    }
+    None => {}
+  }
 }
 
 pub fn get_expression_type(

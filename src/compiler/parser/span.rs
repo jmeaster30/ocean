@@ -118,10 +118,8 @@ impl Spanned for VarDecStatement {
           let (_, var_end) = x.get_span();
           (let_start, var_end)
         }
-        None => {
-          (let_start, self.var_name.end)
-        }
-      }
+        None => (let_start, self.var_name.end),
+      },
     }
   }
 }
