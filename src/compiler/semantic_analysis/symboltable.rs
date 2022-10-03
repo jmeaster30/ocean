@@ -30,14 +30,14 @@ pub enum OceanType {
 
 pub fn get_base_type_symbol_from_lexeme(lexeme: &String) -> Symbol {
   match lexeme.as_str() {
-    "i8" => Symbol::Base(OceanType::Unsigned(8)),
-    "i16" => Symbol::Base(OceanType::Unsigned(16)),
-    "i32" => Symbol::Base(OceanType::Unsigned(32)),
-    "i64" => Symbol::Base(OceanType::Unsigned(64)),
-    "u8" => Symbol::Base(OceanType::Signed(8)),
-    "u16" => Symbol::Base(OceanType::Signed(16)),
-    "u32" => Symbol::Base(OceanType::Signed(32)),
-    "u64" => Symbol::Base(OceanType::Signed(64)),
+    "i8" => Symbol::Base(OceanType::Signed(8)),
+    "i16" => Symbol::Base(OceanType::Signed(16)),
+    "i32" => Symbol::Base(OceanType::Signed(32)),
+    "i64" => Symbol::Base(OceanType::Signed(64)),
+    "u8" => Symbol::Base(OceanType::Unsigned(8)),
+    "u16" => Symbol::Base(OceanType::Unsigned(16)),
+    "u32" => Symbol::Base(OceanType::Unsigned(32)),
+    "u64" => Symbol::Base(OceanType::Unsigned(64)),
     "f32" => Symbol::Base(OceanType::Float(32)),
     "f64" => Symbol::Base(OceanType::Float(64)),
     "string" => Symbol::Base(OceanType::String),
