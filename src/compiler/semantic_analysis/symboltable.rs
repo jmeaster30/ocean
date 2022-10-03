@@ -456,7 +456,7 @@ impl SymbolTable {
     let resolved_target_symbol = self.get_resolved_symbol(target_type_id);
     match resolved_target_symbol {
       Some(Symbol::Array(array_symbol)) => match self.match_types(index_id, array_symbol.index) {
-        Some(x) => Ok(x),
+        Some(x) => Ok(array_symbol.storage),
         None => Err(()),
       },
       _ => panic!("Could not find target type {}", target_type_id),
