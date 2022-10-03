@@ -339,7 +339,21 @@ impl SymbolTable {
   }
 
   pub fn find_variable(&self, name: &String) -> Option<&SymbolTableVarEntry> {
-    None
+    match self.variables.get(name) {
+      Some(variable_list) => {
+        if variable_list.is_empty() {
+          None // we shouldn't get here I think
+        } else {
+          Some(&variable_list[0]) // improve this...
+        }
+      }
+      None => match &self.parent_scope {
+        Some(p_scope) if self.is_soft_scope => {
+          p_scope.find_variable(name)
+        }
+        _ => None
+      },
+    }
   }
 
   pub fn find_variable_in_scope(&self, name: &String) -> Option<&SymbolTableVarEntry> {
@@ -397,6 +411,18 @@ impl SymbolTable {
       (Some(Symbol::Unknown), Some(sym_b)) => {
         self.update_symbol(a, sym_b.clone());
         Some(b)
+      }
+      (Some(Symbol::Array(type_a)), Some(Symbol::Array(type_b))) => {
+        // TODO I think this needs to be done a different way perhaps
+        let matched_storage_id = self.match_types(type_a.storage, type_b.storage);
+        let matched_index_id = self.match_types(type_a.index, type_b.index);
+        match (matched_storage_id, matched_index_id) {
+          (Some(s_id), Some(i_id)) => {
+            let result_id = self.add_symbol(Symbol::Array(ArraySymbol::new(s_id, i_id)));
+            Some(result_id)
+          }
+          _ => None
+        }
       }
       (Some(Symbol::Base(type_a)), Some(Symbol::Base(type_b))) => {
         let result = get_greater_type(&type_a, &type_b);

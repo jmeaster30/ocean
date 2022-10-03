@@ -60,12 +60,27 @@ pub fn get_untyped_var_type(
   symbol_table: &mut SymbolTable,
   errors: &mut Vec<OceanError>,
 ) -> i32 {
-  todo!()
+  // look up var from symbol_table and return the type id
+  match symbol_table.find_variable(&var.id.lexeme) {
+    Some(var_entry) => {
+      let result = var_entry.type_id;
+      var.type_id = Some(result);
+      result
+    },
+    None => {
+      errors.push(OceanError::SemanticError(
+        Severity::Error,
+        var.get_span(),
+        format!("Variable not defined '{}'", var.id.lexeme)
+      ));
+      symbol_table.add_symbol(Symbol::Unknown)
+    }
+  }
 }
 
 pub fn get_type_symbol(
   type_node: &Type,
-  symbol_table: &SymbolTable,
+  symbol_table: &mut SymbolTable,
   errors: &mut Vec<OceanError>,
 ) -> Symbol {
   match type_node {
@@ -84,7 +99,16 @@ pub fn get_type_symbol(
     }
     Type::Mutable(mutable_type) => panic!("mut"),
     Type::Array(array_type) => {
-      panic!("array")
+      let storage_sym = get_type_symbol(array_type.base.as_ref(), symbol_table, errors);
+      let storage_id = symbol_table.add_symbol(storage_sym);
+      let index_id = match array_type.sub_type.as_ref() {
+        Some(sub_type) => {
+          let index_sym = get_type_symbol(sub_type, symbol_table, errors);
+          symbol_table.add_symbol(index_sym)
+        }
+        None => get_base_type_id(Symbol::Base(OceanType::Unsigned(64)))
+      };
+      Symbol::Array(ArraySymbol::new(storage_id, index_id))
     }
     Type::VarType(variable_type) => panic!("variadic type"),
   }
@@ -128,8 +152,8 @@ pub fn type_checker_var_dec(
       // type check expression
       let expression_type_id = get_expression_type(expr, symbol_table, errors);
 
-      println!("types::: {} {}", var_type_id, expression_type_id);
       // match expression type to variable type
+      // TODO maybe need a different match function or add additional parameters because I want final_type_id to return var_type_id if the types match
       match symbol_table.match_types(var_type_id, expression_type_id) {
         Some(final_type_id) => { /* Shouldn't need to do anything here */ }
         None => {
@@ -147,6 +171,7 @@ pub fn type_checker_var_dec(
     }
     None => {}
   }
+  println!("{:#?}", symbol_table);
 }
 
 pub fn get_expression_type(
@@ -205,7 +230,7 @@ pub fn get_expression_type(
     }
     Expression::Var(var) => {
       let t = get_untyped_var_type(var, symbol_table, errors);
-      println!("{:?}", t);
+      println!("var '{}' {:?}", var.id.lexeme, t);
       t
     }
     Expression::FunctionCall(x) => {
@@ -272,9 +297,13 @@ pub fn get_literal_type(
       }
     }
     Literal::Array(array_literal) => {
-      let mut storage_id = get_base_type_id(Symbol::Unknown);
+      let mut storage_id = -1;
       for arg in &mut array_literal.args {
         let arg_id = get_expression_type(arg.as_mut(), symbol_table, errors);
+        if storage_id == -1 {
+          storage_id = arg_id;
+          continue;
+        }
         match symbol_table.match_types(arg_id, storage_id) {
           Some(x) => storage_id = x,
           None => errors.push(OceanError::SemanticError(
