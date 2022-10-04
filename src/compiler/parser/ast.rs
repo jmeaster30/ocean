@@ -204,7 +204,6 @@ impl UnionDeclaration {
 
 #[derive(Clone, Debug)]
 pub struct VarDecStatement {
-  pub type_id: Option<i32>,
   pub let_token: Token,
   pub var_name: Token,
   pub colon: Option<Token>,
@@ -223,7 +222,6 @@ impl VarDecStatement {
     expression: Option<Expression>,
   ) -> Self {
     Self {
-      type_id: None,
       let_token,
       var_name,
       colon,
@@ -304,7 +302,6 @@ impl MatchEntry {
 
 #[derive(Clone, Debug)]
 pub struct IfStatement {
-  pub type_id: Option<i32>,
   pub if_token: Token,
   pub condition: Expression,
   pub left_curly: Token,
@@ -329,7 +326,6 @@ impl IfStatement {
     else_right_curly: Option<Token>,
   ) -> Self {
     Self {
-      type_id: None,
       if_token,
       condition,
       left_curly,
@@ -371,7 +367,6 @@ impl UseStatement {
 
 #[derive(Clone, Debug)]
 pub struct ForLoopStatement {
-  pub type_id: Option<i32>,
   pub loop_token: Token,
   pub iterator: Token,
   pub in_token: Token,
@@ -392,7 +387,6 @@ impl ForLoopStatement {
     right_curly: Token,
   ) -> Self {
     Self {
-      type_id: None,
       loop_token,
       iterator,
       in_token,
@@ -406,7 +400,6 @@ impl ForLoopStatement {
 
 #[derive(Clone, Debug)]
 pub struct WhileStatement {
-  pub type_id: Option<i32>,
   pub loop_token: Token,
   pub condition: Expression,
   pub left_curly: Token,
@@ -423,7 +416,6 @@ impl WhileStatement {
     right_curly: Token,
   ) -> Self {
     Self {
-      type_id: None,
       loop_token,
       condition,
       left_curly,
@@ -435,7 +427,6 @@ impl WhileStatement {
 
 #[derive(Clone, Debug)]
 pub struct InfiniteLoopStatement {
-  pub type_id: Option<i32>,
   pub loop_token: Token,
   pub left_curly: Token,
   pub loop_body: Vec<Statement>,
@@ -450,7 +441,6 @@ impl InfiniteLoopStatement {
     right_curly: Token,
   ) -> Self {
     Self {
-      type_id: None,
       loop_token,
       left_curly,
       loop_body,
@@ -461,16 +451,12 @@ impl InfiniteLoopStatement {
 
 #[derive(Clone, Debug)]
 pub struct ExpressionStatement {
-  pub type_id: Option<i32>,
   pub expression: Expression,
 }
 
 impl ExpressionStatement {
   pub fn new(expression: Expression) -> Self {
-    Self {
-      type_id: None,
-      expression,
-    }
+    Self { expression }
   }
 }
 

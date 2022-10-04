@@ -348,10 +348,8 @@ impl SymbolTable {
         }
       }
       None => match &self.parent_scope {
-        Some(p_scope) if self.is_soft_scope => {
-          p_scope.find_variable(name)
-        }
-        _ => None
+        Some(p_scope) if self.is_soft_scope => p_scope.find_variable(name),
+        _ => None,
       },
     }
   }
@@ -401,8 +399,8 @@ impl SymbolTable {
       return Some(a);
     }
 
-    let resolved_a = self.symbols.get(&a).cloned();
-    let resolved_b = self.symbols.get(&b).cloned();
+    let resolved_a = self.get_symbol(a);
+    let resolved_b = self.get_symbol(b);
     match (resolved_a, resolved_b) {
       (Some(sym_a), Some(Symbol::Unknown)) => {
         self.update_symbol(b, sym_a.clone());
@@ -421,7 +419,7 @@ impl SymbolTable {
             let result_id = self.add_symbol(Symbol::Array(ArraySymbol::new(s_id, i_id)));
             Some(result_id)
           }
-          _ => None
+          _ => None,
         }
       }
       (Some(Symbol::Base(type_a)), Some(Symbol::Base(type_b))) => {
@@ -469,6 +467,7 @@ impl SymbolTable {
     let resolved_symbol = self.get_resolved_symbol(type_id);
     match resolved_symbol {
       Some(Symbol::Array(array_symbol)) => true,
+      Some(Symbol::Base(OceanType::String)) => true,
       None => panic!("Couldn't find type id {}", type_id),
       _ => false,
     }
@@ -482,7 +481,14 @@ impl SymbolTable {
     let resolved_target_symbol = self.get_resolved_symbol(target_type_id);
     match resolved_target_symbol {
       Some(Symbol::Array(array_symbol)) => match self.match_types(index_id, array_symbol.index) {
-        Some(x) => Ok(array_symbol.storage),
+        Some(_) => Ok(array_symbol.storage),
+        None => Err(()),
+      },
+      Some(Symbol::Base(OceanType::String)) => match self.match_types(
+        index_id,
+        get_base_type_id(Symbol::Base(OceanType::Unsigned(64))),
+      ) {
+        Some(_) => Ok(get_base_type_id(Symbol::Base(OceanType::Char))),
         None => Err(()),
       },
       _ => panic!("Could not find target type {}", target_type_id),

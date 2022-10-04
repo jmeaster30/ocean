@@ -40,7 +40,7 @@ pub fn type_checker_stmt(
     Statement::Cast(x) => todo!(),
     Statement::Match(x) => panic!(),
     Statement::Use(x) => todo!(),
-    Statement::If(x) => todo!(),
+    Statement::If(if_stmt) => type_checker_if(if_stmt, symbol_table, errors),
     Statement::ForLoop(x) => todo!(),
     Statement::WhileLoop(x) => todo!(),
     Statement::InfiniteLoop(x) => todo!(),
@@ -48,6 +48,45 @@ pub fn type_checker_stmt(
       println!("expr");
       get_expression_type(&mut x.expression, symbol_table, errors);
     }
+  }
+}
+
+pub fn type_checker_if(
+  if_stmt: &mut IfStatement,
+  symbol_table: &mut SymbolTable,
+  errors: &mut Vec<OceanError>,
+) {
+  // check condition
+  let condition_id = get_expression_type(&mut if_stmt.condition, symbol_table, errors);
+  match symbol_table.match_types(
+    condition_id,
+    get_base_type_id(Symbol::Base(OceanType::Bool)),
+  ) {
+    Some(result_type_id) => {}
+    None => {
+      errors.push(OceanError::SemanticError(
+        Severity::Error,
+        if_stmt.condition.get_span(),
+        format!(
+          "If condition must evaluate to a boolean value. Found {:?}",
+          symbol_table.get_symbol(condition_id)
+        ),
+      ));
+    }
+  }
+
+  //check true body
+  // TODO fix the symbol table to be a reference so we can potentially mutate symbols properly
+  let mut true_sub_scope = SymbolTable::soft_scope(Some(Box::new(symbol_table.clone())));
+  for statement in &mut if_stmt.true_body {
+    type_checker_stmt(statement, &mut true_sub_scope, errors)
+  }
+
+  // check else body
+  // TODO fix the symbol table to be a reference so we can potentially mutate symbols properly
+  let mut else_sub_scope = SymbolTable::soft_scope(Some(Box::new(symbol_table.clone())));
+  for statement in &mut if_stmt.else_body {
+    type_checker_stmt(statement, &mut else_sub_scope, errors)
   }
 }
 
@@ -66,12 +105,12 @@ pub fn get_untyped_var_type(
       let result = var_entry.type_id;
       var.type_id = Some(result);
       result
-    },
+    }
     None => {
       errors.push(OceanError::SemanticError(
         Severity::Error,
         var.get_span(),
-        format!("Variable not defined '{}'", var.id.lexeme)
+        format!("Variable not defined '{}'", var.id.lexeme),
       ));
       symbol_table.add_symbol(Symbol::Unknown)
     }
@@ -93,7 +132,7 @@ pub fn get_type_symbol(
       panic!("func")
     }
     Type::Base(base_type) => get_base_type_symbol_from_lexeme(&base_type.base_token.lexeme),
-    Type::Lazy(lazy_type) => panic!(),
+    Type::Lazy(lazy_type) => panic!("lazy"),
     Type::Ref(ref_type) => {
       panic!("ref")
     }
@@ -106,7 +145,7 @@ pub fn get_type_symbol(
           let index_sym = get_type_symbol(sub_type, symbol_table, errors);
           symbol_table.add_symbol(index_sym)
         }
-        None => get_base_type_id(Symbol::Base(OceanType::Unsigned(64)))
+        None => get_base_type_id(Symbol::Base(OceanType::Unsigned(64))),
       };
       Symbol::Array(ArraySymbol::new(storage_id, index_id))
     }
@@ -171,7 +210,6 @@ pub fn type_checker_var_dec(
     }
     None => {}
   }
-  println!("{:#?}", symbol_table);
 }
 
 pub fn get_expression_type(
