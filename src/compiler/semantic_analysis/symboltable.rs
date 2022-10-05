@@ -478,8 +478,7 @@ impl SymbolTable {
     target_type_id: i32,
     index_id: i32,
   ) -> Result<i32, ()> {
-    let resolved_target_symbol = self.get_resolved_symbol(target_type_id);
-    match resolved_target_symbol {
+    match self.get_resolved_symbol(target_type_id) {
       Some(Symbol::Array(array_symbol)) => match self.match_types(index_id, array_symbol.index) {
         Some(_) => Ok(array_symbol.storage),
         None => Err(()),
@@ -492,6 +491,26 @@ impl SymbolTable {
         None => Err(()),
       },
       _ => panic!("Could not find target type {}", target_type_id),
+    }
+  }
+
+  pub fn get_iterator_type_from_indexable(&mut self, target_type_id: i32) -> Result<i32, ()> {
+    match self.get_resolved_symbol(target_type_id) {
+      Some(Symbol::Array(array_symbol)) => match self.match_types(
+        get_base_type_id(Symbol::Base(OceanType::Unsigned(64))),
+        array_symbol.index,
+      ) {
+        Some(_) => Ok(array_symbol.storage),
+        None => {
+          let mut iterator_tuple = TupleSymbol::new();
+          iterator_tuple.add_named("value".to_string(), array_symbol.storage);
+          iterator_tuple.add_named("index".to_string(), array_symbol.index);
+          let iterator_id = self.add_symbol(Symbol::Tuple(iterator_tuple));
+          Ok(iterator_id)
+        }
+      },
+      Some(Symbol::Base(OceanType::String)) => Ok(get_base_type_id(Symbol::Base(OceanType::Char))),
+      _ => Err(()),
     }
   }
 }

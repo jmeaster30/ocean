@@ -41,13 +41,90 @@ pub fn type_checker_stmt(
     Statement::Match(x) => panic!(),
     Statement::Use(x) => todo!(),
     Statement::If(if_stmt) => type_checker_if(if_stmt, symbol_table, errors),
-    Statement::ForLoop(x) => todo!(),
-    Statement::WhileLoop(x) => todo!(),
-    Statement::InfiniteLoop(x) => todo!(),
+    Statement::ForLoop(for_stmt) => type_checker_for_loop(for_stmt, symbol_table, errors),
+    Statement::WhileLoop(while_stmt) => type_checker_while_loop(while_stmt, symbol_table, errors),
+    Statement::InfiniteLoop(loop_stmt) => {
+      type_checker_infinite_loop(loop_stmt, symbol_table, errors)
+    }
     Statement::Expression(x) => {
       println!("expr");
       get_expression_type(&mut x.expression, symbol_table, errors);
     }
+  }
+}
+
+pub fn type_checker_for_loop(
+  for_stmt: &mut ForLoopStatement,
+  symbol_table: &mut SymbolTable,
+  errors: &mut Vec<OceanError>,
+) {
+  let for_expression_id = get_expression_type(&mut for_stmt.iterable, symbol_table, errors);
+  if !symbol_table.is_indexable(for_expression_id) {
+    errors.push(OceanError::SemanticError(
+      Severity::Error,
+      for_stmt.iterable.get_span(),
+      format!(
+        "{:?} is not iterable :(",
+        symbol_table.get_symbol(for_expression_id)
+      ),
+    ));
+  }
+
+  // create scope
+  let mut sub_scope = SymbolTable::soft_scope(Some(Box::new(symbol_table.clone())));
+  // add iterator to scope (even if the iterable expression is not iterable)
+  let iterator_type_id = match sub_scope.get_iterator_type_from_indexable(for_expression_id) {
+    Ok(iterator_id) => iterator_id,
+    Err(_) => sub_scope.add_symbol(Symbol::Unknown),
+  };
+  sub_scope.add_var(
+    for_stmt.iterator.lexeme.clone(),
+    (for_stmt.iterator.start, for_stmt.iterator.end),
+    iterator_type_id,
+  );
+  // type check body
+  for statement in &mut for_stmt.loop_body {
+    type_checker_stmt(statement, &mut sub_scope, errors)
+  }
+}
+
+pub fn type_checker_while_loop(
+  while_stmt: &mut WhileStatement,
+  symbol_table: &mut SymbolTable,
+  errors: &mut Vec<OceanError>,
+) {
+  let condition_id = get_expression_type(&mut while_stmt.condition, symbol_table, errors);
+  match symbol_table.match_types(
+    condition_id,
+    get_base_type_id(Symbol::Base(OceanType::Bool)),
+  ) {
+    Some(result_type_id) => {}
+    None => {
+      errors.push(OceanError::SemanticError(
+        Severity::Error,
+        while_stmt.condition.get_span(),
+        format!(
+          "Loop condition must evaluate to a boolean value. Found {:?}",
+          symbol_table.get_symbol(condition_id)
+        ),
+      ));
+    }
+  }
+
+  let mut sub_scope = SymbolTable::soft_scope(Some(Box::new(symbol_table.clone())));
+  for statement in &mut while_stmt.loop_body {
+    type_checker_stmt(statement, &mut sub_scope, errors)
+  }
+}
+
+pub fn type_checker_infinite_loop(
+  loop_stmt: &mut InfiniteLoopStatement,
+  symbol_table: &mut SymbolTable,
+  errors: &mut Vec<OceanError>,
+) {
+  let mut sub_scope = SymbolTable::soft_scope(Some(Box::new(symbol_table.clone())));
+  for statement in &mut loop_stmt.loop_body {
+    type_checker_stmt(statement, &mut sub_scope, errors)
   }
 }
 
@@ -179,6 +256,8 @@ pub fn type_checker_var_dec(
   };
 
   // add variable and symbol to symbol_table
+  println!("{:#?}", symbol_table);
+  println!("next id: {}", symbol_table.get_new_symbol_id());
   let var_type_id = symbol_table.add_symbol(var_type_symbol);
   symbol_table.add_var(
     var_dec.var_name.lexeme.clone(),
@@ -210,6 +289,8 @@ pub fn type_checker_var_dec(
     }
     None => {}
   }
+
+  println!("{:#?}", symbol_table);
 }
 
 pub fn get_expression_type(
