@@ -3194,7 +3194,8 @@ pub fn parse(
       (Some(AstState::ArrayAccess), Some(AstStackSymbol::Token(_)), _) => {
         state_stack.push(AstState::Expression);
       }
-      (Some(AstState::MemberAccess), Some(AstStackSymbol::Token(dot)), TokenType::Identifier) => {
+      (Some(AstState::MemberAccess), Some(AstStackSymbol::Token(dot)), TokenType::Number)
+      | (Some(AstState::MemberAccess), Some(AstStackSymbol::Token(dot)), TokenType::Identifier) => {
         ast_stack.pop();
         let expr_sym = ast_stack.pop_panic();
         match expr_sym {

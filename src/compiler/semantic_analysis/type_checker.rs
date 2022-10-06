@@ -302,8 +302,28 @@ pub fn get_expression_type(
     Expression::Binary(binary) => todo!(),
     Expression::Prefix(prefix) => todo!(),
     Expression::Postfix(postfix) => todo!(),
-    Expression::Member(_) => {
-      todo!("should I think about doing the functions as member variables at this point?")
+    Expression::Member(member) => {
+      let target_type_id = get_expression_type(member.lhs.as_mut(), symbol_table, errors);
+      match symbol_table.get_member_type(target_type_id, member.id.lexeme.clone()) {
+        Ok(member_type) => {
+          member.type_id = Some(member_type);
+          member_type
+        }
+        Err(_) => {
+          errors.push(OceanError::SemanticError(
+            Severity::Error,
+            (member.id.start, member.id.end),
+            format!(
+              "Type {:?} does not contain a member named '{}'",
+              symbol_table.get_symbol(target_type_id),
+              member.id.lexeme
+            ),
+          ));
+          let unk_type = symbol_table.add_symbol(Symbol::Unknown);
+          member.type_id = Some(unk_type);
+          unk_type
+        }
+      }
     }
     Expression::ArrayAccess(access) => {
       let target_sym_id = get_expression_type(access.lhs.as_mut(), symbol_table, errors);

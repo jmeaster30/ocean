@@ -513,4 +513,18 @@ impl SymbolTable {
       _ => Err(()),
     }
   }
+
+  pub fn get_member_type(&self, target_type_id: i32, member_name: String) -> Result<i32, ()> {
+    match self.get_resolved_symbol(target_type_id) {
+      Some(Symbol::Tuple(tuple_symbol)) => {
+        let mut member_iter = tuple_symbol.members.into_iter();
+        match member_iter.find(|x| x.0 == member_name) {
+          Some(found_member) => Ok(found_member.1),
+          None => Err(()),
+        }
+      }
+      // TODO expand the options here
+      _ => Err(()),
+    }
+  }
 }
