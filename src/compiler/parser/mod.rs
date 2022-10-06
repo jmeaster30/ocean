@@ -1080,7 +1080,7 @@ pub fn parse(
         match (name, colon) {
           (Some(AstStackSymbol::Token(name_token)), Some(AstStackSymbol::Token(colon_token))) => {
             ast_stack.push(AstStackSymbol::TypeVar(TypeVar::new(
-              UntypedVar::new(name_token),
+              name_token,
               colon_token,
               Box::new(x),
             )));

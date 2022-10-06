@@ -805,16 +805,16 @@ pub enum Var {
 #[derive(Clone, Debug)]
 pub struct TypeVar {
   pub type_id: Option<i32>,
-  pub var: UntypedVar,
+  pub var_name: Token,
   pub colon: Token,
   pub var_type: Box<Type>,
 }
 
 impl TypeVar {
-  pub fn new(var: UntypedVar, colon: Token, var_type: Box<Type>) -> Self {
+  pub fn new(var_name: Token, colon: Token, var_type: Box<Type>) -> Self {
     Self {
       type_id: None,
-      var,
+      var_name,
       colon,
       var_type,
     }

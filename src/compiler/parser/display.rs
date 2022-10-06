@@ -442,7 +442,7 @@ impl fmt::Display for Var {
 
 impl fmt::Display for TypeVar {
   fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-    fmt.write_str(format!("(TypeVar {} {})", self.var, self.var_type).as_str())?;
+    fmt.write_str(format!("(TypeVar {} {})", self.var_name.lexeme, self.var_type).as_str())?;
     Ok(())
   }
 }

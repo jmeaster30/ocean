@@ -256,8 +256,6 @@ pub fn type_checker_var_dec(
   };
 
   // add variable and symbol to symbol_table
-  println!("{:#?}", symbol_table);
-  println!("next id: {}", symbol_table.get_new_symbol_id());
   let var_type_id = symbol_table.add_symbol(var_type_symbol);
   symbol_table.add_var(
     var_dec.var_name.lexeme.clone(),
@@ -477,10 +475,46 @@ pub fn get_literal_type(
       id
     }
     Literal::Function(function_literal) => {
-      //let mut func_symbol = FunctionSymbol::new();
-      //for params in &mut function_literal.param_list.params {
-      //}
-      todo!("functions need to have the type var typechecking to work")
+      let mut sub_scope = SymbolTable::hard_scope(Some(Box::new(symbol_table.clone())));
+      let mut func_symbol = FunctionSymbol::new();
+
+      // add params to sub scope and func symbol
+      for param in &mut function_literal.param_list.params {
+        let param_type_symbol =
+          get_type_symbol(param.type_var.var_type.as_ref(), symbol_table, errors);
+        let param_type_id = symbol_table.add_symbol(param_type_symbol);
+        func_symbol.add_parameter(param.type_var.var_name.lexeme.clone(), param_type_id);
+        sub_scope.add_var(
+          param.type_var.var_name.lexeme.clone(),
+          param.type_var.get_span(),
+          param_type_id,
+        );
+      }
+
+      // add returns to sub scope and fumc symbol
+      for ret in &mut function_literal.return_list.returns {
+        let ret_type_symbol = get_type_symbol(ret.type_var.var_type.as_ref(), symbol_table, errors);
+        let ret_type_id = symbol_table.add_symbol(ret_type_symbol);
+        // TODO typecheck optional expression
+        func_symbol.add_return(ret.type_var.var_name.lexeme.clone(), ret_type_id);
+        sub_scope.add_var(
+          ret.type_var.var_name.lexeme.clone(),
+          ret.type_var.get_span(),
+          ret_type_id,
+        );
+      }
+
+      // add func symbol to both sub_scope and main scope
+      let parent_func_id = symbol_table.add_symbol(Symbol::Function(func_symbol));
+      // TODO I don't know how to do recursion because we don't have the function name here :(
+      function_literal.type_id = Some(parent_func_id);
+      // type check body
+
+      for stmt in &mut function_literal.function_body {
+        type_checker_stmt(stmt, &mut sub_scope, errors);
+      }
+
+      parent_func_id
     }
   }
 }

@@ -350,9 +350,8 @@ impl Spanned for Var {
 
 impl Spanned for TypeVar {
   fn get_span(&self) -> (usize, usize) {
-    let (var_start, _) = self.var.get_span();
     let (_, var_type_end) = (*self.var_type).get_span();
-    (var_start, var_type_end)
+    (self.var_name.start, var_type_end)
   }
 }
 
