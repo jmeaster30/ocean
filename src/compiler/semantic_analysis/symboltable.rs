@@ -527,4 +527,69 @@ impl SymbolTable {
       _ => Err(()),
     }
   }
+
+  pub fn check_function_parameter_lengths(
+    &self,
+    target_type_id: i32,
+    param_length: usize,
+  ) -> Result<(), (bool, usize)> {
+    let resolved_symbol = self.get_resolved_symbol(target_type_id);
+    match resolved_symbol {
+      Some(Symbol::Function(function_symbol)) => {
+        if function_symbol.parameters.len() == param_length {
+          Ok(())
+        } else {
+          Err((true, function_symbol.parameters.len()))
+        }
+      }
+      _ => Err((false, 0))
+    }
+  }
+
+  pub fn get_function_return_types(
+    &mut self,
+    target_type_id: i32,
+    arguments: &Vec<i32>,
+  ) -> Result<i32, Vec<(usize, String, i32)>> {
+    let resolved_symbol = self.get_resolved_symbol(target_type_id);
+    match resolved_symbol {
+      Some(Symbol::Function(function_symbol)) => {
+        let mut errors = Vec::new();
+        for i in 0..function_symbol.parameters.len() {
+          let arg_type_id = arguments[i];
+          let (param_name, param_type_id) = function_symbol.parameters[i].clone();
+          match self.match_types(arg_type_id, param_type_id) {
+            Some(mid) => {
+              println!("found match {} {} => {}", arg_type_id, param_type_id, mid);
+            }
+            None => {
+              println!("found error {} {}", arg_type_id, param_type_id);
+              errors.push((i, param_name, param_type_id));
+            }
+          };
+        }
+        
+        if errors.len() != 0 {
+          return Err(errors);
+        }
+
+        if function_symbol.returns.len() == 0 {
+          return Ok(get_base_type_id(Symbol::Base(OceanType::Void)));
+        }
+
+        if function_symbol.returns.len() == 1 {
+          return Ok(function_symbol.returns[0].1);
+        }
+        
+        let mut return_symbol = TupleSymbol::new();
+        for (return_name, return_type_id) in function_symbol.returns {
+          return_symbol.add_named(return_name, return_type_id);
+        }
+        
+        let return_symbol_id = self.add_symbol(Symbol::Tuple(return_symbol));
+        Ok(return_symbol_id)
+      }
+      _ => panic!("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
+    }
+  }
 }

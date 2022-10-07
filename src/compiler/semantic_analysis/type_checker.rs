@@ -524,6 +524,64 @@ pub fn get_function_call_type(
   symbol_table: &mut SymbolTable,
   errors: &mut Vec<OceanError>,
 ) -> i32 {
-  let call_target = get_expression_type(call.target.as_mut(), symbol_table, errors);
-  0
+  let call_target_id = get_expression_type(call.target.as_mut(), symbol_table, errors);
+  let mut argument_type_ids = Vec::new();
+  for arg in &mut call.arguments {
+    let arg_type_id = get_expression_type(arg.as_mut(), symbol_table, errors);
+    argument_type_ids.push(arg_type_id);
+  }
+
+  match symbol_table
+    .check_function_parameter_lengths(call_target_id, argument_type_ids.len())
+  {
+    Ok(_) => {}
+    Err((is_function, expected_length)) => {
+      if is_function {
+        errors.push(OceanError::SemanticError(
+          Severity::Error,
+          call.get_span(),
+          format!(
+            "Found {} arguments but expected {}.",
+            argument_type_ids.len(),
+            expected_length
+          ),
+        ));
+      } else {
+        errors.push(OceanError::SemanticError(
+          Severity::Error,
+          call.target.get_span(),
+          format!("{:?} does not evaluate to a callable type :(", symbol_table.get_symbol(call_target_id))
+        ));
+      }
+      
+      let unk_id = symbol_table.add_symbol(Symbol::Unknown);
+      call.type_id = Some(unk_id);
+      return unk_id;
+    }
+  }
+
+  match symbol_table.get_function_return_types(call_target_id, &argument_type_ids) {
+    Ok(return_symbol_id) => {
+      call.type_id = Some(return_symbol_id);
+      return_symbol_id
+    }
+    Err(bad_parameters) => {
+      for (arg_index, param_name, param_type_id) in bad_parameters {
+        errors.push(OceanError::SemanticError(
+          Severity::Error,
+          call.arguments[arg_index].get_span(),
+          format!(
+            "Expected argument type {:?} for parameter '{}' but got {:?}",
+            symbol_table.get_symbol(param_type_id),
+            param_name,
+            symbol_table.get_symbol(argument_type_ids[arg_index])
+          ),
+        ))
+      }
+
+      let unk_id = symbol_table.add_symbol(Symbol::Unknown);
+      call.type_id = Some(unk_id);
+      unk_id
+    }
+  }
 }
