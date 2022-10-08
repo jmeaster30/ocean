@@ -51,12 +51,15 @@ pub fn get_base_type_symbol_from_lexeme(lexeme: &String) -> Symbol {
 pub fn get_superset(a: &OceanType) -> Vec<OceanType> {
   match a {
     OceanType::Void => vec![],
-    OceanType::Char => vec![OceanType::String],
+    OceanType::Char => vec![OceanType::Unsigned(8), OceanType::String],
     OceanType::String => vec![],
     OceanType::Bool => vec![],
     OceanType::Float(64) => vec![],
     OceanType::Float(x) => vec![OceanType::Float(*x * 2)],
-    OceanType::Unsigned(8) => vec![OceanType::Signed(16), OceanType::Unsigned(16)],
+    OceanType::Unsigned(8) => vec![
+      OceanType::Signed(16),
+      OceanType::Unsigned(16),
+    ],
     OceanType::Unsigned(64) => vec![],
     OceanType::Unsigned(x) => vec![
       OceanType::Unsigned(*x * 2),
@@ -228,6 +231,7 @@ pub struct SymbolTable {
   symbols: HashMap<i32, Symbol>,
   types: HashMap<String, i32>,
   variables: HashMap<String, Vec<SymbolTableVarEntry>>,
+  casts: Vec<(i32, i32)>,
   parent_scope: Option<Box<SymbolTable>>,
 }
 
@@ -296,6 +300,7 @@ impl SymbolTable {
       symbols: base_symbols,
       types: HashMap::new(),
       variables: HashMap::new(),
+      casts: Vec::new(),
       parent_scope: None,
     }
   }
@@ -306,6 +311,7 @@ impl SymbolTable {
       symbols: HashMap::new(),
       types: HashMap::new(),
       variables: HashMap::new(),
+      casts: Vec::new(),
       parent_scope,
     }
   }
@@ -316,6 +322,7 @@ impl SymbolTable {
       symbols: HashMap::new(),
       types: HashMap::new(),
       variables: HashMap::new(),
+      casts: Vec::new(),
       parent_scope,
     }
   }
@@ -369,7 +376,6 @@ impl SymbolTable {
 
   pub fn add_symbol(&mut self, sym: Symbol) -> i32 {
     let index = self.get_new_symbol_id();
-    println!("{:?} ==>> {}", sym, index);
     self.symbols.insert(index, sym);
     index
   }
@@ -395,7 +401,6 @@ impl SymbolTable {
   pub fn match_types(&mut self, a: i32, b: i32) -> Option<i32> {
     // Check if the ids are exactly the same
     if a == b {
-      println!("Shortcut!!! {} == {}", a, b);
       return Some(a);
     }
 
@@ -404,7 +409,7 @@ impl SymbolTable {
     match (resolved_a, resolved_b) {
       (Some(sym_a), Some(Symbol::Unknown)) => {
         self.update_symbol(b, sym_a.clone());
-        Some(a)
+        Some(b)
       }
       (Some(Symbol::Unknown), Some(sym_b)) => {
         self.update_symbol(a, sym_b.clone());
@@ -424,12 +429,12 @@ impl SymbolTable {
       }
       (Some(Symbol::Base(type_a)), Some(Symbol::Base(type_b))) => {
         let result = get_greater_type(&type_a, &type_b);
-        if result == Some(type_a.clone()) {
-          Some(a)
-        } else if result == Some(type_b.clone()) {
-          Some(b)
-        } else {
-          None
+        match result {
+          Some(result_type) if result_type == type_b => {
+            println!("{:?} {:?} == {:?}", type_a, type_b, result_type);
+            Some(b)
+          }
+          _ => None,
         }
       }
       _ => None,
@@ -542,7 +547,7 @@ impl SymbolTable {
           Err((true, function_symbol.parameters.len()))
         }
       }
-      _ => Err((false, 0))
+      _ => Err((false, 0)),
     }
   }
 
@@ -559,16 +564,13 @@ impl SymbolTable {
           let arg_type_id = arguments[i];
           let (param_name, param_type_id) = function_symbol.parameters[i].clone();
           match self.match_types(arg_type_id, param_type_id) {
-            Some(mid) => {
-              println!("found match {} {} => {}", arg_type_id, param_type_id, mid);
-            }
+            Some(mid) => {}
             None => {
-              println!("found error {} {}", arg_type_id, param_type_id);
               errors.push((i, param_name, param_type_id));
             }
           };
         }
-        
+
         if errors.len() != 0 {
           return Err(errors);
         }
@@ -580,16 +582,455 @@ impl SymbolTable {
         if function_symbol.returns.len() == 1 {
           return Ok(function_symbol.returns[0].1);
         }
-        
+
         let mut return_symbol = TupleSymbol::new();
         for (return_name, return_type_id) in function_symbol.returns {
           return_symbol.add_named(return_name, return_type_id);
         }
-        
+
         let return_symbol_id = self.add_symbol(Symbol::Tuple(return_symbol));
         Ok(return_symbol_id)
       }
-      _ => panic!("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
+      _ => panic!("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"),
     }
+  }
+
+  pub fn get_function_params(&self, target_type_id: i32) -> Vec<(String, i32)> {
+    let function_symbol = self.get_resolved_symbol(target_type_id);
+    match function_symbol {
+      Some(Symbol::Function(function)) => function.parameters,
+      _ => Vec::new(),
+    }
+  }
+
+  pub fn get_function_returns(&self, target_type_id: i32) -> Vec<(String, i32)> {
+    let function_symbol = self.get_resolved_symbol(target_type_id);
+    match function_symbol {
+      Some(Symbol::Function(function)) => function.returns,
+      _ => Vec::new(),
+    }
+  }
+
+  pub fn add_cast(&mut self, from_type: i32, to_type: i32) {
+    self.casts.push((from_type, to_type));
+  }
+
+  pub fn find_cast(&mut self, from_type: i32, to_type: i32) -> bool {
+    for cast in self.casts.clone() {
+      let from_match = self.match_types(cast.0, from_type);
+      let to_match = self.match_types(cast.1, to_type);
+      if from_match.is_some() && to_match.is_some() {
+        return true;
+      }
+    }
+
+    match &mut self.parent_scope {
+      Some(p_scope) => p_scope.find_cast(from_type, to_type),
+      None => false,
+    }
+  }
+
+  pub fn get_postfix_operator_type(
+    &mut self,
+    operator: String,
+    target_type_id: i32,
+  ) -> Option<i32> {
+    None
+  }
+
+  pub fn get_prefix_operator_type(&mut self, operator: String, target_type_id: i32) -> Option<i32> {
+    // todo make this better :(
+    let operator_map = match operator.as_str() {
+      "!" => vec![(
+        get_base_type_id(Symbol::Base(OceanType::Bool)),
+        get_base_type_id(Symbol::Base(OceanType::Bool)),
+      )],
+      "-" => vec![
+        (
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(8))),
+          get_base_type_id(Symbol::Base(OceanType::Signed(16))),
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Signed(8))),
+          get_base_type_id(Symbol::Base(OceanType::Signed(8))),
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(16))),
+          get_base_type_id(Symbol::Base(OceanType::Signed(32))),
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Signed(16))),
+          get_base_type_id(Symbol::Base(OceanType::Signed(16))),
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(32))),
+          get_base_type_id(Symbol::Base(OceanType::Signed(64))),
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Signed(32))),
+          get_base_type_id(Symbol::Base(OceanType::Signed(32))),
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(64))),
+          get_base_type_id(Symbol::Base(OceanType::Signed(64))),
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Signed(64))),
+          get_base_type_id(Symbol::Base(OceanType::Signed(64))),
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Float(32))),
+          get_base_type_id(Symbol::Base(OceanType::Float(32))),
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Float(64))),
+          get_base_type_id(Symbol::Base(OceanType::Float(64))),
+        ),
+      ],
+      "~" => vec![
+        (
+          get_base_type_id(Symbol::Base(OceanType::Char)),
+          get_base_type_id(Symbol::Base(OceanType::Char)),
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::String)),
+          get_base_type_id(Symbol::Base(OceanType::String)),
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(8))),
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(8))),
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Signed(8))),
+          get_base_type_id(Symbol::Base(OceanType::Signed(8))),
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(16))),
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(16))),
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Signed(16))),
+          get_base_type_id(Symbol::Base(OceanType::Signed(16))),
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(32))),
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(32))),
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Signed(32))),
+          get_base_type_id(Symbol::Base(OceanType::Signed(32))),
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(64))),
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(64))),
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Signed(64))),
+          get_base_type_id(Symbol::Base(OceanType::Signed(64))),
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Float(32))),
+          get_base_type_id(Symbol::Base(OceanType::Float(32))),
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Float(64))),
+          get_base_type_id(Symbol::Base(OceanType::Float(64))),
+        ),
+      ],
+      _ => vec![],
+    };
+
+    for entry in operator_map {
+      match self.match_types(target_type_id, entry.0) {
+        Some(_) => {
+          return Some(entry.1);
+        }
+        None => {}
+      };
+    }
+    None
+  }
+
+  pub fn get_infix_operator_type(
+    &mut self,
+    operator: String,
+    left_type_id: i32,
+    right_type_id: i32,
+  ) -> Option<i32> {
+    let operator_map = match operator.as_str() {
+      "+" => vec![
+        (get_base_type_id(Symbol::Base(OceanType::String)), get_base_type_id(Symbol::Base(OceanType::String)), get_base_type_id(Symbol::Base(OceanType::String))),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(8))),
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(8))),
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(8)))
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Signed(8))),
+          get_base_type_id(Symbol::Base(OceanType::Signed(8))),
+          get_base_type_id(Symbol::Base(OceanType::Signed(8)))
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(16))),
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(16))),
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(16)))
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Signed(16))),
+          get_base_type_id(Symbol::Base(OceanType::Signed(16))),
+          get_base_type_id(Symbol::Base(OceanType::Signed(16)))
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(32))),
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(32))),
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(32)))
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Signed(32))),
+          get_base_type_id(Symbol::Base(OceanType::Signed(32))),
+          get_base_type_id(Symbol::Base(OceanType::Signed(32)))
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(64))),
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(64))),
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(64)))
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Signed(64))),
+          get_base_type_id(Symbol::Base(OceanType::Signed(64))),
+          get_base_type_id(Symbol::Base(OceanType::Signed(64)))
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Float(32))),
+          get_base_type_id(Symbol::Base(OceanType::Float(32))),
+          get_base_type_id(Symbol::Base(OceanType::Float(32)))
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Float(64))),
+          get_base_type_id(Symbol::Base(OceanType::Float(64))),
+          get_base_type_id(Symbol::Base(OceanType::Float(64)))
+        ),
+      ],
+      "-" => vec![
+        (
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(8))),
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(8))),
+          get_base_type_id(Symbol::Base(OceanType::Signed(8)))
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Signed(8))),
+          get_base_type_id(Symbol::Base(OceanType::Signed(8))),
+          get_base_type_id(Symbol::Base(OceanType::Signed(8)))
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(16))),
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(16))),
+          get_base_type_id(Symbol::Base(OceanType::Signed(16)))
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Signed(16))),
+          get_base_type_id(Symbol::Base(OceanType::Signed(16))),
+          get_base_type_id(Symbol::Base(OceanType::Signed(16)))
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(32))),
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(32))),
+          get_base_type_id(Symbol::Base(OceanType::Signed(32)))
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Signed(32))),
+          get_base_type_id(Symbol::Base(OceanType::Signed(32))),
+          get_base_type_id(Symbol::Base(OceanType::Signed(32)))
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(64))),
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(64))),
+          get_base_type_id(Symbol::Base(OceanType::Signed(64)))
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Signed(64))),
+          get_base_type_id(Symbol::Base(OceanType::Signed(64))),
+          get_base_type_id(Symbol::Base(OceanType::Signed(64)))
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Float(32))),
+          get_base_type_id(Symbol::Base(OceanType::Float(32))),
+          get_base_type_id(Symbol::Base(OceanType::Float(32)))
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Float(64))),
+          get_base_type_id(Symbol::Base(OceanType::Float(64))),
+          get_base_type_id(Symbol::Base(OceanType::Float(64)))
+        ),
+      ],
+      "*" => vec![
+        (
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(8))),
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(8))),
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(16)))
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Signed(8))),
+          get_base_type_id(Symbol::Base(OceanType::Signed(8))),
+          get_base_type_id(Symbol::Base(OceanType::Signed(16)))
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(16))),
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(16))),
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(32)))
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Signed(16))),
+          get_base_type_id(Symbol::Base(OceanType::Signed(16))),
+          get_base_type_id(Symbol::Base(OceanType::Signed(32)))
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(32))),
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(32))),
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(64)))
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Signed(32))),
+          get_base_type_id(Symbol::Base(OceanType::Signed(32))),
+          get_base_type_id(Symbol::Base(OceanType::Signed(64)))
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(64))),
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(64))),
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(64)))
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Signed(64))),
+          get_base_type_id(Symbol::Base(OceanType::Signed(64))),
+          get_base_type_id(Symbol::Base(OceanType::Signed(64)))
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Float(32))),
+          get_base_type_id(Symbol::Base(OceanType::Float(32))),
+          get_base_type_id(Symbol::Base(OceanType::Float(64)))
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Float(64))),
+          get_base_type_id(Symbol::Base(OceanType::Float(64))),
+          get_base_type_id(Symbol::Base(OceanType::Float(64)))
+        ),
+      ],
+      "/" => vec![
+        (
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(8))),
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(8))),
+          get_base_type_id(Symbol::Base(OceanType::Float(16)))
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Signed(8))),
+          get_base_type_id(Symbol::Base(OceanType::Signed(8))),
+          get_base_type_id(Symbol::Base(OceanType::Float(16)))
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(16))),
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(16))),
+          get_base_type_id(Symbol::Base(OceanType::Float(32)))
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Signed(16))),
+          get_base_type_id(Symbol::Base(OceanType::Signed(16))),
+          get_base_type_id(Symbol::Base(OceanType::Float(32)))
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(32))),
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(32))),
+          get_base_type_id(Symbol::Base(OceanType::Float(64)))
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Signed(32))),
+          get_base_type_id(Symbol::Base(OceanType::Signed(32))),
+          get_base_type_id(Symbol::Base(OceanType::Float(64)))
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(64))),
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(64))),
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(64)))
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Signed(64))),
+          get_base_type_id(Symbol::Base(OceanType::Signed(64))),
+          get_base_type_id(Symbol::Base(OceanType::Signed(64)))
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Float(32))),
+          get_base_type_id(Symbol::Base(OceanType::Float(32))),
+          get_base_type_id(Symbol::Base(OceanType::Float(64)))
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Float(64))),
+          get_base_type_id(Symbol::Base(OceanType::Float(64))),
+          get_base_type_id(Symbol::Base(OceanType::Float(64)))
+        ),
+      ],
+      "//" => vec![
+        (
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(8))),
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(8))),
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(8)))
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Signed(8))),
+          get_base_type_id(Symbol::Base(OceanType::Signed(8))),
+          get_base_type_id(Symbol::Base(OceanType::Signed(8)))
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(16))),
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(16))),
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(16)))
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Signed(16))),
+          get_base_type_id(Symbol::Base(OceanType::Signed(16))),
+          get_base_type_id(Symbol::Base(OceanType::Signed(16)))
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(32))),
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(32))),
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(32)))
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Signed(32))),
+          get_base_type_id(Symbol::Base(OceanType::Signed(32))),
+          get_base_type_id(Symbol::Base(OceanType::Signed(32)))
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(64))),
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(64))),
+          get_base_type_id(Symbol::Base(OceanType::Unsigned(64)))
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Signed(64))),
+          get_base_type_id(Symbol::Base(OceanType::Signed(64))),
+          get_base_type_id(Symbol::Base(OceanType::Signed(64)))
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Float(32))),
+          get_base_type_id(Symbol::Base(OceanType::Float(32))),
+          get_base_type_id(Symbol::Base(OceanType::Signed(32)))
+        ),
+        (
+          get_base_type_id(Symbol::Base(OceanType::Float(64))),
+          get_base_type_id(Symbol::Base(OceanType::Float(64))),
+          get_base_type_id(Symbol::Base(OceanType::Signed(64)))
+        ),
+      ],
+      _ => vec![]
+    };
+
+    for entry in operator_map {
+      match (self.match_types(left_type_id, entry.0), self.match_types(right_type_id, entry.1)) {
+        (Some(_), Some(_)) => {
+          println!("match {:?}", self.get_symbol(entry.2));
+          return Some(entry.2);
+        }
+        _ => {}
+      };
+    }
+    None
   }
 }

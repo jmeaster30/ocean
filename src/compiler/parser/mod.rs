@@ -198,10 +198,10 @@ pub fn parse(
   state_stack.goto(AstState::StmtList);
 
   loop {
-    ast_stack.print();
-    state_stack.print();
+    //ast_stack.print();
+    //state_stack.print();
     let current_token = &tokens[token_index];
-    println!("CURRENT TOKEN: {:?}", current_token.clone());
+    //println!("CURRENT TOKEN: {:?}", current_token.clone());
     let stack_top = ast_stack.peek();
     let state = state_stack.current_state();
     match (state, stack_top, &current_token.token_type) {

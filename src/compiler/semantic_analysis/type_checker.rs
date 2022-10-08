@@ -37,7 +37,7 @@ pub fn type_checker_stmt(
     Statement::PackDec(x) => todo!(),
     Statement::UnionDec(x) => todo!(),
     Statement::VarDec(var_dec) => type_checker_var_dec(var_dec, symbol_table, errors),
-    Statement::Cast(x) => todo!(),
+    Statement::Cast(cast_stmt) => type_checker_cast_statement(cast_stmt, symbol_table, errors),
     Statement::Match(x) => panic!(),
     Statement::Use(x) => todo!(),
     Statement::If(if_stmt) => type_checker_if(if_stmt, symbol_table, errors),
@@ -47,10 +47,34 @@ pub fn type_checker_stmt(
       type_checker_infinite_loop(loop_stmt, symbol_table, errors)
     }
     Statement::Expression(x) => {
-      println!("expr");
       get_expression_type(&mut x.expression, symbol_table, errors);
     }
   }
+}
+
+pub fn type_checker_cast_statement(
+  cast_statement: &mut CastStatement,
+  symbol_table: &mut SymbolTable,
+  errors: &mut Vec<OceanError>,
+) {
+  let function_type_id = get_expression_type(&mut cast_statement.function, symbol_table, errors);
+
+  let parameters = symbol_table.get_function_params(function_type_id);
+  let returns = symbol_table.get_function_returns(function_type_id);
+
+  if parameters.len() != 1 || returns.len() != 1 {
+    errors.push(OceanError::SemanticError(
+      Severity::Error,
+      cast_statement.function.get_span(),
+      format!(
+        "Expected a function that has 1 parameter and 1 return but got '{:?}'",
+        symbol_table.get_symbol(function_type_id)
+      ),
+    ));
+    return;
+  }
+
+  symbol_table.add_cast(parameters[0].1, returns[0].1);
 }
 
 pub fn type_checker_for_loop(
@@ -270,7 +294,7 @@ pub fn type_checker_var_dec(
 
       // match expression type to variable type
       // TODO maybe need a different match function or add additional parameters because I want final_type_id to return var_type_id if the types match
-      match symbol_table.match_types(var_type_id, expression_type_id) {
+      match symbol_table.match_types(expression_type_id, var_type_id) {
         Some(final_type_id) => { /* Shouldn't need to do anything here */ }
         None => {
           errors.push(OceanError::SemanticError(
@@ -287,8 +311,6 @@ pub fn type_checker_var_dec(
     }
     None => {}
   }
-
-  println!("{:#?}", symbol_table);
 }
 
 pub fn get_expression_type(
@@ -297,9 +319,82 @@ pub fn get_expression_type(
   errors: &mut Vec<OceanError>,
 ) -> i32 {
   match expr {
-    Expression::Binary(binary) => todo!(),
-    Expression::Prefix(prefix) => todo!(),
-    Expression::Postfix(postfix) => todo!(),
+    Expression::Binary(binary) => {
+      let lhs_type_id = get_expression_type(&mut binary.lhs, symbol_table, errors);
+      let rhs_type_id = get_expression_type(&mut binary.rhs, symbol_table, errors);
+      match symbol_table.get_infix_operator_type(
+        binary.operator.lexeme.clone(),
+        lhs_type_id,
+        rhs_type_id,
+      ) {
+        Some(result_id) => {
+          binary.type_id = Some(result_id);
+          result_id
+        }
+        None => {
+          errors.push(OceanError::SemanticError(
+            Severity::Error,
+            binary.get_span(),
+            format!(
+              "The operator '{}' does not work with type {:?} and {:?}",
+              binary.operator.lexeme,
+              symbol_table.get_symbol(lhs_type_id),
+              symbol_table.get_symbol(rhs_type_id)
+            ),
+          ));
+          let unktype = symbol_table.add_symbol(Symbol::Unknown);
+          binary.type_id = Some(unktype);
+          unktype
+        }
+      }
+    }
+    Expression::Prefix(prefix) => {
+      let target_type_id = get_expression_type(&mut prefix.rhs, symbol_table, errors);
+      match symbol_table.get_prefix_operator_type(prefix.operator.lexeme.clone(), target_type_id) {
+        Some(result_id) => {
+          prefix.type_id = Some(result_id);
+          result_id
+        }
+        None => {
+          errors.push(OceanError::SemanticError(
+            Severity::Error,
+            prefix.get_span(),
+            format!(
+              "The operator '{}' does not work with type {:?}",
+              prefix.operator.lexeme,
+              symbol_table.get_symbol(target_type_id)
+            ),
+          ));
+          let unktype = symbol_table.add_symbol(Symbol::Unknown);
+          prefix.type_id = Some(unktype);
+          unktype
+        }
+      }
+    }
+    Expression::Postfix(postfix) => {
+      let target_type_id = get_expression_type(&mut postfix.lhs, symbol_table, errors);
+      match symbol_table.get_postfix_operator_type(postfix.operator.lexeme.clone(), target_type_id)
+      {
+        Some(result_id) => {
+          postfix.type_id = Some(result_id);
+          result_id
+        }
+        None => {
+          errors.push(OceanError::SemanticError(
+            Severity::Error,
+            postfix.get_span(),
+            format!(
+              "The operator '{}' does not work with type {:?}",
+              postfix.operator.lexeme,
+              symbol_table.get_symbol(target_type_id)
+            ),
+          ));
+          let unktype = symbol_table.add_symbol(Symbol::Unknown);
+          postfix.type_id = Some(unktype);
+          unktype
+        }
+      }
+    }
     Expression::Member(member) => {
       let target_type_id = get_expression_type(member.lhs.as_mut(), symbol_table, errors);
       match symbol_table.get_member_type(target_type_id, member.id.lexeme.clone()) {
@@ -358,23 +453,33 @@ pub fn get_expression_type(
       access.type_id = Some(result_id);
       result_id
     }
-    Expression::Cast(_) => todo!(),
-    Expression::Literal(x) => {
-      println!("literal");
-      let t = get_literal_type(x, symbol_table, errors);
-      println!("{:?} {:?}", t, symbol_table.get_symbol(t));
-      t
+    Expression::Cast(cast_expression) => {
+      let from_type_id = get_expression_type(&mut cast_expression.lhs, symbol_table, errors);
+      let to_type_symbol = get_type_symbol(&mut cast_expression.cast_type, symbol_table, errors);
+      let to_type_id = symbol_table.add_symbol(to_type_symbol);
+      if !symbol_table.find_cast(from_type_id, to_type_id) {
+        match symbol_table.match_types(from_type_id, to_type_id) {
+          Some(_) => {}
+          None => {
+            errors.push(OceanError::SemanticError(
+              Severity::Error,
+              cast_expression.get_span(),
+              format!(
+                "A cast from '{:?}' to '{:?}' does not exist :(",
+                symbol_table.get_symbol(from_type_id),
+                symbol_table.get_symbol(to_type_id)
+              ),
+            ));
+          }
+        }
+      }
+
+      cast_expression.type_id = Some(to_type_id);
+      to_type_id
     }
-    Expression::Var(var) => {
-      let t = get_untyped_var_type(var, symbol_table, errors);
-      println!("var '{}' {:?}", var.id.lexeme, t);
-      t
-    }
-    Expression::FunctionCall(x) => {
-      let t = get_function_call_type(x, symbol_table, errors);
-      println!("{:?}", t);
-      t
-    }
+    Expression::Literal(x) => get_literal_type(x, symbol_table, errors),
+    Expression::Var(var) => get_untyped_var_type(var, symbol_table, errors),
+    Expression::FunctionCall(x) => get_function_call_type(x, symbol_table, errors),
     Expression::Error(_) => todo!(),
   }
 }
@@ -531,9 +636,7 @@ pub fn get_function_call_type(
     argument_type_ids.push(arg_type_id);
   }
 
-  match symbol_table
-    .check_function_parameter_lengths(call_target_id, argument_type_ids.len())
-  {
+  match symbol_table.check_function_parameter_lengths(call_target_id, argument_type_ids.len()) {
     Ok(_) => {}
     Err((is_function, expected_length)) => {
       if is_function {
@@ -550,10 +653,13 @@ pub fn get_function_call_type(
         errors.push(OceanError::SemanticError(
           Severity::Error,
           call.target.get_span(),
-          format!("{:?} does not evaluate to a callable type :(", symbol_table.get_symbol(call_target_id))
+          format!(
+            "{:?} does not evaluate to a callable type :(",
+            symbol_table.get_symbol(call_target_id)
+          ),
         ));
       }
-      
+
       let unk_id = symbol_table.add_symbol(Symbol::Unknown);
       call.type_id = Some(unk_id);
       return unk_id;

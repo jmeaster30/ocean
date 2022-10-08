@@ -1,27 +1,16 @@
-use std.string
-
 let print = func (message: string) -> ():{
-  @@ hydro
-  # TODO add in the hydro code to print a string to the screen
-  @@
+  #/@@ hydro
+  print @message
+  @@/#
 }
 
-let print = func (format: comp string, args: auto...) -> ():{
-  let splits: comp string[] = format.split_around("{}")
-  # TODO need to figure out how to do these compile time verify things
-  @verify args.length == splits.where("{}").length
-  let i = 0
-  for s in splits {
-    if s == "{}" {
-      args[i].print()
-      i += 1
-    } else {
-      s.print()
-    }
+cast func (a: u64) -> (result: string):{
+  while a > 0 {
+    result = (a % 10) as char + result
+    a = a // 10
   }
 }
 
-let println = func (format: comp string, args: auto...) -> ():{
-  print(format, ...args) # spread / destructuring operator
-  print("\n")
-}
+
+print()
+
