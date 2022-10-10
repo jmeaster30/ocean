@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-use super::operators::*;
 use crate::compiler::parser::ast::Type;
 
 #[allow(unused_variables)]
@@ -173,9 +172,19 @@ pub struct ModifiedSymbol {
 }
 
 #[derive(Clone, Debug)]
+pub struct AssignableSymbol {
+  pub base_type: i32,
+}
+
+impl AssignableSymbol {
+  pub fn new(base_type: i32) -> Self {
+    Self { base_type }
+  }
+}
+
+#[derive(Clone, Debug)]
 pub struct CustomSymbol {
   pub name: String,
-  pub members: HashMap<String, i32>,
 }
 
 #[derive(Clone, Debug)]

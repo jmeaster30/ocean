@@ -14,7 +14,6 @@ use super::errors::OceanError;
 use super::parser::ast::*;
 
 pub mod loop_checker;
-pub mod operators;
 pub mod symboltable;
 pub mod type_checker;
 
