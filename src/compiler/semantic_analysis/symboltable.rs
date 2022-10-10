@@ -9,6 +9,7 @@ pub enum Symbol {
   Auto(AutoSymbol),
   Custom(CustomSymbol),
   Tuple(TupleSymbol),
+  Assignable(AssignableSymbol),
   Modified(ModifiedSymbol),
   Array(ArraySymbol),
   Base(OceanType),
@@ -55,10 +56,7 @@ pub fn get_superset(a: &OceanType) -> Vec<OceanType> {
     OceanType::Bool => vec![],
     OceanType::Float(64) => vec![],
     OceanType::Float(x) => vec![OceanType::Float(*x * 2)],
-    OceanType::Unsigned(8) => vec![
-      OceanType::Signed(16),
-      OceanType::Unsigned(16),
-    ],
+    OceanType::Unsigned(8) => vec![OceanType::Signed(16), OceanType::Unsigned(16)],
     OceanType::Unsigned(64) => vec![],
     OceanType::Unsigned(x) => vec![
       OceanType::Unsigned(*x * 2),
@@ -424,6 +422,12 @@ impl SymbolTable {
         self.update_symbol(a, sym_b.clone());
         Some(b)
       }
+      (Some(Symbol::Assignable(assignable_symbol)), Some(_)) => {
+        self.match_types(assignable_symbol.base_type, b)
+      }
+      (Some(_), Some(Symbol::Assignable(assignable_symbol))) => {
+        self.match_types(a, assignable_symbol.base_type)
+      }
       (Some(Symbol::Array(type_a)), Some(Symbol::Array(type_b))) => {
         // TODO I think this needs to be done a different way perhaps
         let matched_storage_id = self.match_types(type_a.storage, type_b.storage);
@@ -647,15 +651,22 @@ impl SymbolTable {
   pub fn get_prefix_operator_type(&mut self, operator: String, target_type_id: i32) -> Option<i32> {
     let target_symbol = self.get_resolved_symbol(target_type_id);
     match operator.as_str() {
-      "!" => match self.match_types(target_type_id, get_base_type_id(Symbol::Base(OceanType::Bool))) {
+      "!" => match self.match_types(
+        target_type_id,
+        get_base_type_id(Symbol::Base(OceanType::Bool)),
+      ) {
         Some(_) => Some(get_base_type_id(Symbol::Base(OceanType::Bool))),
         None => None,
-      }
+      },
       "-" => {
         let target_symbol = self.get_resolved_symbol(target_type_id);
         match target_symbol {
-          Some(Symbol::Base(OceanType::Unsigned(64))) => Some(get_base_type_id(Symbol::Base(OceanType::Unsigned(64)))),
-          Some(Symbol::Base(OceanType::Unsigned(x))) => Some(get_base_type_id(Symbol::Base(OceanType::Signed(x * 2)))),
+          Some(Symbol::Base(OceanType::Unsigned(64))) => {
+            Some(get_base_type_id(Symbol::Base(OceanType::Unsigned(64))))
+          }
+          Some(Symbol::Base(OceanType::Unsigned(x))) => {
+            Some(get_base_type_id(Symbol::Base(OceanType::Signed(x * 2))))
+          }
           Some(Symbol::Base(OceanType::Signed(_))) => Some(target_type_id),
           Some(Symbol::Base(OceanType::Float(_))) => Some(target_type_id),
           _ => None,
@@ -664,15 +675,15 @@ impl SymbolTable {
       "~" => {
         let target_symbol = self.get_resolved_symbol(target_type_id);
         match target_symbol {
-          Some(Symbol::Base(OceanType::Char)) |
-          Some(Symbol::Base(OceanType::String)) |
-          Some(Symbol::Base(OceanType::Unsigned(_))) |
-          Some(Symbol::Base(OceanType::Signed(_))) |
-          Some(Symbol::Base(OceanType::Float(_))) => Some(target_type_id),
+          Some(Symbol::Base(OceanType::Char))
+          | Some(Symbol::Base(OceanType::String))
+          | Some(Symbol::Base(OceanType::Unsigned(_)))
+          | Some(Symbol::Base(OceanType::Signed(_)))
+          | Some(Symbol::Base(OceanType::Float(_))) => Some(target_type_id),
           _ => None,
         }
       }
-      _ => None
+      _ => None,
     }
   }
 
@@ -683,24 +694,28 @@ impl SymbolTable {
     right_type_id: i32,
   ) -> Option<i32> {
     match operator.as_str() {
-      "+" | "-" | "*" | "/" | "//" | "%" | "|" | "&" | "^"
-      => self.match_types(left_type_id, right_type_id),
+      "+" | "-" | "*" | "/" | "//" | "%" | "|" | "&" | "^" => {
+        self.match_types(left_type_id, right_type_id)
+      }
       ".." | "..<" => {
         let greater_type_id = self.match_types(left_type_id, right_type_id);
         match greater_type_id {
           Some(storage_type_id) => {
             let index_type_id = get_base_type_id(Symbol::Base(OceanType::Unsigned(64)));
-            let added = self.add_symbol(Symbol::Array(ArraySymbol::new(storage_type_id, index_type_id)));
+            let added = self.add_symbol(Symbol::Array(ArraySymbol::new(
+              storage_type_id,
+              index_type_id,
+            )));
             Some(added)
           }
-          None => None
+          None => None,
         }
       }
       "==" | "!=" | "<" | ">" | "<=" | ">=" => {
         let greater_type_id = self.match_types(left_type_id, right_type_id);
         match greater_type_id {
           Some(_) => Some(get_base_type_id(Symbol::Base(OceanType::Bool))),
-          None => None
+          None => None,
         }
       }
       "||" | "&&" | "^^" => {
@@ -710,7 +725,7 @@ impl SymbolTable {
         let right_match_type = self.match_types(right_type_id, b_type_id);
         match (left_match_type, right_match_type) {
           (Some(a_type_id), Some(b_type_id)) => Some(a_type_id),
-          _ => None
+          _ => None,
         }
       }
       ">>" | "<<" => {
@@ -718,10 +733,22 @@ impl SymbolTable {
         let right_match_type = self.match_types(right_type_id, a_type_id);
         match right_match_type {
           Some(a_type_id) => Some(left_type_id),
-          _ => None
+          _ => None,
         }
       }
-      _ => None
+      "=" => {
+        let left_resolved_symbol = self.get_resolved_symbol(left_type_id);
+        match left_resolved_symbol {
+          Some(Symbol::Assignable(left_symbol)) => {
+            match self.match_types(left_symbol.base_type, right_type_id) {
+              Some(_) => Some(left_symbol.base_type),
+              None => None,
+            }
+          }
+          _ => None,
+        }
+      }
+      _ => None,
     }
   }
 }

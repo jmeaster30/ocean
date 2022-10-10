@@ -7,8 +7,8 @@ use crate::compiler::parser::ast::*;
 use crate::compiler::{errors::OceanError, parser::span::Spanned};
 
 use super::symboltable::{
-  get_base_type_id, get_base_type_symbol_from_lexeme, ArraySymbol, FunctionSymbol, OceanType,
-  Symbol, SymbolTable, SymbolTableVarEntry, TupleSymbol,
+  get_base_type_id, get_base_type_symbol_from_lexeme, ArraySymbol, AssignableSymbol,
+  FunctionSymbol, OceanType, Symbol, SymbolTable, SymbolTableVarEntry, TupleSymbol,
 };
 
 pub fn type_checker(program: &mut Program) -> (SymbolTable, Vec<OceanError>) {
@@ -203,7 +203,9 @@ pub fn get_untyped_var_type(
   // look up var from symbol_table and return the type id
   match symbol_table.find_variable(&var.id.lexeme) {
     Some(var_entry) => {
-      let result = var_entry.type_id;
+      let base_type_id = var_entry.type_id;
+      let assignable = AssignableSymbol::new(base_type_id);
+      let result = symbol_table.add_symbol(Symbol::Assignable(assignable));
       var.type_id = Some(result);
       result
     }
