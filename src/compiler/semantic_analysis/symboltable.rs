@@ -183,6 +183,20 @@ impl AssignableSymbol {
 #[derive(Clone, Debug)]
 pub struct CustomSymbol {
   pub name: String,
+  pub members: HashMap<String, i32>,
+}
+
+impl CustomSymbol {
+  pub fn new(name: String) -> Self {
+    Self {
+      name,
+      members: HashMap::new(),
+    }
+  }
+
+  pub fn add_member(&mut self, name: String, type_id: i32) {
+    self.members.insert(name, type_id);
+  }
 }
 
 #[derive(Clone, Debug)]
@@ -236,7 +250,7 @@ pub fn get_base_type_id(base_type: Symbol) -> i32 {
 pub struct SymbolTable {
   is_soft_scope: bool,
   symbols: HashMap<i32, Symbol>,
-  types: HashMap<String, i32>,
+  types: HashMap<String, i32>, // TODO I want to store the location the type was defined
   variables: HashMap<String, Vec<SymbolTableVarEntry>>,
   casts: Vec<(i32, i32)>,
   parent_scope: Option<Box<SymbolTable>>,
@@ -332,6 +346,20 @@ impl SymbolTable {
       casts: Vec::new(),
       parent_scope,
     }
+  }
+
+  pub fn find_type(&self, name: &String) -> Option<i32> {
+    match self.types.get(name) {
+      Some(x) => Some(x.clone()),
+      None => match &self.parent_scope {
+        Some(p_scope) => p_scope.find_type(name),
+        None => None
+      }
+    }
+  }
+
+  pub fn add_type(&mut self, name: String, type_id: i32) {
+    self.types.insert(name, type_id);
   }
 
   pub fn add_var(&mut self, name: String, span: (usize, usize), type_id: i32) {

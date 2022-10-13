@@ -5,10 +5,11 @@ use std::cmp::Ordering;
 use crate::compiler::errors::*;
 use crate::compiler::parser::ast::*;
 use crate::compiler::{errors::OceanError, parser::span::Spanned};
+use crate::compiler::lexer::TokenType;
 
 use super::symboltable::{
   get_base_type_id, get_base_type_symbol_from_lexeme, ArraySymbol, AssignableSymbol,
-  FunctionSymbol, OceanType, Symbol, SymbolTable, SymbolTableVarEntry, TupleSymbol,
+  FunctionSymbol, OceanType, Symbol, SymbolTable, SymbolTableVarEntry, TupleSymbol, CustomSymbol,
 };
 
 pub fn type_checker(program: &mut Program) -> (SymbolTable, Vec<OceanError>) {
@@ -34,7 +35,7 @@ pub fn type_checker_stmt(
     Statement::Continue(x) => {}
     Statement::Break(x) => {}
     Statement::Return(x) => {}
-    Statement::PackDec(x) => todo!(),
+    Statement::PackDec(pack_dec) => type_checker_pack_dec(pack_dec, symbol_table, errors),
     Statement::UnionDec(x) => todo!(),
     Statement::VarDec(var_dec) => type_checker_var_dec(var_dec, symbol_table, errors),
     Statement::Cast(cast_stmt) => type_checker_cast_statement(cast_stmt, symbol_table, errors),
@@ -50,6 +51,60 @@ pub fn type_checker_stmt(
       get_expression_type(&mut x.expression, symbol_table, errors);
     }
   }
+}
+
+pub fn type_checker_pack_dec(
+  pack_dec: &mut PackDecStatement,
+  symbol_table: &mut SymbolTable,
+  errors: &mut Vec<OceanError>,
+) {
+  
+  if symbol_table.find_type(&pack_dec.name_token.lexeme).is_some() {
+    errors.push(OceanError::SemanticError(
+      Severity::Error,
+      pack_dec.get_span(),
+      "This type already exists (TODO add a marker here to highlight where it was declared before)".to_string()
+    ));
+    return;
+  }
+
+  let mut custom_symbol = CustomSymbol::new(pack_dec.name_token.lexeme.clone());
+
+  for pack_mem in &mut pack_dec.pack_declarations {
+    if custom_symbol.members.contains_key(&pack_mem.type_var.var_name.lexeme) {
+      errors.push(OceanError::SemanticError(
+        Severity::Error,
+        pack_mem.get_span(),
+        "Duplicate member variable name (todo add a marker here to highlight where it was declared before)".to_string()
+      ));
+      continue;
+    }
+
+    let pack_mem_type = get_type_symbol(&pack_mem.type_var.var_type, symbol_table, errors);
+    let pack_mem_type_id = symbol_table.add_symbol(pack_mem_type);
+    // compare to expression
+    match &mut pack_mem.expression {
+      Some(expr) => {
+        let pack_mem_expr_id = get_expression_type(expr, symbol_table, errors);
+        match symbol_table.match_types(pack_mem_type_id, pack_mem_expr_id) {
+          Some(_) => {}
+          None => {
+            errors.push(OceanError::SemanticError(
+              Severity::Error,
+              expr.get_span(),
+              format!("Unexpected type ;( Expected '{:?}' but got '{:?}'", symbol_table.get_symbol(pack_mem_type_id), symbol_table.get_symbol(pack_mem_expr_id))
+            ));
+          }
+        }
+      }
+      None => {}
+    }
+
+    custom_symbol.add_member(pack_mem.type_var.var_name.lexeme.clone(), pack_mem_type_id);
+  }
+
+  let pack_dec_symbol_id = symbol_table.add_symbol(Symbol::Custom(custom_symbol));
+  symbol_table.add_type(pack_dec.name_token.lexeme.clone(), pack_dec_symbol_id);
 }
 
 pub fn type_checker_cast_statement(
@@ -191,10 +246,6 @@ pub fn type_checker_if(
   }
 }
 
-pub fn get_var_type(var: &Var, symbol_table: &SymbolTable, errors: &mut Vec<OceanError>) -> i32 {
-  todo!()
-}
-
 pub fn get_untyped_var_type(
   var: &mut UntypedVar,
   symbol_table: &mut SymbolTable,
@@ -234,7 +285,21 @@ pub fn get_type_symbol(
     Type::Func(func_type) => {
       panic!("func")
     }
-    Type::Base(base_type) => get_base_type_symbol_from_lexeme(&base_type.base_token.lexeme),
+    Type::Base(base_type) => match &base_type.base_token.token_type {
+      TokenType::Type => get_base_type_symbol_from_lexeme(&base_type.base_token.lexeme),
+      TokenType::Identifier => match symbol_table.find_type(&base_type.base_token.lexeme) {
+        Some(found_type_id) => Symbol::Cache(found_type_id),
+        None => {
+          errors.push(OceanError::SemanticError(
+            Severity::Error,
+            base_type.get_span(),
+            "Unknown type!!!!!!!!!!!!!!!!".to_string()
+          ));
+          Symbol::Unknown
+        }
+      }
+      _ => panic!("unhandled token type in base type :(")
+    }
     Type::Lazy(lazy_type) => panic!("lazy"),
     Type::Ref(ref_type) => {
       panic!("ref")
