@@ -353,8 +353,8 @@ impl SymbolTable {
       Some(x) => Some(x.clone()),
       None => match &self.parent_scope {
         Some(p_scope) => p_scope.find_type(name),
-        None => None
-      }
+        None => None,
+      },
     }
   }
 
@@ -566,7 +566,15 @@ impl SymbolTable {
           None => Err(()),
         }
       }
-      // TODO expand the options here
+      Some(Symbol::Assignable(assignable_symbol)) => {
+        self.get_member_type(assignable_symbol.base_type, member_name)
+      }
+      Some(Symbol::Custom(custom_symbol)) => {
+        match custom_symbol.members.get(&member_name) {
+          Some(member) => Ok(*member),
+          None => Err(())
+        }
+      }
       _ => Err(()),
     }
   }

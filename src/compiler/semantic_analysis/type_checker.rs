@@ -3,13 +3,13 @@
 use std::cmp::Ordering;
 
 use crate::compiler::errors::*;
+use crate::compiler::lexer::TokenType;
 use crate::compiler::parser::ast::*;
 use crate::compiler::{errors::OceanError, parser::span::Spanned};
-use crate::compiler::lexer::TokenType;
 
 use super::symboltable::{
-  get_base_type_id, get_base_type_symbol_from_lexeme, ArraySymbol, AssignableSymbol,
-  FunctionSymbol, OceanType, Symbol, SymbolTable, SymbolTableVarEntry, TupleSymbol, CustomSymbol,
+  get_base_type_id, get_base_type_symbol_from_lexeme, ArraySymbol, AssignableSymbol, CustomSymbol,
+  FunctionSymbol, OceanType, Symbol, SymbolTable, SymbolTableVarEntry, TupleSymbol,
 };
 
 pub fn type_checker(program: &mut Program) -> (SymbolTable, Vec<OceanError>) {
@@ -58,12 +58,15 @@ pub fn type_checker_pack_dec(
   symbol_table: &mut SymbolTable,
   errors: &mut Vec<OceanError>,
 ) {
-  
-  if symbol_table.find_type(&pack_dec.name_token.lexeme).is_some() {
+  if symbol_table
+    .find_type(&pack_dec.name_token.lexeme)
+    .is_some()
+  {
     errors.push(OceanError::SemanticError(
       Severity::Error,
       pack_dec.get_span(),
-      "This type already exists (TODO add a marker here to highlight where it was declared before)".to_string()
+      "This type already exists (TODO add a marker here to highlight where it was declared before)"
+        .to_string(),
     ));
     return;
   }
@@ -71,7 +74,10 @@ pub fn type_checker_pack_dec(
   let mut custom_symbol = CustomSymbol::new(pack_dec.name_token.lexeme.clone());
 
   for pack_mem in &mut pack_dec.pack_declarations {
-    if custom_symbol.members.contains_key(&pack_mem.type_var.var_name.lexeme) {
+    if custom_symbol
+      .members
+      .contains_key(&pack_mem.type_var.var_name.lexeme)
+    {
       errors.push(OceanError::SemanticError(
         Severity::Error,
         pack_mem.get_span(),
@@ -92,7 +98,11 @@ pub fn type_checker_pack_dec(
             errors.push(OceanError::SemanticError(
               Severity::Error,
               expr.get_span(),
-              format!("Unexpected type ;( Expected '{:?}' but got '{:?}'", symbol_table.get_symbol(pack_mem_type_id), symbol_table.get_symbol(pack_mem_expr_id))
+              format!(
+                "Unexpected type ;( Expected '{:?}' but got '{:?}'",
+                symbol_table.get_symbol(pack_mem_type_id),
+                symbol_table.get_symbol(pack_mem_expr_id)
+              ),
             ));
           }
         }
@@ -293,13 +303,13 @@ pub fn get_type_symbol(
           errors.push(OceanError::SemanticError(
             Severity::Error,
             base_type.get_span(),
-            "Unknown type!!!!!!!!!!!!!!!!".to_string()
+            "Unknown type!!!!!!!!!!!!!!!!".to_string(),
           ));
           Symbol::Unknown
         }
-      }
-      _ => panic!("unhandled token type in base type :(")
-    }
+      },
+      _ => panic!("unhandled token type in base type :("),
+    },
     Type::Lazy(lazy_type) => panic!("lazy"),
     Type::Ref(ref_type) => {
       panic!("ref")
