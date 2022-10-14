@@ -456,6 +456,44 @@ impl SymbolTable {
       (Some(_), Some(Symbol::Assignable(assignable_symbol))) => {
         self.match_types(a, assignable_symbol.base_type)
       }
+      (Some(Symbol::Cache(type_id)), Some(_)) => {
+        self.match_types(type_id, b)
+      }
+      (Some(_), Some(Symbol::Cache(type_id))) => {
+        self.match_types(a, type_id)
+      }
+      (Some(Symbol::Custom(custom_symbol)), Some(Symbol::Tuple(tuple_symbol))) => {
+        if custom_symbol.members.len() != tuple_symbol.members.len() {
+          return None
+        }
+
+        for tuple_member in tuple_symbol.members {
+          match custom_symbol.members.get(&tuple_member.0) {
+            Some(custom_member_type_id) => match self.match_types(*custom_member_type_id, tuple_member.1) {
+              Some(_) => {}
+              None => return None
+            }
+            None => return None
+          }
+        }
+        Some(a)
+      }
+      (Some(Symbol::Tuple(tuple_symbol)), Some(Symbol::Custom(custom_symbol))) => {
+        if custom_symbol.members.len() != tuple_symbol.members.len() {
+          return None
+        }
+
+        for tuple_member in tuple_symbol.members {
+          match custom_symbol.members.get(&tuple_member.0) {
+            Some(custom_member_type_id) => match self.match_types(*custom_member_type_id, tuple_member.1) {
+              Some(_) => {}
+              None => return None
+            }
+            None => return None
+          }
+        }
+        Some(a) //? should this return the custom type of is the tuple type better??
+      }
       (Some(Symbol::Array(type_a)), Some(Symbol::Array(type_b))) => {
         // TODO I think this needs to be done a different way perhaps
         let matched_storage_id = self.match_types(type_a.storage, type_b.storage);
