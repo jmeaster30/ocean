@@ -133,9 +133,14 @@ impl ArraySymbol {
 
 #[derive(Clone, Debug)]
 pub struct AutoSymbol {
-  pub name: String,
-  //pub constraints: Option<Vec<Symbol>>, // Some(Vec::new) <- any.... None <- none
-  pub members: Vec<String>,
+  pub name: Option<String>,
+  pub resolved_type: i32
+}
+
+impl AutoSymbol {
+  pub fn new(name: Option<String>, resolved_type: i32) -> Self {
+    Self { name, resolved_type }
+  }
 }
 
 #[derive(Clone, Debug)]
@@ -462,6 +467,12 @@ impl SymbolTable {
       (Some(_), Some(Symbol::Cache(type_id))) => {
         self.match_types(a, type_id)
       }
+      (Some(Symbol::Auto(auto_symbol)), Some(_)) => {
+        self.match_types(auto_symbol.resolved_type, b)
+      }
+      (Some(_), Some(Symbol::Auto(auto_symbol))) => {
+        self.match_types(a, auto_symbol.resolved_type)
+      }
       (Some(Symbol::Custom(custom_symbol)), Some(Symbol::Tuple(tuple_symbol))) => {
         if custom_symbol.members.len() != tuple_symbol.members.len() {
           return None
@@ -492,7 +503,7 @@ impl SymbolTable {
             None => return None
           }
         }
-        Some(a) //? should this return the custom type of is the tuple type better??
+        Some(a) //? should this return the custom type or is the tuple type better??
       }
       (Some(Symbol::Array(type_a)), Some(Symbol::Array(type_b))) => {
         // TODO I think this needs to be done a different way perhaps

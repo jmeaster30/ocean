@@ -9,7 +9,7 @@ use crate::compiler::{errors::OceanError, parser::span::Spanned};
 
 use super::symboltable::{
   get_base_type_id, get_base_type_symbol_from_lexeme, ArraySymbol, AssignableSymbol, CustomSymbol,
-  FunctionSymbol, OceanType, Symbol, SymbolTable, SymbolTableVarEntry, TupleSymbol,
+  FunctionSymbol, OceanType, Symbol, SymbolTable, SymbolTableVarEntry, TupleSymbol, AutoSymbol,
 };
 
 pub fn type_checker(program: &mut Program) -> (SymbolTable, Vec<OceanError>) {
@@ -36,7 +36,7 @@ pub fn type_checker_stmt(
     Statement::Break(x) => {}
     Statement::Return(x) => {}
     Statement::PackDec(pack_dec) => type_checker_pack_dec(pack_dec, symbol_table, errors),
-    Statement::UnionDec(x) => todo!(),
+    Statement::UnionDec(x) => todo!("Unions are currently not supported sorry :("),
     Statement::VarDec(var_dec) => type_checker_var_dec(var_dec, symbol_table, errors),
     Statement::Cast(cast_stmt) => type_checker_cast_statement(cast_stmt, symbol_table, errors),
     Statement::Match(x) => panic!(),
@@ -86,8 +86,7 @@ pub fn type_checker_pack_dec(
       continue;
     }
 
-    let pack_mem_type = get_type_symbol(&pack_mem.type_var.var_type, symbol_table, errors);
-    let pack_mem_type_id = symbol_table.add_symbol(pack_mem_type);
+    let pack_mem_type_id = get_type_symbol(&pack_mem.type_var.var_type, symbol_table, errors);
     // compare to expression
     match &mut pack_mem.expression {
       Some(expr) => {
@@ -285,10 +284,25 @@ pub fn get_type_symbol(
   type_node: &Type,
   symbol_table: &mut SymbolTable,
   errors: &mut Vec<OceanError>,
-) -> Symbol {
+) -> i32 {
   match type_node {
     Type::Auto(auto_type) => {
-      panic!("auto")
+      let unk_type_id = symbol_table.add_symbol(Symbol::Unknown);
+      let auto_symbol = match &auto_type.auto_name {
+        Some(auto_name_token) => AutoSymbol::new(Some(auto_name_token.lexeme.clone()), unk_type_id),
+        None => AutoSymbol::new(None, unk_type_id)
+      };
+      
+      // add type info to the symbol table
+      let auto_type_id = symbol_table.add_symbol(Symbol::Auto(auto_symbol));
+      match &auto_type.auto_name {
+        Some(auto_name_token) => {
+          symbol_table.add_type(auto_name_token.lexeme.clone(), auto_type_id);
+        }
+        None => {}
+      };
+
+      auto_type_id
     }
     Type::Comp(comp_type) => panic!("comp"),
     Type::Sub(sub_type) => get_type_symbol(sub_type.sub_type.as_ref(), symbol_table, errors),
@@ -296,16 +310,16 @@ pub fn get_type_symbol(
       panic!("func")
     }
     Type::Base(base_type) => match &base_type.base_token.token_type {
-      TokenType::Type => get_base_type_symbol_from_lexeme(&base_type.base_token.lexeme),
+      TokenType::Type => get_base_type_id(get_base_type_symbol_from_lexeme(&base_type.base_token.lexeme)),
       TokenType::Identifier => match symbol_table.find_type(&base_type.base_token.lexeme) {
-        Some(found_type_id) => Symbol::Cache(found_type_id),
+        Some(found_type_id) => found_type_id,
         None => {
           errors.push(OceanError::SemanticError(
             Severity::Error,
             base_type.get_span(),
             "Unknown type!!!!!!!!!!!!!!!!".to_string(),
           ));
-          Symbol::Unknown
+          symbol_table.add_symbol(Symbol::Unknown)
         }
       },
       _ => panic!("unhandled token type in base type :("),
@@ -316,16 +330,12 @@ pub fn get_type_symbol(
     }
     Type::Mutable(mutable_type) => panic!("mut"),
     Type::Array(array_type) => {
-      let storage_sym = get_type_symbol(array_type.base.as_ref(), symbol_table, errors);
-      let storage_id = symbol_table.add_symbol(storage_sym);
+      let storage_id = get_type_symbol(array_type.base.as_ref(), symbol_table, errors);
       let index_id = match array_type.sub_type.as_ref() {
-        Some(sub_type) => {
-          let index_sym = get_type_symbol(sub_type, symbol_table, errors);
-          symbol_table.add_symbol(index_sym)
-        }
+        Some(sub_type) => get_type_symbol(sub_type, symbol_table, errors),
         None => get_base_type_id(Symbol::Base(OceanType::Unsigned(64))),
       };
-      Symbol::Array(ArraySymbol::new(storage_id, index_id))
+      symbol_table.add_symbol(Symbol::Array(ArraySymbol::new(storage_id, index_id)))
     }
     Type::VarType(variable_type) => panic!("variadic type"),
   }
@@ -351,13 +361,12 @@ pub fn type_checker_var_dec(
   }
 
   // get type information
-  let var_type_symbol = match &var_dec.var_type {
+  let var_type_id = match &var_dec.var_type {
     Some(type_node) => get_type_symbol(type_node, symbol_table, errors),
-    None => Symbol::Unknown,
+    None => symbol_table.add_symbol(Symbol::Unknown),
   };
 
-  // add variable and symbol to symbol_table
-  let var_type_id = symbol_table.add_symbol(var_type_symbol);
+  // add variable to symbol_table
   symbol_table.add_var(
     var_dec.var_name.lexeme.clone(),
     (var_dec.var_name.start, var_dec.var_name.end),
@@ -532,8 +541,7 @@ pub fn get_expression_type(
     }
     Expression::Cast(cast_expression) => {
       let from_type_id = get_expression_type(&mut cast_expression.lhs, symbol_table, errors);
-      let to_type_symbol = get_type_symbol(&mut cast_expression.cast_type, symbol_table, errors);
-      let to_type_id = symbol_table.add_symbol(to_type_symbol);
+      let to_type_id = get_type_symbol(&mut cast_expression.cast_type, symbol_table, errors);
       if !symbol_table.find_cast(from_type_id, to_type_id) {
         match symbol_table.match_types(from_type_id, to_type_id) {
           Some(_) => {}
@@ -662,9 +670,8 @@ pub fn get_literal_type(
 
       // add params to sub scope and func symbol
       for param in &mut function_literal.param_list.params {
-        let param_type_symbol =
+        let param_type_id =
           get_type_symbol(param.type_var.var_type.as_ref(), symbol_table, errors);
-        let param_type_id = symbol_table.add_symbol(param_type_symbol);
         func_symbol.add_parameter(param.type_var.var_name.lexeme.clone(), param_type_id);
         sub_scope.add_var(
           param.type_var.var_name.lexeme.clone(),
@@ -675,8 +682,7 @@ pub fn get_literal_type(
 
       // add returns to sub scope and fumc symbol
       for ret in &mut function_literal.return_list.returns {
-        let ret_type_symbol = get_type_symbol(ret.type_var.var_type.as_ref(), symbol_table, errors);
-        let ret_type_id = symbol_table.add_symbol(ret_type_symbol);
+        let ret_type_id = get_type_symbol(ret.type_var.var_type.as_ref(), symbol_table, errors);
         // TODO typecheck optional expression
         func_symbol.add_return(ret.type_var.var_name.lexeme.clone(), ret_type_id);
         sub_scope.add_var(
