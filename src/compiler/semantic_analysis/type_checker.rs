@@ -259,7 +259,7 @@ pub fn get_untyped_var_type(
   var: &mut UntypedVar,
   symbol_table: &mut SymbolTable,
   errors: &mut Vec<OceanError>,
-) -> i32 {
+) -> u64 {
   // look up var from symbol_table and return the type id
   match symbol_table.find_variable(&var.id.lexeme) {
     Some(var_entry) => {
@@ -284,7 +284,7 @@ pub fn get_type_symbol(
   type_node: &Type,
   symbol_table: &mut SymbolTable,
   errors: &mut Vec<OceanError>,
-) -> i32 {
+) -> u64 {
   match type_node {
     Type::Auto(auto_type) => {
       let unk_type_id = symbol_table.add_symbol(Symbol::Unknown);
@@ -296,9 +296,7 @@ pub fn get_type_symbol(
       // add type info to the symbol table
       let auto_type_id = symbol_table.add_symbol(Symbol::Auto(auto_symbol));
       match &auto_type.auto_name {
-        Some(auto_name_token) => {
-          symbol_table.add_type(auto_name_token.lexeme.clone(), auto_type_id);
-        }
+        Some(auto_name_token) => symbol_table.add_type(auto_name_token.lexeme.clone(), auto_type_id),
         None => {}
       };
 
@@ -325,9 +323,7 @@ pub fn get_type_symbol(
       _ => panic!("unhandled token type in base type :("),
     },
     Type::Lazy(lazy_type) => panic!("lazy"),
-    Type::Ref(ref_type) => {
-      panic!("ref")
-    }
+    Type::Ref(ref_type) => panic!("ref"),
     Type::Mutable(mutable_type) => panic!("mut"),
     Type::Array(array_type) => {
       let storage_id = get_type_symbol(array_type.base.as_ref(), symbol_table, errors);
@@ -403,7 +399,7 @@ pub fn get_expression_type(
   expr: &mut Expression,
   symbol_table: &mut SymbolTable,
   errors: &mut Vec<OceanError>,
-) -> i32 {
+) -> u64 {
   match expr {
     Expression::Binary(binary) => {
       let lhs_type_id = get_expression_type(&mut binary.lhs, symbol_table, errors);
@@ -573,7 +569,7 @@ pub fn get_literal_type(
   literal: &mut Literal,
   symbol_table: &mut SymbolTable,
   errors: &mut Vec<OceanError>,
-) -> i32 {
+) -> u64 {
   match literal {
     Literal::Boolean(bool_literal) => {
       let id = get_base_type_id(Symbol::Base(OceanType::Bool));
@@ -624,10 +620,10 @@ pub fn get_literal_type(
       }
     }
     Literal::Array(array_literal) => {
-      let mut storage_id = -1;
+      let mut storage_id = 0;
       for arg in &mut array_literal.args {
         let arg_id = get_expression_type(arg.as_mut(), symbol_table, errors);
-        if storage_id == -1 {
+        if storage_id == 0 {
           storage_id = arg_id;
           continue;
         }
@@ -641,7 +637,7 @@ pub fn get_literal_type(
               symbol_table.get_symbol(arg_id),
               symbol_table.get_symbol(storage_id)
             ),
-          )),
+          ))
         }
       }
       let id = symbol_table.add_symbol(Symbol::Array(ArraySymbol::new(
@@ -711,7 +707,7 @@ pub fn get_function_call_type(
   call: &mut FunctionCall,
   symbol_table: &mut SymbolTable,
   errors: &mut Vec<OceanError>,
-) -> i32 {
+) -> u64 {
   let call_target_id = get_expression_type(call.target.as_mut(), symbol_table, errors);
   let mut argument_type_ids = Vec::new();
   for arg in &mut call.arguments {

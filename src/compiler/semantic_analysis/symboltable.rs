@@ -13,7 +13,7 @@ pub enum Symbol {
   Modified(ModifiedSymbol),
   Array(ArraySymbol),
   Base(OceanType),
-  Cache(i32),
+  Cache(u64),
   Unknown,
 }
 
@@ -121,12 +121,12 @@ fn get_greater_type(a: &OceanType, b: &OceanType) -> Option<OceanType> {
 
 #[derive(Clone, Debug)]
 pub struct ArraySymbol {
-  pub storage: i32,
-  pub index: i32,
+  pub storage: u64,
+  pub index: u64,
 }
 
 impl ArraySymbol {
-  pub fn new(storage: i32, index: i32) -> Self {
+  pub fn new(storage: u64, index: u64) -> Self {
     Self { storage, index }
   }
 }
@@ -134,19 +134,19 @@ impl ArraySymbol {
 #[derive(Clone, Debug)]
 pub struct AutoSymbol {
   pub name: Option<String>,
-  pub resolved_type: i32
+  pub resolved_type: u64
 }
 
 impl AutoSymbol {
-  pub fn new(name: Option<String>, resolved_type: i32) -> Self {
+  pub fn new(name: Option<String>, resolved_type: u64) -> Self {
     Self { name, resolved_type }
   }
 }
 
 #[derive(Clone, Debug)]
 pub struct FunctionSymbol {
-  pub parameters: Vec<(String, i32)>,
-  pub returns: Vec<(String, i32)>,
+  pub parameters: Vec<(String, u64)>,
+  pub returns: Vec<(String, u64)>,
 }
 
 impl FunctionSymbol {
@@ -157,11 +157,11 @@ impl FunctionSymbol {
     }
   }
 
-  pub fn add_parameter(&mut self, name: String, symbol: i32) {
+  pub fn add_parameter(&mut self, name: String, symbol: u64) {
     self.parameters.push((name, symbol));
   }
 
-  pub fn add_return(&mut self, name: String, symbol: i32) {
+  pub fn add_return(&mut self, name: String, symbol: u64) {
     self.returns.push((name, symbol));
   }
 }
@@ -171,16 +171,16 @@ pub struct ModifiedSymbol {
   pub reference: bool,
   pub mutable: bool,
   pub comp: bool,
-  pub base_type: i32,
+  pub base_type: u64,
 }
 
 #[derive(Clone, Debug)]
 pub struct AssignableSymbol {
-  pub base_type: i32,
+  pub base_type: u64,
 }
 
 impl AssignableSymbol {
-  pub fn new(base_type: i32) -> Self {
+  pub fn new(base_type: u64) -> Self {
     Self { base_type }
   }
 }
@@ -188,7 +188,7 @@ impl AssignableSymbol {
 #[derive(Clone, Debug)]
 pub struct CustomSymbol {
   pub name: String,
-  pub members: HashMap<String, i32>,
+  pub members: HashMap<String, u64>,
 }
 
 impl CustomSymbol {
@@ -199,14 +199,14 @@ impl CustomSymbol {
     }
   }
 
-  pub fn add_member(&mut self, name: String, type_id: i32) {
+  pub fn add_member(&mut self, name: String, type_id: u64) {
     self.members.insert(name, type_id);
   }
 }
 
 #[derive(Clone, Debug)]
 pub struct TupleSymbol {
-  pub members: Vec<(String, i32)>,
+  pub members: Vec<(String, u64)>,
 }
 
 impl TupleSymbol {
@@ -216,37 +216,37 @@ impl TupleSymbol {
     }
   }
 
-  pub fn add_named(&mut self, name: String, symbol: i32) {
+  pub fn add_named(&mut self, name: String, symbol: u64) {
     self.members.push((name, symbol));
   }
 
-  pub fn add_unnamed(&mut self, symbol: i32) {
+  pub fn add_unnamed(&mut self, symbol: u64) {
     self.members.push((self.members.len().to_string(), symbol));
   }
 }
 
 #[derive(Clone, Debug)]
 pub struct SymbolTableVarEntry {
-  pub type_id: i32,
+  pub type_id: u64,
   pub span: (usize, usize),
 }
 
 impl SymbolTableVarEntry {
-  pub fn new(type_id: i32, span: (usize, usize)) -> Self {
+  pub fn new(type_id: u64, span: (usize, usize)) -> Self {
     Self { type_id, span }
   }
 }
 
-pub fn get_base_type_id(base_type: Symbol) -> i32 {
+pub fn get_base_type_id(base_type: Symbol) -> u64 {
   match base_type {
-    Symbol::Base(OceanType::Bool) => 0,
-    Symbol::Base(OceanType::Char) => 1,
-    Symbol::Base(OceanType::String) => 2,
-    Symbol::Base(OceanType::Void) => 3,
-    Symbol::Unknown => 4,
-    Symbol::Base(OceanType::Signed(x)) => x as i32,
-    Symbol::Base(OceanType::Unsigned(x)) => (x + 1) as i32,
-    Symbol::Base(OceanType::Float(x)) => (x + 2) as i32,
+    Symbol::Base(OceanType::Bool) => 1,
+    Symbol::Base(OceanType::Char) => 2,
+    Symbol::Base(OceanType::String) => 3,
+    Symbol::Base(OceanType::Void) => 4,
+    Symbol::Unknown => 5,
+    Symbol::Base(OceanType::Signed(x)) => x as u64,
+    Symbol::Base(OceanType::Unsigned(x)) => (x + 1) as u64,
+    Symbol::Base(OceanType::Float(x)) => (x + 2) as u64,
     _ => panic!(),
   }
 }
@@ -254,10 +254,10 @@ pub fn get_base_type_id(base_type: Symbol) -> i32 {
 #[derive(Clone, Debug)]
 pub struct SymbolTable {
   is_soft_scope: bool,
-  symbols: HashMap<i32, Symbol>,
-  types: HashMap<String, i32>, // TODO I want to store the location the type was defined
+  symbols: HashMap<u64, Symbol>,
+  types: HashMap<String, u64>, // TODO I want to store the location the type was defined
   variables: HashMap<String, Vec<SymbolTableVarEntry>>,
-  casts: Vec<(i32, i32)>,
+  casts: Vec<(u64, u64)>,
   parent_scope: Option<Box<SymbolTable>>,
 }
 
@@ -353,7 +353,7 @@ impl SymbolTable {
     }
   }
 
-  pub fn find_type(&self, name: &String) -> Option<i32> {
+  pub fn find_type(&self, name: &String) -> Option<u64> {
     match self.types.get(name) {
       Some(x) => Some(x.clone()),
       None => match &self.parent_scope {
@@ -363,11 +363,11 @@ impl SymbolTable {
     }
   }
 
-  pub fn add_type(&mut self, name: String, type_id: i32) {
+  pub fn add_type(&mut self, name: String, type_id: u64) {
     self.types.insert(name, type_id);
   }
 
-  pub fn add_var(&mut self, name: String, span: (usize, usize), type_id: i32) {
+  pub fn add_var(&mut self, name: String, span: (usize, usize), type_id: u64) {
     let found = self.variables.get(&name);
     if let Some(current_value) = found {
       // TODO maybe create a warning here if we try to add a variable that exists in a higher scope
@@ -414,13 +414,13 @@ impl SymbolTable {
     }
   }
 
-  pub fn add_symbol(&mut self, sym: Symbol) -> i32 {
+  pub fn add_symbol(&mut self, sym: Symbol) -> u64 {
     let index = self.get_new_symbol_id();
     self.symbols.insert(index, sym);
     index
   }
 
-  pub fn get_symbol(&self, index: i32) -> Option<Symbol> {
+  pub fn get_symbol(&self, index: u64) -> Option<Symbol> {
     match self.symbols.get(&index) {
       Some(x) => Some(x.clone()),
       None => match &self.parent_scope {
@@ -430,7 +430,7 @@ impl SymbolTable {
     }
   }
 
-  pub fn get_new_symbol_id(&self) -> i32 {
+  pub fn get_new_symbol_id(&self) -> u64 {
     match (self.symbols.len(), self.parent_scope.as_ref()) {
       (0, None) => 0,
       (0, Some(p_scope)) => p_scope.get_new_symbol_id(),
@@ -438,7 +438,7 @@ impl SymbolTable {
     }
   }
 
-  pub fn match_types(&mut self, a: i32, b: i32) -> Option<i32> {
+  pub fn match_types(&mut self, a: u64, b: u64) -> Option<u64> {
     // Check if the ids are exactly the same
     if a == b {
       return Some(a);
@@ -528,7 +528,7 @@ impl SymbolTable {
     }
   }
 
-  fn update_symbol(&mut self, type_id: i32, sym: Symbol) {
+  fn update_symbol(&mut self, type_id: u64, sym: Symbol) {
     if self.symbols.contains_key(&type_id) {
       self.symbols.remove(&type_id);
       self.symbols.insert(type_id, sym);
@@ -543,7 +543,7 @@ impl SymbolTable {
     }
   }
 
-  fn get_resolved_symbol(&self, target_type_id: i32) -> Option<Symbol> {
+  fn get_resolved_symbol(&self, target_type_id: u64) -> Option<Symbol> {
     let resolved_symbol = self.symbols.get(&target_type_id);
     match resolved_symbol {
       Some(Symbol::Cache(cache_type_id)) => self.get_resolved_symbol(*cache_type_id),
@@ -555,7 +555,7 @@ impl SymbolTable {
     }
   }
 
-  pub fn is_indexable(&self, type_id: i32) -> bool {
+  pub fn is_indexable(&self, type_id: u64) -> bool {
     let resolved_symbol = self.get_resolved_symbol(type_id);
     match resolved_symbol {
       Some(Symbol::Array(array_symbol)) => true,
@@ -567,9 +567,9 @@ impl SymbolTable {
 
   pub fn get_storage_type_from_indexable(
     &mut self,
-    target_type_id: i32,
-    index_id: i32,
-  ) -> Result<i32, ()> {
+    target_type_id: u64,
+    index_id: u64,
+  ) -> Result<u64, ()> {
     match self.get_resolved_symbol(target_type_id) {
       Some(Symbol::Array(array_symbol)) => match self.match_types(index_id, array_symbol.index) {
         Some(_) => Ok(array_symbol.storage),
@@ -586,7 +586,7 @@ impl SymbolTable {
     }
   }
 
-  pub fn get_iterator_type_from_indexable(&mut self, target_type_id: i32) -> Result<i32, ()> {
+  pub fn get_iterator_type_from_indexable(&mut self, target_type_id: u64) -> Result<u64, ()> {
     match self.get_resolved_symbol(target_type_id) {
       Some(Symbol::Array(array_symbol)) => match self.match_types(
         get_base_type_id(Symbol::Base(OceanType::Unsigned(64))),
@@ -606,7 +606,7 @@ impl SymbolTable {
     }
   }
 
-  pub fn get_member_type(&self, target_type_id: i32, member_name: String) -> Result<i32, ()> {
+  pub fn get_member_type(&self, target_type_id: u64, member_name: String) -> Result<u64, ()> {
     match self.get_resolved_symbol(target_type_id) {
       Some(Symbol::Tuple(tuple_symbol)) => {
         let mut member_iter = tuple_symbol.members.into_iter();
@@ -630,7 +630,7 @@ impl SymbolTable {
 
   pub fn check_function_parameter_lengths(
     &self,
-    target_type_id: i32,
+    target_type_id: u64,
     param_length: usize,
   ) -> Result<(), (bool, usize)> {
     let resolved_symbol = self.get_resolved_symbol(target_type_id);
@@ -648,9 +648,9 @@ impl SymbolTable {
 
   pub fn get_function_return_types(
     &mut self,
-    target_type_id: i32,
-    arguments: &Vec<i32>,
-  ) -> Result<i32, Vec<(usize, String, i32)>> {
+    target_type_id: u64,
+    arguments: &Vec<u64>,
+  ) -> Result<u64, Vec<(usize, String, u64)>> {
     let resolved_symbol = self.get_resolved_symbol(target_type_id);
     match resolved_symbol {
       Some(Symbol::Function(function_symbol)) => {
@@ -690,7 +690,7 @@ impl SymbolTable {
     }
   }
 
-  pub fn get_function_params(&self, target_type_id: i32) -> Vec<(String, i32)> {
+  pub fn get_function_params(&self, target_type_id: u64) -> Vec<(String, u64)> {
     let function_symbol = self.get_resolved_symbol(target_type_id);
     match function_symbol {
       Some(Symbol::Function(function)) => function.parameters,
@@ -698,7 +698,7 @@ impl SymbolTable {
     }
   }
 
-  pub fn get_function_returns(&self, target_type_id: i32) -> Vec<(String, i32)> {
+  pub fn get_function_returns(&self, target_type_id: u64) -> Vec<(String, u64)> {
     let function_symbol = self.get_resolved_symbol(target_type_id);
     match function_symbol {
       Some(Symbol::Function(function)) => function.returns,
@@ -706,11 +706,11 @@ impl SymbolTable {
     }
   }
 
-  pub fn add_cast(&mut self, from_type: i32, to_type: i32) {
+  pub fn add_cast(&mut self, from_type: u64, to_type: u64) {
     self.casts.push((from_type, to_type));
   }
 
-  pub fn find_cast(&mut self, from_type: i32, to_type: i32) -> bool {
+  pub fn find_cast(&mut self, from_type: u64, to_type: u64) -> bool {
     for cast in self.casts.clone() {
       let from_match = self.match_types(cast.0, from_type);
       let to_match = self.match_types(cast.1, to_type);
@@ -728,12 +728,12 @@ impl SymbolTable {
   pub fn get_postfix_operator_type(
     &mut self,
     operator: String,
-    target_type_id: i32,
-  ) -> Option<i32> {
+    target_type_id: u64,
+  ) -> Option<u64> {
     None
   }
 
-  pub fn get_prefix_operator_type(&mut self, operator: String, target_type_id: i32) -> Option<i32> {
+  pub fn get_prefix_operator_type(&mut self, operator: String, target_type_id: u64) -> Option<u64> {
     let target_symbol = self.get_resolved_symbol(target_type_id);
     match operator.as_str() {
       "!" => match self.match_types(
@@ -775,9 +775,9 @@ impl SymbolTable {
   pub fn get_infix_operator_type(
     &mut self,
     operator: String,
-    left_type_id: i32,
-    right_type_id: i32,
-  ) -> Option<i32> {
+    left_type_id: u64,
+    right_type_id: u64,
+  ) -> Option<u64> {
     match operator.as_str() {
       "+" | "-" | "*" | "/" | "//" | "%" | "|" | "&" | "^" => {
         self.match_types(left_type_id, right_type_id)

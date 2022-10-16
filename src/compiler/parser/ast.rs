@@ -34,7 +34,7 @@ pub enum Statement {
 
 #[derive(Clone, Debug)]
 pub struct MacroStatement {
-  pub type_id: Option<i32>,
+  pub type_id: Option<u64>,
   pub token: Token,
 }
 
@@ -49,7 +49,7 @@ impl MacroStatement {
 
 #[derive(Clone, Debug)]
 pub struct ErrorStatement {
-  pub type_id: Option<i32>,
+  pub type_id: Option<u64>,
   pub message: String,
   pub severity: Severity,
   pub tokens: Vec<Token>,
@@ -101,7 +101,7 @@ impl ReturnStatement {
 
 #[derive(Clone, Debug)]
 pub struct PackDecStatement {
-  pub type_id: Option<i32>,
+  pub type_id: Option<u64>,
   pub pack_token: Token,
   pub name_token: Token,
   pub open_brace: Token,
@@ -130,7 +130,7 @@ impl PackDecStatement {
 
 #[derive(Clone, Debug)]
 pub struct PackDeclaration {
-  pub type_id: Option<i32>,
+  pub type_id: Option<u64>,
   pub type_var: TypeVar,
   pub assignment: Option<Token>,
   pub expression: Option<Expression>,
@@ -149,7 +149,7 @@ impl PackDeclaration {
 
 #[derive(Clone, Debug)]
 pub struct UnionDecStatement {
-  pub type_id: Option<i32>,
+  pub type_id: Option<u64>,
   pub union_token: Token,
   pub name_token: Token,
   pub open_brace: Token,
@@ -178,7 +178,7 @@ impl UnionDecStatement {
 
 #[derive(Clone, Debug)]
 pub struct UnionDeclaration {
-  pub type_id: Option<i32>,
+  pub type_id: Option<u64>,
   pub identifier: Token,
   pub left_paren: Option<Token>,
   pub type_list: Vec<Box<Type>>,
@@ -234,7 +234,7 @@ impl VarDecStatement {
 
 #[derive(Clone, Debug)]
 pub struct CastStatement {
-  pub type_id: Option<i32>,
+  pub type_id: Option<u64>,
   pub cast_token: Token,
   pub function: Expression,
 }
@@ -341,7 +341,7 @@ impl IfStatement {
 
 #[derive(Clone, Debug)]
 pub struct UseStatement {
-  pub type_id: Option<i32>,
+  pub type_id: Option<u64>,
   pub use_token: Token,
   pub id_tokens: Vec<Token>,
   pub as_token: Option<Token>,
@@ -476,7 +476,7 @@ pub enum Expression {
 
 #[derive(Clone, Debug)]
 pub struct ErrorExpression {
-  pub type_id: Option<i32>,
+  pub type_id: Option<u64>,
   pub severity: Severity,
   pub message: String,
   pub tokens: Vec<Token>,
@@ -495,7 +495,7 @@ impl ErrorExpression {
 
 #[derive(Clone, Debug)]
 pub struct BinaryExpression {
-  pub type_id: Option<i32>,
+  pub type_id: Option<u64>,
   pub lhs: Box<Expression>,
   pub operator: Token,
   pub rhs: Box<Expression>,
@@ -514,7 +514,7 @@ impl BinaryExpression {
 
 #[derive(Clone, Debug)]
 pub struct PrefixExpression {
-  pub type_id: Option<i32>,
+  pub type_id: Option<u64>,
   pub operator: Token,
   pub rhs: Box<Expression>,
 }
@@ -531,7 +531,7 @@ impl PrefixExpression {
 
 #[derive(Clone, Debug)]
 pub struct PostfixExpression {
-  pub type_id: Option<i32>,
+  pub type_id: Option<u64>,
   pub lhs: Box<Expression>,
   pub operator: Token,
 }
@@ -548,7 +548,7 @@ impl PostfixExpression {
 
 #[derive(Clone, Debug)]
 pub struct MemberAccess {
-  pub type_id: Option<i32>,
+  pub type_id: Option<u64>,
   pub lhs: Box<Expression>,
   pub dot: Token,
   pub id: Token,
@@ -567,7 +567,7 @@ impl MemberAccess {
 
 #[derive(Clone, Debug)]
 pub struct ArrayAccess {
-  pub type_id: Option<i32>,
+  pub type_id: Option<u64>,
   pub lhs: Box<Expression>,
   pub left_square: Token,
   pub expr: Box<Expression>,
@@ -593,7 +593,7 @@ impl ArrayAccess {
 
 #[derive(Clone, Debug)]
 pub struct CastExpression {
-  pub type_id: Option<i32>,
+  pub type_id: Option<u64>,
   pub lhs: Box<Expression>,
   pub as_token: Token,
   pub cast_type: Type,
@@ -612,7 +612,7 @@ impl CastExpression {
 
 #[derive(Clone, Debug)]
 pub struct FunctionCall {
-  pub type_id: Option<i32>,
+  pub type_id: Option<u64>,
   pub target: Box<Expression>,
   pub left_paren: Token,
   pub arguments: Vec<Box<Expression>>,
@@ -648,7 +648,7 @@ pub enum Literal {
 
 #[derive(Clone, Debug)]
 pub struct BoolLiteral {
-  pub type_id: Option<i32>,
+  pub type_id: Option<u64>,
   pub token: Token,
 }
 
@@ -663,7 +663,7 @@ impl BoolLiteral {
 
 #[derive(Clone, Debug)]
 pub struct NumberLiteral {
-  pub type_id: Option<i32>,
+  pub type_id: Option<u64>,
   pub token: Token,
 }
 
@@ -678,7 +678,7 @@ impl NumberLiteral {
 
 #[derive(Clone, Debug)]
 pub struct StringLiteral {
-  pub type_id: Option<i32>,
+  pub type_id: Option<u64>,
   pub token: Token,
 }
 
@@ -693,7 +693,7 @@ impl StringLiteral {
 
 #[derive(Clone, Debug)]
 pub struct Function {
-  pub type_id: Option<i32>,
+  pub type_id: Option<u64>,
   pub func_token: Token,
   pub param_left_paren: Token,
   pub param_list: ParameterList,
@@ -743,7 +743,7 @@ impl Function {
 
 #[derive(Clone, Debug)]
 pub struct Tuple {
-  pub type_id: Option<i32>,
+  pub type_id: Option<u64>,
   pub left_paren: Token,
   pub contents: Vec<TupleEntry>,
   pub right_paren: Token,
@@ -779,7 +779,7 @@ impl TupleEntry {
 
 #[derive(Clone, Debug)]
 pub struct ArrayLiteral {
-  pub type_id: Option<i32>,
+  pub type_id: Option<u64>,
   pub left_square: Token,
   pub args: Vec<Box<Expression>>,
   pub right_square: Token,
@@ -804,7 +804,7 @@ pub enum Var {
 
 #[derive(Clone, Debug)]
 pub struct TypeVar {
-  pub type_id: Option<i32>,
+  pub type_id: Option<u64>,
   pub var_name: Token,
   pub colon: Token,
   pub var_type: Box<Type>,
@@ -823,7 +823,7 @@ impl TypeVar {
 
 #[derive(Clone, Debug)]
 pub struct UntypedVar {
-  pub type_id: Option<i32>,
+  pub type_id: Option<u64>,
   pub id: Token,
 }
 
@@ -1018,7 +1018,7 @@ impl VarType {
 
 #[derive(Clone, Debug)]
 pub struct ParameterList {
-  pub type_id: Option<i32>,
+  pub type_id: Option<u64>,
   pub params: Vec<Parameter>,
 }
 
@@ -1033,7 +1033,7 @@ impl ParameterList {
 
 #[derive(Clone, Debug)]
 pub struct Parameter {
-  pub type_id: Option<i32>,
+  pub type_id: Option<u64>,
   pub type_var: TypeVar,
 }
 
@@ -1048,7 +1048,7 @@ impl Parameter {
 
 #[derive(Clone, Debug)]
 pub struct ReturnList {
-  pub type_id: Option<i32>,
+  pub type_id: Option<u64>,
   pub returns: Vec<ReturnEntry>,
 }
 
@@ -1063,7 +1063,7 @@ impl ReturnList {
 
 #[derive(Clone, Debug)]
 pub struct ReturnEntry {
-  pub type_id: Option<i32>,
+  pub type_id: Option<u64>,
   pub type_var: TypeVar,
   pub assignment: Option<Token>,
   pub expression: Option<Box<Expression>>,
