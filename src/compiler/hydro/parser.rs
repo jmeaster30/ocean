@@ -36,6 +36,13 @@ fn parse_instructions(
         (inst, index) = parse_assignment(&tokens, index);
         instructions_list.push(inst);
       }
+      HydroTokenType::Type => match current_token.lexeme.as_str() {
+        "func" => {
+          (inst, index) = parse_function(&tokens, index);
+          instructions_list.push(inst);
+        }
+        _ => panic!("{:?}", current_token),
+      },
       HydroTokenType::Keyword => match current_token.lexeme.as_str() {
         "if" => {
           (inst, index) = parse_if(&tokens, index);
@@ -55,10 +62,6 @@ fn parse_instructions(
         }
         "continue" => {
           (inst, index) = parse_continue(&tokens, index);
-          instructions_list.push(inst);
-        }
-        "func" => {
-          (inst, index) = parse_function(&tokens, index);
           instructions_list.push(inst);
         }
         "type" => {
@@ -173,7 +176,7 @@ fn parse_operation(tokens: &Vec<HydroToken>, token_index: usize) -> (Instruction
           (primary, index) = parse_primary(tokens, index);
           args.push(primary);
         }
-        HydroTokenType::Newline | HydroTokenType::LCurly => break,
+        HydroTokenType::Newline | HydroTokenType::LCurly | HydroTokenType::EndOfInput => break,
         _ => panic!("{:?}", tokens[index]),
       }
     }

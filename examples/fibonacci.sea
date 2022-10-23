@@ -1,4 +1,4 @@
-let fib = func (input: i64) -> (result: i64):{
+func fib (input: i64) -> (result: i64):{
   if input == 0 {
     result = 0
   } else {
@@ -6,5 +6,7 @@ let fib = func (input: i64) -> (result: i64):{
   }
 }
 
-println(9.fib)
-println(fib(10))
+#println(9.fib)
+#println(fib(10))
+
+let result = fib(10)

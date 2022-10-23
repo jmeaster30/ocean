@@ -81,6 +81,13 @@ impl CompilationUnit {
           _ => false,
         }
       }),
+      (hydro_semantic_pass, |pass| {
+        println!("hydro semantic check");
+        match pass {
+          Pass::HydroSemanticCheck(insts, _, errors) => errors.is_empty(),
+          _ => false,
+        }
+      }),
     ];
 
     let mut pass_index = 0;
@@ -155,7 +162,12 @@ impl CompilationUnit {
   pub fn print_errors(&self) {
     for pass in &self.passes {
       match pass {
-        Pass::Lexer(_, errors) | Pass::Parser(_, errors) | Pass::SemanticCheck(_, _, errors) => {
+        Pass::Lexer(_, errors)
+        | Pass::Parser(_, errors)
+        | Pass::SemanticCheck(_, _, errors)
+        | Pass::HydroLexer(_, errors)
+        | Pass::HydroParser(_, errors)
+        | Pass::HydroSemanticCheck(_, _, errors) => {
           for error in errors {
             display_error(self, &error)
           }

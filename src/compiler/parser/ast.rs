@@ -695,6 +695,7 @@ impl StringLiteral {
 pub struct Function {
   pub type_id: Option<u64>,
   pub func_token: Token,
+  pub optional_name_token: Option<Token>,
   pub param_left_paren: Token,
   pub param_list: ParameterList,
   pub param_right_paren: Token,
@@ -711,6 +712,7 @@ pub struct Function {
 impl Function {
   pub fn new(
     func_token: Token,
+    optional_name_token: Option<Token>,
     param_left_paren: Token,
     param_list: ParameterList,
     param_right_paren: Token,
@@ -726,6 +728,7 @@ impl Function {
     Self {
       type_id: None,
       func_token,
+      optional_name_token,
       param_left_paren,
       param_list,
       param_right_paren,

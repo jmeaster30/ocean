@@ -55,7 +55,7 @@ impl fmt::Display for HydroToken {
   }
 }
 
-pub fn hydro_lex(input: String) -> (Vec<HydroToken>, Vec<HydroError>) {
+pub fn hydro_lex(input: String) -> (Vec<HydroToken>, Vec<OceanError>) {
   let input_length = input.len();
   let input_chars: Vec<_> = input.chars().collect(); // I understand both chars and this collect is not great but I am learning :)
   let mut lexeme = String::new(); //we probably don't need this here :/
@@ -84,7 +84,7 @@ pub fn hydro_lex(input: String) -> (Vec<HydroToken>, Vec<HydroError>) {
         //check against every other thing it could be
         match lexeme.as_str() {
           "i8" | "i16" | "i32" | "i64" | "f32" | "f64" | "u8" | "u16" | "u32" | "u64"
-          | "string" | "auto" | "bool" | "void" | "ref" => {
+          | "string" | "auto" | "bool" | "void" | "ref" | "func" => {
             tokens.push(HydroToken::new(
               HydroTokenType::Type,
               lexeme.clone(),
@@ -92,7 +92,7 @@ pub fn hydro_lex(input: String) -> (Vec<HydroToken>, Vec<HydroError>) {
               index,
             ));
           }
-          "if" | "else" | "return" | "continue" | "while" | "break" | "func" | "type" => {
+          "if" | "else" | "return" | "continue" | "while" | "break" | "type" => {
             tokens.push(HydroToken::new(
               HydroTokenType::Keyword,
               lexeme.clone(),
@@ -150,9 +150,9 @@ pub fn hydro_lex(input: String) -> (Vec<HydroToken>, Vec<HydroError>) {
         }
 
         if lexeme.as_str() == "-" {
-          errors.push(HydroError::LexError(
+          errors.push(OceanError::LexError(
             Severity::Error,
-            HydroToken::new(HydroTokenType::Error, c.to_string(), start_index, index),
+            (start_index, index),
             "Unrecognized token".to_string(),
           ));
         } else {
@@ -233,14 +233,9 @@ pub fn hydro_lex(input: String) -> (Vec<HydroToken>, Vec<HydroError>) {
         }
 
         if !found_end {
-          errors.push(HydroError::LexError(
+          errors.push(OceanError::LexError(
             Severity::Error,
-            HydroToken::new(
-              HydroTokenType::StringLiteral,
-              lexeme.clone(),
-              start_index,
-              index,
-            ),
+            (start_index, index),
             "Unending string".to_string(),
           ))
         } else if delim == '"' {
@@ -286,9 +281,9 @@ pub fn hydro_lex(input: String) -> (Vec<HydroToken>, Vec<HydroError>) {
           if found_end {
             //tokens.push(Token::new(TokenType::Comment, lexeme.clone(), start_index, index));
           } else {
-            errors.push(HydroError::LexError(
+            errors.push(OceanError::LexError(
               Severity::Error,
-              HydroToken::new(HydroTokenType::Error, c.to_string(), start_index, index),
+              (start_index, index),
               "Unended comment block".to_string(),
             ));
           }
@@ -374,9 +369,9 @@ pub fn hydro_lex(input: String) -> (Vec<HydroToken>, Vec<HydroError>) {
         index,
       )),
       ' ' | '\t' | '\r' => {}
-      _ => errors.push(HydroError::LexError(
+      _ => errors.push(OceanError::LexError(
         Severity::Error,
-        HydroToken::new(HydroTokenType::Error, c.to_string(), start_index, index),
+        (start_index, index),
         "Unrecognized token".to_string(),
       )),
     }

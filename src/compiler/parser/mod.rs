@@ -140,7 +140,8 @@ pub enum AstState {
   TupleEntryUnnamedEnd,
   TupleEnd,
 
-  FunctionPrimary,
+  FunctionStart,
+  FunctionOptionalName,
   FunctionParameters,
   FunctionArrow,
   FunctionReturns,
@@ -267,6 +268,13 @@ pub fn parse(
           state_stack.push(AstState::IfStmt);
         } else {
           panic!("Unknown keyword {} :(", current_token);
+        }
+      }
+      (Some(AstState::StmtList), Some(_), TokenType::Type) => {
+        if current_token.lexeme == "func" {
+          state_stack.push(AstState::ExprStmt);
+        } else {
+          state_stack.push(AstState::Error);
         }
       }
       (Some(AstState::StmtList), Some(_), TokenType::LSquare)
@@ -2413,7 +2421,7 @@ pub fn parse(
         state_stack.pop();
       }
       (Some(AstState::Primary), _, TokenType::Type) => {
-        state_stack.goto(AstState::FunctionPrimary);
+        state_stack.goto(AstState::FunctionStart);
       }
       (Some(AstState::Primary), _, TokenType::LParen) => {
         state_stack.goto(AstState::SubExprTuple);
@@ -2641,23 +2649,37 @@ pub fn parse(
         }
       }
 
-      (Some(AstState::FunctionPrimary), _, TokenType::Type) => {
+      (Some(AstState::FunctionStart), _, TokenType::Type) => {
         if current_token.lexeme == "func" {
           ast_stack.push(AstStackSymbol::Token(current_token.clone()));
           token_index += 1;
           token_index = consume_optional_newline(tokens, token_index);
+          state_stack.goto(AstState::FunctionOptionalName);
         } else {
           state_stack.push(AstState::Error);
         }
       }
-      (Some(AstState::FunctionPrimary), Some(AstStackSymbol::Token(_)), TokenType::LParen) => {
+      (Some(AstState::FunctionOptionalName), Some(AstStackSymbol::Token(_)), TokenType::Identifier) => {
+        ast_stack.push(AstStackSymbol::OptToken(Some(current_token.clone())));
+        token_index += 1;
+        token_index = consume_optional_newline(tokens, token_index);
+      }
+      (Some(AstState::FunctionOptionalName), Some(AstStackSymbol::Token(_)), TokenType::LParen) => {
+        ast_stack.push(AstStackSymbol::OptToken(None));
         ast_stack.push(AstStackSymbol::Token(current_token.clone()));
         token_index += 1;
         token_index = consume_optional_newline(tokens, token_index);
         ast_stack.push(AstStackSymbol::ParamList(Vec::new()));
         state_stack.push(AstState::FunctionParameters);
       }
-      (Some(AstState::FunctionPrimary), Some(AstStackSymbol::ParamList(_)), TokenType::RParen) => {
+      (Some(AstState::FunctionOptionalName), Some(AstStackSymbol::OptToken(_)), TokenType::LParen) => {
+        ast_stack.push(AstStackSymbol::Token(current_token.clone()));
+        token_index += 1;
+        token_index = consume_optional_newline(tokens, token_index);
+        ast_stack.push(AstStackSymbol::ParamList(Vec::new()));
+        state_stack.push(AstState::FunctionParameters);
+      }
+      (Some(AstState::FunctionOptionalName), Some(AstStackSymbol::ParamList(_)), TokenType::RParen) => {
         ast_stack.push(AstStackSymbol::Token(current_token.clone()));
         token_index += 1;
         token_index = consume_optional_newline(tokens, token_index);
@@ -2844,9 +2866,11 @@ pub fn parse(
         let param_rparen_sym = ast_stack.pop_panic();
         let param_list_sym = ast_stack.pop_panic();
         let param_lparen_sym = ast_stack.pop_panic();
+        let opt_name_sym = ast_stack.pop_panic();
         let func_sym = ast_stack.pop_panic();
         match (
           func_sym,
+          opt_name_sym,
           param_lparen_sym,
           param_list_sym,
           param_rparen_sym,
@@ -2857,6 +2881,7 @@ pub fn parse(
         ) {
           (
             Some(AstStackSymbol::Token(func)),
+            Some(AstStackSymbol::OptToken(optional_name_token)),
             Some(AstStackSymbol::Token(param_lparen)),
             Some(AstStackSymbol::ParamList(parameter_list)),
             Some(AstStackSymbol::Token(param_rparen)),
@@ -2868,6 +2893,7 @@ pub fn parse(
             ast_stack.push(AstStackSymbol::Expr(Expression::Literal(
               Literal::Function(Function::new(
                 func,
+                optional_name_token,
                 param_lparen,
                 ParameterList::new(parameter_list),
                 param_rparen,
@@ -2908,9 +2934,11 @@ pub fn parse(
         let param_rparen_sym = ast_stack.pop_panic();
         let param_list_sym = ast_stack.pop_panic();
         let param_lparen_sym = ast_stack.pop_panic();
+        let optional_name_sym = ast_stack.pop_panic();
         let func_sym = ast_stack.pop_panic();
         match (
           func_sym,
+          optional_name_sym,
           param_lparen_sym,
           param_list_sym,
           param_rparen_sym,
@@ -2923,6 +2951,7 @@ pub fn parse(
         ) {
           (
             Some(AstStackSymbol::Token(func)),
+            Some(AstStackSymbol::OptToken(optional_name_token)),
             Some(AstStackSymbol::Token(param_lparen)),
             Some(AstStackSymbol::ParamList(parameter_list)),
             Some(AstStackSymbol::Token(param_rparen)),
@@ -2936,6 +2965,7 @@ pub fn parse(
             ast_stack.push(AstStackSymbol::Expr(Expression::Literal(
               Literal::Function(Function::new(
                 func,
+                optional_name_token,
                 param_lparen,
                 ParameterList::new(parameter_list),
                 param_rparen,

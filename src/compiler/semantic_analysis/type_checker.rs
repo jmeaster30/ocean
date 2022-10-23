@@ -8,8 +8,8 @@ use crate::compiler::parser::ast::*;
 use crate::compiler::{errors::OceanError, parser::span::Spanned};
 
 use super::symboltable::{
-  get_base_type_id, get_base_type_symbol_from_lexeme, ArraySymbol, AssignableSymbol, CustomSymbol,
-  FunctionSymbol, OceanType, Symbol, SymbolTable, SymbolTableVarEntry, TupleSymbol, AutoSymbol,
+  get_base_type_id, get_base_type_symbol_from_lexeme, ArraySymbol, AssignableSymbol, AutoSymbol,
+  CustomSymbol, FunctionSymbol, OceanType, Symbol, SymbolTable, SymbolTableVarEntry, TupleSymbol,
 };
 
 pub fn type_checker(program: &mut Program) -> (SymbolTable, Vec<OceanError>) {
@@ -87,6 +87,15 @@ pub fn type_checker_pack_dec(
     }
 
     let pack_mem_type_id = get_type_symbol(&pack_mem.type_var.var_type, symbol_table, errors);
+    if symbol_table.is_function(pack_mem_type_id) {
+      errors.push(OceanError::SemanticError(
+        Severity::Error,
+        pack_mem.get_span(),
+        "Member variable of a pack cannot be a function type".to_string(), // TODO rethink this potentially
+      ));
+      continue;
+    }
+
     // compare to expression
     match &mut pack_mem.expression {
       Some(expr) => {
@@ -290,13 +299,15 @@ pub fn get_type_symbol(
       let unk_type_id = symbol_table.add_symbol(Symbol::Unknown);
       let auto_symbol = match &auto_type.auto_name {
         Some(auto_name_token) => AutoSymbol::new(Some(auto_name_token.lexeme.clone()), unk_type_id),
-        None => AutoSymbol::new(None, unk_type_id)
+        None => AutoSymbol::new(None, unk_type_id),
       };
-      
+
       // add type info to the symbol table
       let auto_type_id = symbol_table.add_symbol(Symbol::Auto(auto_symbol));
       match &auto_type.auto_name {
-        Some(auto_name_token) => symbol_table.add_type(auto_name_token.lexeme.clone(), auto_type_id),
+        Some(auto_name_token) => {
+          symbol_table.add_type(auto_name_token.lexeme.clone(), auto_type_id)
+        }
         None => {}
       };
 
@@ -308,7 +319,9 @@ pub fn get_type_symbol(
       panic!("func")
     }
     Type::Base(base_type) => match &base_type.base_token.token_type {
-      TokenType::Type => get_base_type_id(get_base_type_symbol_from_lexeme(&base_type.base_token.lexeme)),
+      TokenType::Type => get_base_type_id(get_base_type_symbol_from_lexeme(
+        &base_type.base_token.lexeme,
+      )),
       TokenType::Identifier => match symbol_table.find_type(&base_type.base_token.lexeme) {
         Some(found_type_id) => found_type_id,
         None => {
@@ -637,7 +650,7 @@ pub fn get_literal_type(
               symbol_table.get_symbol(arg_id),
               symbol_table.get_symbol(storage_id)
             ),
-          ))
+          )),
         }
       }
       let id = symbol_table.add_symbol(Symbol::Array(ArraySymbol::new(
@@ -666,8 +679,7 @@ pub fn get_literal_type(
 
       // add params to sub scope and func symbol
       for param in &mut function_literal.param_list.params {
-        let param_type_id =
-          get_type_symbol(param.type_var.var_type.as_ref(), symbol_table, errors);
+        let param_type_id = get_type_symbol(param.type_var.var_type.as_ref(), symbol_table, errors);
         func_symbol.add_parameter(param.type_var.var_name.lexeme.clone(), param_type_id);
         sub_scope.add_var(
           param.type_var.var_name.lexeme.clone(),
@@ -689,10 +701,17 @@ pub fn get_literal_type(
       }
 
       // add func symbol to both sub_scope and main scope
-      let parent_func_id = symbol_table.add_symbol(Symbol::Function(func_symbol));
-      // TODO I don't know how to do recursion because we don't have the function name here :(
+      let parent_func_id = symbol_table.add_symbol(Symbol::Function(func_symbol.clone()));
       function_literal.type_id = Some(parent_func_id);
-      // type check body
+      
+      match &function_literal.optional_name_token {
+        Some(name_token) => {
+          symbol_table.add_var(name_token.lexeme.clone(), (name_token.start, name_token.end), parent_func_id);
+          let sub_func_id = sub_scope.add_symbol(Symbol::Function(func_symbol));
+          sub_scope.add_var(name_token.lexeme.clone(), (name_token.start, name_token.end), sub_func_id);
+        }
+        None => {}
+      };
 
       for stmt in &mut function_literal.function_body {
         type_checker_stmt(stmt, &mut sub_scope, errors);

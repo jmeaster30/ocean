@@ -176,7 +176,7 @@ pub fn lex(input: String) -> (Vec<Token>, Vec<OceanError>) {
           if !found_end {
             errors.push(OceanError::LexError(
               Severity::Error,
-              Token::new(TokenType::Macro, lexeme.clone(), start_index, index),
+              (start_index, index),
               "Unending block macro".to_string(),
             ));
           } else {
@@ -263,7 +263,7 @@ pub fn lex(input: String) -> (Vec<Token>, Vec<OceanError>) {
         if !found_end {
           errors.push(OceanError::LexError(
             Severity::Error,
-            Token::new(TokenType::String, lexeme.clone(), start_index, index),
+            (start_index, index),
             "Unending string".to_string(),
           ))
         } else if delim == '`' {
@@ -309,7 +309,7 @@ pub fn lex(input: String) -> (Vec<Token>, Vec<OceanError>) {
           } else {
             errors.push(OceanError::LexError(
               Severity::Error,
-              Token::new(TokenType::Error, c.to_string(), start_index, index),
+              (start_index, index),
               "Unended comment block".to_string(),
             ));
           }
@@ -852,7 +852,7 @@ pub fn lex(input: String) -> (Vec<Token>, Vec<OceanError>) {
       ' ' | '\t' | '\r' => {}
       _ => errors.push(OceanError::LexError(
         Severity::Error,
-        Token::new(TokenType::Error, c.to_string(), start_index, index),
+        (start_index, index),
         "Unrecognized token".to_string(),
       )),
     }

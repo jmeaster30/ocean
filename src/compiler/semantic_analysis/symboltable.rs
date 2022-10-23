@@ -134,12 +134,15 @@ impl ArraySymbol {
 #[derive(Clone, Debug)]
 pub struct AutoSymbol {
   pub name: Option<String>,
-  pub resolved_type: u64
+  pub resolved_type: u64,
 }
 
 impl AutoSymbol {
   pub fn new(name: Option<String>, resolved_type: u64) -> Self {
-    Self { name, resolved_type }
+    Self {
+      name,
+      resolved_type,
+    }
   }
 }
 
@@ -461,46 +464,42 @@ impl SymbolTable {
       (Some(_), Some(Symbol::Assignable(assignable_symbol))) => {
         self.match_types(a, assignable_symbol.base_type)
       }
-      (Some(Symbol::Cache(type_id)), Some(_)) => {
-        self.match_types(type_id, b)
-      }
-      (Some(_), Some(Symbol::Cache(type_id))) => {
-        self.match_types(a, type_id)
-      }
-      (Some(Symbol::Auto(auto_symbol)), Some(_)) => {
-        self.match_types(auto_symbol.resolved_type, b)
-      }
-      (Some(_), Some(Symbol::Auto(auto_symbol))) => {
-        self.match_types(a, auto_symbol.resolved_type)
-      }
+      (Some(Symbol::Cache(type_id)), Some(_)) => self.match_types(type_id, b),
+      (Some(_), Some(Symbol::Cache(type_id))) => self.match_types(a, type_id),
+      (Some(Symbol::Auto(auto_symbol)), Some(_)) => self.match_types(auto_symbol.resolved_type, b),
+      (Some(_), Some(Symbol::Auto(auto_symbol))) => self.match_types(a, auto_symbol.resolved_type),
       (Some(Symbol::Custom(custom_symbol)), Some(Symbol::Tuple(tuple_symbol))) => {
         if custom_symbol.members.len() != tuple_symbol.members.len() {
-          return None
+          return None;
         }
 
         for tuple_member in tuple_symbol.members {
           match custom_symbol.members.get(&tuple_member.0) {
-            Some(custom_member_type_id) => match self.match_types(*custom_member_type_id, tuple_member.1) {
-              Some(_) => {}
-              None => return None
+            Some(custom_member_type_id) => {
+              match self.match_types(*custom_member_type_id, tuple_member.1) {
+                Some(_) => {}
+                None => return None,
+              }
             }
-            None => return None
+            None => return None,
           }
         }
         Some(a)
       }
       (Some(Symbol::Tuple(tuple_symbol)), Some(Symbol::Custom(custom_symbol))) => {
         if custom_symbol.members.len() != tuple_symbol.members.len() {
-          return None
+          return None;
         }
 
         for tuple_member in tuple_symbol.members {
           match custom_symbol.members.get(&tuple_member.0) {
-            Some(custom_member_type_id) => match self.match_types(*custom_member_type_id, tuple_member.1) {
-              Some(_) => {}
-              None => return None
+            Some(custom_member_type_id) => {
+              match self.match_types(*custom_member_type_id, tuple_member.1) {
+                Some(_) => {}
+                None => return None,
+              }
             }
-            None => return None
+            None => return None,
           }
         }
         Some(a) //? should this return the custom type or is the tuple type better??
@@ -618,12 +617,10 @@ impl SymbolTable {
       Some(Symbol::Assignable(assignable_symbol)) => {
         self.get_member_type(assignable_symbol.base_type, member_name)
       }
-      Some(Symbol::Custom(custom_symbol)) => {
-        match custom_symbol.members.get(&member_name) {
-          Some(member) => Ok(*member),
-          None => Err(())
-        }
-      }
+      Some(Symbol::Custom(custom_symbol)) => match custom_symbol.members.get(&member_name) {
+        Some(member) => Ok(*member),
+        None => Err(()),
+      },
       _ => Err(()),
     }
   }
@@ -635,6 +632,9 @@ impl SymbolTable {
   ) -> Result<(), (bool, usize)> {
     let resolved_symbol = self.get_resolved_symbol(target_type_id);
     match resolved_symbol {
+      Some(Symbol::Assignable(assignable_symbol)) => {
+        self.check_function_parameter_lengths(assignable_symbol.base_type, param_length)
+      }
       Some(Symbol::Function(function_symbol)) => {
         if function_symbol.parameters.len() == param_length {
           Ok(())
@@ -653,6 +653,9 @@ impl SymbolTable {
   ) -> Result<u64, Vec<(usize, String, u64)>> {
     let resolved_symbol = self.get_resolved_symbol(target_type_id);
     match resolved_symbol {
+      Some(Symbol::Assignable(assignable_symbol)) => {
+        self.get_function_return_types(assignable_symbol.base_type, arguments)
+      }
       Some(Symbol::Function(function_symbol)) => {
         let mut errors = Vec::new();
         for i in 0..function_symbol.parameters.len() {
@@ -693,6 +696,9 @@ impl SymbolTable {
   pub fn get_function_params(&self, target_type_id: u64) -> Vec<(String, u64)> {
     let function_symbol = self.get_resolved_symbol(target_type_id);
     match function_symbol {
+      Some(Symbol::Assignable(assignable_symbol)) => {
+        self.get_function_params(assignable_symbol.base_type)
+      }
       Some(Symbol::Function(function)) => function.parameters,
       _ => Vec::new(),
     }
@@ -701,8 +707,22 @@ impl SymbolTable {
   pub fn get_function_returns(&self, target_type_id: u64) -> Vec<(String, u64)> {
     let function_symbol = self.get_resolved_symbol(target_type_id);
     match function_symbol {
+      Some(Symbol::Assignable(assignable_symbol)) => {
+        self.get_function_returns(assignable_symbol.base_type)
+      }
       Some(Symbol::Function(function)) => function.returns,
       _ => Vec::new(),
+    }
+  }
+
+  pub fn is_function(&self, target_type_id: u64) -> bool {
+    let function_symbol = self.get_resolved_symbol(target_type_id);
+    match function_symbol {
+      Some(Symbol::Assignable(assignable_symbol)) => {
+        self.is_function(assignable_symbol.base_type)
+      }
+      Some(Symbol::Function(_)) => true,
+      _ => false,
     }
   }
 

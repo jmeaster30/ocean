@@ -1,4 +1,5 @@
 use super::errors::*;
+use super::hydro::typechecker::hydro_semantic_check;
 use super::lexer::*;
 use super::parser::ast::*;
 use super::parser::parse;
@@ -15,8 +16,9 @@ pub enum Pass {
   Parser(Option<Program>, Vec<OceanError>),
   SemanticCheck(Program, Option<SymbolTable>, Vec<OceanError>),
 
-  HydroLexer(Vec<HydroToken>, Vec<HydroError>),
-  HydroParser(Vec<Instruction>, Vec<HydroError>),
+  HydroLexer(Vec<HydroToken>, Vec<OceanError>),
+  HydroParser(Vec<Instruction>, Vec<OceanError>),
+  HydroSemanticCheck(Vec<Instruction>, Option<SymbolTable>, Vec<OceanError>),
   Check(String),
 }
 
@@ -66,20 +68,22 @@ pub fn hydro_parser_pass(comp_unit: &CompilationUnit) -> Pass {
         let instructions = hydro_parse(&token_stack);
         Pass::HydroParser(instructions, Vec::new())
       }
-      _ => Pass::HydroParser(
-        Vec::new(),
-        vec![HydroError::Base(
-          Severity::Error,
-          "Parser pass must immediately follow the lexer pass".to_string(),
-        )],
-      ),
+      _ => panic!(),
     },
-    None => Pass::HydroParser(
-      Vec::new(),
-      vec![HydroError::Base(
-        Severity::Error,
-        "Parser pass must immediately follow the lexer pass".to_string(),
-      )],
-    ),
+    None => panic!(),
+  }
+}
+
+pub fn hydro_semantic_pass(comp_unit: &CompilationUnit) -> Pass {
+  let last_pass = comp_unit.passes.last();
+  match last_pass {
+    Some(pass) => match pass {
+      Pass::HydroParser(instructions, _) => {
+        let (typed_instructions, symbol_table, type_errors) = hydro_semantic_check(&instructions);
+        Pass::HydroSemanticCheck(typed_instructions, symbol_table, type_errors)
+      }
+      _ => panic!(),
+    },
+    None => panic!(),
   }
 }
