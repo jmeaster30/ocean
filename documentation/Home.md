@@ -4,7 +4,7 @@ This is the language documentation for the OCEAN programming language.
 
 ## Compiler Passes Flow
 
-::: mermaid
+```mermaid
   graph TD;
     Z[Compile Ocean Code]-->A;
     Y[Compile Hydro Code]-->E;
@@ -36,7 +36,7 @@ This is the language documentation for the OCEAN programming language.
     L-->|CLR| P[CLR Bytecode Gen]
 
     M-->Q[Custom Assembler - Name TBD]
-:::
+```
 
 Much of this flow is unimplemented and there will likely be more steps in here. I am kind of thinking it would be beneficial to have more optimize steps throughout the flow since we will have more useful info after certain steps but I will be working on the optimization steps last.
 
