@@ -153,8 +153,10 @@ pub fn lex(input: String) -> (Vec<Token>, Vec<OceanError>) {
         lexeme.clear();
       }
       '@' => {
+        lexeme.push_str(&c.to_string());
         index += 1;
         if index < input_length && input_chars[index] == '@' {
+          lexeme.push_str(&input_chars[index].to_string());
           index += 1;
           let mut found_end = false;
           while index < input_length {
@@ -163,6 +165,8 @@ pub fn lex(input: String) -> (Vec<Token>, Vec<OceanError>) {
               '@' => {
                 index += 1;
                 if index < input_length && input_chars[index] == '@' {
+                  lexeme.push_str(&input_chars[index - 1].to_string());
+                  lexeme.push_str(&input_chars[index].to_string());
                   found_end = true;
                   break;
                 }

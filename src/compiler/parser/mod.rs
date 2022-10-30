@@ -17,6 +17,7 @@ use ast::*;
 use helpers::*;
 
 use super::errors::Severity;
+use super::macros::parse_macro_contents;
 
 #[derive(Clone, Debug)]
 pub enum AstStackSymbol {
@@ -213,8 +214,11 @@ pub fn parse(
         state_stack.pop();
       }
       (Some(AstState::StmtList), Some(_), TokenType::Macro) => {
+        let (macro_contents, mut macro_errors) = parse_macro_contents(current_token.clone());
+        errors.append(&mut macro_errors);
         ast_stack.push(AstStackSymbol::Stmt(Statement::Macro(MacroStatement::new(
           current_token.clone(),
+          macro_contents,
         ))));
         token_index += 1;
         state_stack.push(AstState::StmtFinalize);

@@ -1,5 +1,7 @@
 use crate::compiler::errors::Severity;
+use crate::compiler::hydro::instruction::Instruction;
 use crate::compiler::lexer::Token;
+use crate::compiler::macros::MacroContents;
 
 #[derive(Clone, Debug)]
 pub struct Program {
@@ -36,13 +38,15 @@ pub enum Statement {
 pub struct MacroStatement {
   pub type_id: Option<u64>,
   pub token: Token,
+  pub macro_contents: MacroContents
 }
 
 impl MacroStatement {
-  pub fn new(token: Token) -> Self {
+  pub fn new(token: Token, macro_contents: MacroContents) -> Self {
     Self {
       type_id: None,
       token,
+      macro_contents
     }
   }
 }

@@ -37,6 +37,7 @@ impl Severity {
 pub enum OceanError {
   Base(Severity, String),
   LexError(Severity, (usize, usize), String),
+  MacroError(Severity, (usize, usize), String),
   ParseError(ErrorStatement),
   SemanticError(Severity, (usize, usize), String),
 }
@@ -46,7 +47,8 @@ pub fn display_error(compilation_unit: &CompilationUnit, error: &OceanError) {
     OceanError::Base(severity, message) => {
       display_message(severity, message.to_string(), 0, 0, compilation_unit)
     }
-    OceanError::LexError(severity, span, message) => display_message(
+    OceanError::LexError(severity, span, message) 
+    | OceanError::MacroError(severity, span, message) => display_message(
       severity,
       message.to_string(),
       span.0,

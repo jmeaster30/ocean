@@ -8,6 +8,7 @@
 
 pub mod errors;
 pub mod hydro;
+pub mod macros;
 pub mod lexer;
 pub mod parser;
 pub mod passes;

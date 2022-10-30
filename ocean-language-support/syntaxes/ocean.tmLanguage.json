@@ -56,12 +56,14 @@
 		"block_macro": {
 			"name": "meta.preprocessor.ocean",
 			"begin": "@@",
-			"end": "@@"
+			"end": "@@",
+			"contentName": "meta.embedded.block.hydro"
 		},
 		"macro": {
 			"patterns": [{
 				"name": "meta.preprocessor.ocean",
-				"match": "@.*$"
+				"match": "@.*$",
+				"contentName": "meta.embedded.inline.hydro"
 			}]
 		},
 		"block_comment": {

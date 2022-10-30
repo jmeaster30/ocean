@@ -31,7 +31,7 @@ pub fn type_checker_stmt(
 ) {
   match statement {
     Statement::Error(x) => { /* I don't think I need to do anything here */ }
-    Statement::Macro(x) => todo!(),
+    Statement::Macro(x) => { println!("{:#?}", x.macro_contents) },
     Statement::Continue(x) => {}
     Statement::Break(x) => {}
     Statement::Return(x) => {}

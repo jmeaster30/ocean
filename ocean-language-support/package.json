@@ -11,24 +11,29 @@
     ],
     "contributes": {
         "languages": [{
-            "id": "ocean",
-            "aliases": ["ocean", "sea"],
-            "extensions": [".sea", ".ocean"],
-            "configuration": "./ocean-language-configuration.json"
-        }, {
             "id": "hydro",
             "aliases": ["hydro", "h2o"],
             "extensions": [".h2o", ".hydro"],
             "configuration": "./hydro-language-configuration.json"
+        }, {
+            "id": "ocean",
+            "aliases": ["ocean", "sea"],
+            "extensions": [".sea", ".ocean"],
+            "configuration": "./ocean-language-configuration.json"
         }],
         "grammars": [{
-            "language": "ocean",
-            "scopeName": "source.ocean",
-            "path": "./syntaxes/ocean.tmLanguage.json"
-        }, {
             "language": "hydro",
             "scopeName": "source.hydro",
-            "path": "./syntaxes/hydro.tmLanguage.json"
+            "path": "./syntaxes/hydro.tmLanguage.json",
+            "injectTo": ["source.ocean"]
+        }, {
+            "language": "ocean",
+            "scopeName": "source.ocean",
+            "path": "./syntaxes/ocean.tmLanguage.json",
+            "embeddedLanguages": {
+                "meta.embedded.inline.hydro": "source.hydro",
+                "meta.embedded.block.hydro": "source.hydro"
+            }
         }]
     },
     "scripts": {
