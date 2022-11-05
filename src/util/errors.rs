@@ -1,7 +1,5 @@
-use super::hydro::lexer::HydroToken;
-use super::lexer::Token;
-use super::parser::ast::ErrorStatement;
-use super::parser::span::Spanned;
+use crate::compiler::parser::ast::ErrorStatement;
+use crate::compiler::parser::span::Spanned;
 use crate::compiler::CompilationUnit;
 
 /*
@@ -34,6 +32,7 @@ impl Severity {
   }
 }
 
+#[derive(Debug, Clone)]
 pub enum OceanError {
   Base(Severity, String),
   LexError(Severity, (usize, usize), String),
@@ -47,7 +46,7 @@ pub fn display_error(compilation_unit: &CompilationUnit, error: &OceanError) {
     OceanError::Base(severity, message) => {
       display_message(severity, message.to_string(), 0, 0, compilation_unit)
     }
-    OceanError::LexError(severity, span, message) 
+    OceanError::LexError(severity, span, message)
     | OceanError::MacroError(severity, span, message) => display_message(
       severity,
       message.to_string(),

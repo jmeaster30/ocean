@@ -1,7 +1,9 @@
 mod compiler;
-use compiler::{hydro_compile, ocean_compile};
-
+mod hydro;
 mod util;
+
+use compiler::compile;
+use hydro::pipeline::HydroCompilationUnit;
 use util::argsparser::{ArgsParser, Argument};
 
 use std::env;
@@ -43,7 +45,7 @@ fn main() -> std::io::Result<()> {
             Ok(mut file) => {
               let mut contents = String::new();
               file.read_to_string(&mut contents)?;
-              ocean_compile(source.to_string(), contents.to_string());
+              compile(source.to_string(), contents.to_string());
             }
             Err(err) => {
               println!("Unable to open file '{}' :(", source);
@@ -58,7 +60,7 @@ fn main() -> std::io::Result<()> {
             Ok(mut file) => {
               let mut contents = String::new();
               file.read_to_string(&mut contents)?;
-              hydro_compile(source.to_string(), contents.to_string());
+              HydroCompilationUnit::from_file(source.to_string(), contents.to_string());
             }
             Err(err) => {
               println!("Unable to open file '{}' :(", source);

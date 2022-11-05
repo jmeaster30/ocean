@@ -10,8 +10,8 @@ use self::loop_checker::loop_checker;
 use self::symboltable::SymbolTable;
 use self::type_checker::type_checker;
 
-use super::errors::OceanError;
 use super::parser::ast::*;
+use crate::util::errors::OceanError;
 
 pub mod loop_checker;
 pub mod symboltable;

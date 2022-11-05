@@ -1,4 +1,4 @@
-use super::errors::*;
+use crate::util::errors::*;
 use std::fmt;
 
 #[derive(Clone, Debug, PartialEq)]

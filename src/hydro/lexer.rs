@@ -1,4 +1,4 @@
-use super::super::errors::*;
+use crate::util::errors::{OceanError, Severity};
 use std::fmt;
 
 #[derive(Clone, Debug, PartialEq)]

@@ -2,10 +2,10 @@
 
 use std::cmp::Ordering;
 
-use crate::compiler::errors::*;
 use crate::compiler::lexer::TokenType;
 use crate::compiler::parser::ast::*;
-use crate::compiler::{errors::OceanError, parser::span::Spanned};
+use crate::compiler::parser::span::Spanned;
+use crate::util::errors::*;
 
 use super::symboltable::{
   get_base_type_id, get_base_type_symbol_from_lexeme, ArraySymbol, AssignableSymbol, AutoSymbol,
@@ -31,7 +31,9 @@ pub fn type_checker_stmt(
 ) {
   match statement {
     Statement::Error(x) => { /* I don't think I need to do anything here */ }
-    Statement::Macro(x) => { println!("{:#?}", x.macro_contents) },
+    Statement::Macro(x) => {
+      println!("{:#?}", x.macro_contents)
+    }
     Statement::Continue(x) => {}
     Statement::Break(x) => {}
     Statement::Return(x) => {}
@@ -703,12 +705,20 @@ pub fn get_literal_type(
       // add func symbol to both sub_scope and main scope
       let parent_func_id = symbol_table.add_symbol(Symbol::Function(func_symbol.clone()));
       function_literal.type_id = Some(parent_func_id);
-      
+
       match &function_literal.optional_name_token {
         Some(name_token) => {
-          symbol_table.add_var(name_token.lexeme.clone(), (name_token.start, name_token.end), parent_func_id);
+          symbol_table.add_var(
+            name_token.lexeme.clone(),
+            (name_token.start, name_token.end),
+            parent_func_id,
+          );
           let sub_func_id = sub_scope.add_symbol(Symbol::Function(func_symbol));
-          sub_scope.add_var(name_token.lexeme.clone(), (name_token.start, name_token.end), sub_func_id);
+          sub_scope.add_var(
+            name_token.lexeme.clone(),
+            (name_token.start, name_token.end),
+            sub_func_id,
+          );
         }
         None => {}
       };

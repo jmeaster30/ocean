@@ -718,9 +718,7 @@ impl SymbolTable {
   pub fn is_function(&self, target_type_id: u64) -> bool {
     let function_symbol = self.get_resolved_symbol(target_type_id);
     match function_symbol {
-      Some(Symbol::Assignable(assignable_symbol)) => {
-        self.is_function(assignable_symbol.base_type)
-      }
+      Some(Symbol::Assignable(assignable_symbol)) => self.is_function(assignable_symbol.base_type),
       Some(Symbol::Function(_)) => true,
       _ => false,
     }

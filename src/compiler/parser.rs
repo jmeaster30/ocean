@@ -16,8 +16,8 @@ use crate::compiler::{Token, TokenType};
 use ast::*;
 use helpers::*;
 
-use super::errors::Severity;
 use super::macros::parse_macro_contents;
+use crate::util::errors::Severity;
 
 #[derive(Clone, Debug)]
 pub enum AstStackSymbol {
@@ -2663,7 +2663,11 @@ pub fn parse(
           state_stack.push(AstState::Error);
         }
       }
-      (Some(AstState::FunctionOptionalName), Some(AstStackSymbol::Token(_)), TokenType::Identifier) => {
+      (
+        Some(AstState::FunctionOptionalName),
+        Some(AstStackSymbol::Token(_)),
+        TokenType::Identifier,
+      ) => {
         ast_stack.push(AstStackSymbol::OptToken(Some(current_token.clone())));
         token_index += 1;
         token_index = consume_optional_newline(tokens, token_index);
@@ -2676,14 +2680,22 @@ pub fn parse(
         ast_stack.push(AstStackSymbol::ParamList(Vec::new()));
         state_stack.push(AstState::FunctionParameters);
       }
-      (Some(AstState::FunctionOptionalName), Some(AstStackSymbol::OptToken(_)), TokenType::LParen) => {
+      (
+        Some(AstState::FunctionOptionalName),
+        Some(AstStackSymbol::OptToken(_)),
+        TokenType::LParen,
+      ) => {
         ast_stack.push(AstStackSymbol::Token(current_token.clone()));
         token_index += 1;
         token_index = consume_optional_newline(tokens, token_index);
         ast_stack.push(AstStackSymbol::ParamList(Vec::new()));
         state_stack.push(AstState::FunctionParameters);
       }
-      (Some(AstState::FunctionOptionalName), Some(AstStackSymbol::ParamList(_)), TokenType::RParen) => {
+      (
+        Some(AstState::FunctionOptionalName),
+        Some(AstStackSymbol::ParamList(_)),
+        TokenType::RParen,
+      ) => {
         ast_stack.push(AstStackSymbol::Token(current_token.clone()));
         token_index += 1;
         token_index = consume_optional_newline(tokens, token_index);
