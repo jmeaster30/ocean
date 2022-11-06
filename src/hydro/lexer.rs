@@ -84,7 +84,7 @@ pub fn hydro_lex(input: String) -> (Vec<HydroToken>, Vec<OceanError>) {
         //check against every other thing it could be
         match lexeme.as_str() {
           "i8" | "i16" | "i32" | "i64" | "f32" | "f64" | "u8" | "u16" | "u32" | "u64"
-          | "string" | "auto" | "bool" | "void" | "ref" | "func" => {
+          | "string" | "bool" | "void" | "ref" | "func" => {
             tokens.push(HydroToken::new(
               HydroTokenType::Type,
               lexeme.clone(),

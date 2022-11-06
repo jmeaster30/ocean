@@ -129,7 +129,7 @@ fn parse_operation_or_primary(
       | HydroTokenType::NumberLiteral
       | HydroTokenType::Variable => {
         index += 1;
-        (OperationOrPrimary::Primary(current_token.clone()), index)
+        (OperationOrPrimary::Primary(Primary::new(current_token.clone())), index)
       }
       _ => panic!("{:?}", current_token),
     }
@@ -138,7 +138,7 @@ fn parse_operation_or_primary(
   }
 }
 
-fn parse_primary(tokens: &Vec<HydroToken>, token_index: usize) -> (HydroToken, usize) {
+fn parse_primary(tokens: &Vec<HydroToken>, token_index: usize) -> (Primary, usize) {
   let mut index = token_index;
   if index < tokens.len() {
     let current_token = tokens[index].clone();
@@ -149,7 +149,7 @@ fn parse_primary(tokens: &Vec<HydroToken>, token_index: usize) -> (HydroToken, u
       | HydroTokenType::CharLiteral
       | HydroTokenType::BooleanLiteral
       | HydroTokenType::NumberLiteral
-      | HydroTokenType::Variable => (current_token.clone(), index),
+      | HydroTokenType::Variable => (Primary::new(current_token.clone()), index),
       _ => panic!("{:?}", tokens[token_index]),
     }
   } else {

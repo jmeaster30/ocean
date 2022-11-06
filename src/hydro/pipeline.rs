@@ -88,4 +88,9 @@ impl HydroCompilationUnit {
 
     result
   }
+
+  pub fn generate_bytecode(&self) -> HydroCompilationUnit {
+    let mut result = self.copy();
+    result
+  }
 }

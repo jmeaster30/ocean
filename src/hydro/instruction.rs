@@ -16,17 +16,30 @@ pub enum Instruction {
 #[derive(Clone, Debug)]
 pub enum OperationOrPrimary {
   Operation(Operation),
-  Primary(HydroToken),
+  Primary(Primary),
+}
+
+#[derive(Clone, Debug)]
+pub struct Primary {
+  pub token: HydroToken
+}
+
+impl Primary {
+  pub fn new(token: HydroToken) -> Self {
+    Self {
+      token
+    }
+  }
 }
 
 #[derive(Clone, Debug)]
 pub struct Operation {
-  identifier: HydroToken,
-  arguments: Vec<HydroToken>,
+  pub identifier: HydroToken,
+  pub arguments: Vec<Primary>,
 }
 
 impl Operation {
-  pub fn new(identifier: HydroToken, arguments: Vec<HydroToken>) -> Self {
+  pub fn new(identifier: HydroToken, arguments: Vec<Primary>) -> Self {
     Self {
       identifier,
       arguments,
@@ -36,9 +49,9 @@ impl Operation {
 
 #[derive(Clone, Debug)]
 pub struct Assignment {
-  identifier: HydroToken,
-  equal: HydroToken,
-  operation: OperationOrPrimary,
+  pub identifier: HydroToken,
+  pub equal: HydroToken,
+  pub operation: OperationOrPrimary,
 }
 
 impl Assignment {
@@ -53,9 +66,9 @@ impl Assignment {
 
 #[derive(Clone, Debug)]
 pub struct If {
-  condition: OperationOrPrimary,
-  true_body: Vec<Instruction>,
-  else_body: Vec<Instruction>,
+  pub condition: OperationOrPrimary,
+  pub true_body: Vec<Instruction>,
+  pub else_body: Vec<Instruction>,
 }
 
 impl If {
@@ -74,7 +87,7 @@ impl If {
 
 #[derive(Clone, Debug)]
 pub struct Return {
-  value: OperationOrPrimary,
+  pub value: OperationOrPrimary,
 }
 
 impl Return {
@@ -85,8 +98,8 @@ impl Return {
 
 #[derive(Clone, Debug)]
 pub struct Loop {
-  condition: OperationOrPrimary,
-  body: Vec<Instruction>,
+  pub condition: OperationOrPrimary,
+  pub body: Vec<Instruction>,
 }
 
 impl Loop {
@@ -97,11 +110,11 @@ impl Loop {
 
 #[derive(Clone, Debug)]
 pub struct Function {
-  func_token: HydroToken,
-  identifier: HydroToken,
-  parameter_list: Vec<TypeVar>,
-  return_type: Option<Type>,
-  body: Vec<Instruction>,
+  pub func_token: HydroToken,
+  pub identifier: HydroToken,
+  pub parameter_list: Vec<TypeVar>,
+  pub return_type: Option<Type>,
+  pub body: Vec<Instruction>,
 }
 
 impl Function {
@@ -124,11 +137,11 @@ impl Function {
 
 #[derive(Clone, Debug)]
 pub struct TypeDefinition {
-  type_token: HydroToken,
-  identifier: HydroToken,
-  left_curly: HydroToken,
-  entries: Vec<TypeVar>,
-  right_curly: HydroToken,
+  pub type_token: HydroToken,
+  pub identifier: HydroToken,
+  pub left_curly: HydroToken,
+  pub entries: Vec<TypeVar>,
+  pub right_curly: HydroToken,
 }
 
 impl TypeDefinition {
@@ -151,8 +164,8 @@ impl TypeDefinition {
 
 #[derive(Clone, Debug)]
 pub struct TypeVar {
-  identifier: HydroToken,
-  type_def: Type,
+  pub identifier: HydroToken,
+  pub type_def: Type,
 }
 
 impl TypeVar {
@@ -173,10 +186,10 @@ pub enum Type {
 
 #[derive(Clone, Debug)]
 pub struct ArrayType {
-  base_type: Box<Type>,
-  left_square: HydroToken,
-  index_type: Box<Type>,
-  right_square: HydroToken,
+  pub base_type: Box<Type>,
+  pub left_square: HydroToken,
+  pub index_type: Box<Type>,
+  pub right_square: HydroToken,
 }
 
 impl ArrayType {
@@ -197,7 +210,7 @@ impl ArrayType {
 
 #[derive(Clone, Debug)]
 pub struct BaseType {
-  token: HydroToken,
+  pub token: HydroToken,
 }
 
 impl BaseType {
@@ -208,8 +221,8 @@ impl BaseType {
 
 #[derive(Clone, Debug)]
 pub struct RefType {
-  ref_token: HydroToken,
-  base_type: Box<Type>,
+  pub ref_token: HydroToken,
+  pub base_type: Box<Type>,
 }
 
 impl RefType {

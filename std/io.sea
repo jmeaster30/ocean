@@ -1,7 +1,21 @@
-let print = func (message: string) -> ():{
-  #/@@ hydro
+func print(message: string) -> ():{
+  @@ hydro
   print @message
-  @@/#
+  @@
+}
+
+# Waits for single character input
+func readchar() -> (result: char):{
+  @@ hydro
+  readc @result
+  @@
+}
+
+# Waits for enter key press
+func readstring() -> (result: string):{
+  @@ hydro
+  readline @result
+  @@
 }
 
 cast func (a: u64) -> (result: string):{
@@ -10,7 +24,3 @@ cast func (a: u64) -> (result: string):{
     a = a // 10
   }
 }
-
-
-print()
-
