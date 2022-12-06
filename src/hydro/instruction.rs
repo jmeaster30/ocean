@@ -98,13 +98,12 @@ impl Return {
 
 #[derive(Clone, Debug)]
 pub struct Loop {
-  pub condition: OperationOrPrimary,
   pub body: Vec<Instruction>,
 }
 
 impl Loop {
-  pub fn new(condition: OperationOrPrimary, body: Vec<Instruction>) -> Self {
-    Self { condition, body }
+  pub fn new(body: Vec<Instruction>) -> Self {
+    Self { body }
   }
 }
 

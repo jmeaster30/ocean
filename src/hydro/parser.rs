@@ -48,8 +48,8 @@ fn parse_instructions(
           (inst, index) = parse_if(&tokens, index);
           instructions_list.push(inst);
         }
-        "while" => {
-          (inst, index) = parse_while(&tokens, index);
+        "loop" => {
+          (inst, index) = parse_loop(&tokens, index);
           instructions_list.push(inst);
         }
         "return" => {
@@ -297,11 +297,10 @@ fn parse_compound(tokens: &Vec<HydroToken>, token_index: usize) -> (Vec<Instruct
   }
 }
 
-fn parse_while(tokens: &Vec<HydroToken>, token_index: usize) -> (Instruction, usize) {
+fn parse_loop(tokens: &Vec<HydroToken>, token_index: usize) -> (Instruction, usize) {
   if token_index < tokens.len() {
-    let (operation, index) = parse_operation_or_primary(tokens, token_index + 1);
-    let (insts, new_index) = parse_compound(tokens, index);
-    (Instruction::Loop(Loop::new(operation, insts)), new_index)
+    let (insts, index) = parse_compound(tokens, token_index + 1);
+    (Instruction::Loop(Loop::new(insts)), index)
   } else {
     panic!("out of range {} > {}", token_index, tokens.len())
   }
