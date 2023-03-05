@@ -138,6 +138,17 @@ impl HydroSymbolTable {
     }
   }
 
+  pub fn add_function(&mut self, func_name: String, argtypes: Vec<u64>, return_type: u64) -> Option<()> {
+    // TODO this may be wrong actually 
+    match self.get_function_return_type_id(func_name.clone(), argtypes.clone()) {
+      Some(x) => Some(()), // TODO send declaration info for error messages 
+      None => {
+        self.functions.insert((func_name, argtypes), return_type);
+        None
+      }
+    }
+  }
+
   pub fn get_function_return_type_id(&self, func_name: String, argtypes: Vec<u64>) -> Option<u64> {
     match self.functions.get(&(func_name.clone(), argtypes.clone())) {
       Some(x) => Some(*x),

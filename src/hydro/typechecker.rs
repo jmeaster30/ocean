@@ -56,14 +56,50 @@ fn typecheck_function(
   errors: &mut Vec<OceanError>,
 ) {
   // typecheck args
+  let args = typecheck_typevars(function.parameter_list.clone(), symbol_table, errors);
   // typecheck return type
+  let ret = match &function.return_type {
+    Some(ret_type) => {
+      match symbol_table.get_symbol_from_type(ret_type.clone()) {
+        Some(symbol) => symbol_table.add_symbol(symbol),
+        None => {
+          errors.push(OceanError::SemanticError(
+            Severity::Error,
+            ret_type.get_span(), 
+            "Unknown type :(".to_string()
+          ));
+          symbol_table.add_symbol(HydroSymbol::Base(HydroType::Unknown))
+        } 
+      }
+    }
+    None => symbol_table.add_symbol(HydroSymbol::Base(HydroType::Void)),
+  };
+
   // add function to the symbol table
+  match symbol_table.add_function(function.identifier.lexeme.clone(), args.clone(), ret) {
+    Some(_) => {
+      errors.push(OceanError::SemanticError(
+        Severity::Error,
+        (function.identifier.start, function.identifier.end),
+        "Function already defined".to_string()
+      ));
+    }
+    None => {}
+  }
 
   // create sub scope
+  let mut sub_scope = HydroSymbolTable::new(Some(Box::new(symbol_table.clone())));
   // add args to sub scope
+  for (type_var, type_var_id) in function.parameter_list.iter().zip(args.iter()) {
+    sub_scope.add_variable(type_var.identifier.lexeme.clone(), *type_var_id)
+  }
   // set return type id
+  sub_scope.return_type_id = Some(ret);
 
   // type check function body
+  for inst in &mut function.body {
+    typecheck_instruction(inst, &mut sub_scope, errors)
+  }
 }
 
 fn typecheck_typevars(
