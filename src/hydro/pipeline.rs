@@ -1,4 +1,4 @@
-use crate::util::errors::OceanError;
+use crate::util::errors::{display_hydro_error, OceanError};
 
 use super::{
   instruction::Instruction,
@@ -92,7 +92,13 @@ impl HydroCompilationUnit {
   }
 
   pub fn generate_bytecode(&self) -> HydroCompilationUnit {
-    let mut result = self.copy();
+    let result = self.copy();
     result
+  }
+
+  pub fn print_errors(&self) {
+    for error in &self.errors {
+      display_hydro_error(self, error)
+    }
   }
 }

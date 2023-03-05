@@ -4,8 +4,8 @@ use std::cmp::Ordering;
 
 use crate::compiler::lexer::TokenType;
 use crate::compiler::parser::ast::*;
-use crate::compiler::parser::span::Spanned;
 use crate::util::errors::*;
+use crate::util::span::Spanned;
 
 use super::symboltable::{
   get_base_type_id, get_base_type_symbol_from_lexeme, ArraySymbol, AssignableSymbol, AutoSymbol,

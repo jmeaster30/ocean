@@ -1,6 +1,8 @@
 use crate::compiler::parser::ast::ErrorStatement;
-use crate::compiler::parser::span::Spanned;
 use crate::compiler::CompilationUnit;
+use crate::hydro::pipeline::HydroCompilationUnit;
+
+use super::span::Spanned;
 
 /*
     this was taken from the SerentiyOS/jakt repo and
@@ -41,18 +43,36 @@ pub enum OceanError {
   SemanticError(Severity, (usize, usize), String),
 }
 
-pub fn display_error(compilation_unit: &CompilationUnit, error: &OceanError) {
+pub fn display_ocean_error(compilation_unit: &CompilationUnit, error: &OceanError) {
+  let file_contents = compilation_unit.file_content.as_bytes();
+  let file_name = &compilation_unit.filename;
+  display_error(error, file_contents, file_name)
+}
+
+pub fn display_hydro_error(compilation_unit: &HydroCompilationUnit, error: &OceanError) {
+  let file_contents = compilation_unit.file_content.as_bytes();
+  let file_name = &compilation_unit.filename;
+  display_error(error, file_contents, file_name)
+}
+
+pub fn display_error(error: &OceanError, file_contents: &[u8], file_name: &String) {
   match error {
-    OceanError::Base(severity, message) => {
-      display_message(severity, message.to_string(), 0, 0, compilation_unit)
-    }
+    OceanError::Base(severity, message) => display_message(
+      severity,
+      message.to_string(),
+      0,
+      0,
+      file_contents,
+      file_name,
+    ),
     OceanError::LexError(severity, span, message)
     | OceanError::MacroError(severity, span, message) => display_message(
       severity,
       message.to_string(),
       span.0,
       span.1,
-      compilation_unit,
+      file_contents,
+      file_name,
     ),
     OceanError::ParseError(error) => {
       let (start_offset, end_offset) = error.get_span();
@@ -61,7 +81,8 @@ pub fn display_error(compilation_unit: &CompilationUnit, error: &OceanError) {
         error.message.to_string(),
         start_offset,
         end_offset,
-        compilation_unit,
+        file_contents,
+        file_name,
       )
     }
     OceanError::SemanticError(severity, span, message) => display_message(
@@ -69,7 +90,8 @@ pub fn display_error(compilation_unit: &CompilationUnit, error: &OceanError) {
       message.to_string(),
       span.0,
       span.1,
-      compilation_unit,
+      file_contents,
+      file_name,
     ),
   }
 }
@@ -79,7 +101,8 @@ pub fn display_message(
   message: String,
   start_offset: usize,
   end_offset: usize,
-  compilation_unit: &CompilationUnit,
+  file_contents: &[u8],
+  file_name: &String,
 ) {
   println!(
     "\u{001b}[{};1m{}: \u{001b}[95;1m{}\u{001b}[0m",
@@ -87,9 +110,6 @@ pub fn display_message(
     severity.name(),
     message
   );
-
-  let file_contents = compilation_unit.file_content.as_bytes();
-  let file_name = &compilation_unit.filename;
 
   let line_spans = line_spans(file_contents);
 
@@ -163,7 +183,7 @@ pub fn display_message(
   println!(
     "\u{001b}[0m{}+-----{}-----",
     " ".repeat(width + 2),
-    "-".repeat(compilation_unit.filename.len() + 4)
+    "-".repeat(file_name.len() + 4)
   );
 }
 

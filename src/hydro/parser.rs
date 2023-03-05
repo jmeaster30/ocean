@@ -274,6 +274,7 @@ fn parse_type(tokens: &Vec<HydroToken>, token_index: usize) -> (Type, usize) {
 }
 
 fn parse_compound(tokens: &Vec<HydroToken>, token_index: usize) -> (Vec<Instruction>, usize) {
+  // TODO this should track the opening and closing curly braces so we can get accurate spans
   let mut index = token_index;
   if index < tokens.len() {
     match tokens[index].token_type {
@@ -300,7 +301,10 @@ fn parse_compound(tokens: &Vec<HydroToken>, token_index: usize) -> (Vec<Instruct
 fn parse_loop(tokens: &Vec<HydroToken>, token_index: usize) -> (Instruction, usize) {
   if token_index < tokens.len() {
     let (insts, index) = parse_compound(tokens, token_index + 1);
-    (Instruction::Loop(Loop::new(insts)), index)
+    (
+      Instruction::Loop(Loop::new(tokens[token_index].clone(), insts)),
+      index,
+    )
   } else {
     panic!("out of range {} > {}", token_index, tokens.len())
   }
@@ -315,12 +319,22 @@ fn parse_if(tokens: &Vec<HydroToken>, token_index: usize) -> (Instruction, usize
         // TODO add else if?
         let (false_insts, new_new_index) = parse_compound(tokens, new_index + 1);
         (
-          Instruction::If(If::new(operation, true_insts, false_insts)),
+          Instruction::If(If::new(
+            tokens[token_index].clone(),
+            operation,
+            true_insts,
+            false_insts,
+          )),
           new_new_index,
         )
       }
       _ => (
-        Instruction::If(If::new(operation, true_insts, Vec::new())),
+        Instruction::If(If::new(
+          tokens[token_index].clone(),
+          operation,
+          true_insts,
+          Vec::new(),
+        )),
         new_index,
       ),
     }
@@ -332,7 +346,10 @@ fn parse_if(tokens: &Vec<HydroToken>, token_index: usize) -> (Instruction, usize
 fn parse_return(tokens: &Vec<HydroToken>, token_index: usize) -> (Instruction, usize) {
   if token_index < tokens.len() {
     let (operation, index) = parse_operation_or_primary(tokens, token_index + 1);
-    (Instruction::Return(Return::new(operation)), index)
+    (
+      Instruction::Return(Return::new(tokens[token_index].clone(), operation)),
+      index,
+    )
   } else {
     panic!("out of range {} > {}", token_index, tokens.len())
   }
@@ -340,7 +357,10 @@ fn parse_return(tokens: &Vec<HydroToken>, token_index: usize) -> (Instruction, u
 
 fn parse_continue(tokens: &Vec<HydroToken>, token_index: usize) -> (Instruction, usize) {
   if token_index < tokens.len() {
-    (Instruction::Continue, token_index + 1)
+    (
+      Instruction::Continue(tokens[token_index].clone()),
+      token_index + 1,
+    )
   } else {
     panic!("out of range {} > {}", token_index, tokens.len())
   }
@@ -348,7 +368,10 @@ fn parse_continue(tokens: &Vec<HydroToken>, token_index: usize) -> (Instruction,
 
 fn parse_break(tokens: &Vec<HydroToken>, token_index: usize) -> (Instruction, usize) {
   if token_index < tokens.len() {
-    (Instruction::Break, token_index + 1)
+    (
+      Instruction::Break(tokens[token_index].clone()),
+      token_index + 1,
+    )
   } else {
     panic!("out of range {} > {}", token_index, tokens.len())
   }

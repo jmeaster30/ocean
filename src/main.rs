@@ -14,7 +14,7 @@ fn main() -> std::io::Result<()> {
   let args: Vec<String> = env::args().collect();
   let arg_parser = ArgsParser::new("Ocean")
     .version("0.0.1")
-    .author("John Easterday <jmeaster>")
+    .author("John Easterday <jmeaster30>")
     .description("A C-like programming language (get it like C sounds like sea and oceans are kinda like seas lol)")
     .arg(Argument::new("Command")
       .first()
@@ -65,6 +65,7 @@ fn main() -> std::io::Result<()> {
                   .build_ast()
                   .typecheck_ast()
                   .generate_bytecode();
+              compunit.print_errors();
             }
             Err(err) => {
               println!("Unable to open file '{}' :(", source);

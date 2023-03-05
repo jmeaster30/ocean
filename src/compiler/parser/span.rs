@@ -1,8 +1,6 @@
-use super::ast::*;
+use crate::util::span::Spanned;
 
-pub trait Spanned {
-  fn get_span(&self) -> (usize, usize);
-}
+use super::ast::*;
 
 impl Spanned for Program {
   fn get_span(&self) -> (usize, usize) {

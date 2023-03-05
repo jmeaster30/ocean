@@ -9,8 +9,8 @@ pub enum Instruction {
   Function(Function),
   TypeDefinition(TypeDefinition),
   Return(Return),
-  Break,
-  Continue,
+  Break(HydroToken),
+  Continue(HydroToken),
 }
 
 #[derive(Clone, Debug)]
@@ -64,6 +64,7 @@ impl Assignment {
 
 #[derive(Clone, Debug)]
 pub struct If {
+  pub if_token: HydroToken,
   pub condition: OperationOrPrimary,
   pub true_body: Vec<Instruction>,
   pub else_body: Vec<Instruction>,
@@ -71,11 +72,13 @@ pub struct If {
 
 impl If {
   pub fn new(
+    if_token: HydroToken,
     condition: OperationOrPrimary,
     true_body: Vec<Instruction>,
     else_body: Vec<Instruction>,
   ) -> Self {
     Self {
+      if_token,
       condition,
       true_body,
       else_body,
@@ -85,23 +88,28 @@ impl If {
 
 #[derive(Clone, Debug)]
 pub struct Return {
+  pub return_token: HydroToken,
   pub value: OperationOrPrimary,
 }
 
 impl Return {
-  pub fn new(value: OperationOrPrimary) -> Self {
-    Self { value }
+  pub fn new(return_token: HydroToken, value: OperationOrPrimary) -> Self {
+    Self {
+      return_token,
+      value,
+    }
   }
 }
 
 #[derive(Clone, Debug)]
 pub struct Loop {
+  pub loop_token: HydroToken,
   pub body: Vec<Instruction>,
 }
 
 impl Loop {
-  pub fn new(body: Vec<Instruction>) -> Self {
-    Self { body }
+  pub fn new(loop_token: HydroToken, body: Vec<Instruction>) -> Self {
+    Self { loop_token, body }
   }
 }
 

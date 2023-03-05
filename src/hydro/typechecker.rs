@@ -1,15 +1,18 @@
 use super::{
   instruction::{
     Assignment, Function, If, Instruction, Loop, Operation, OperationOrPrimary, Primary, Return,
-    Type, TypeDefinition,
+    Type, TypeDefinition, TypeVar,
   },
   lexer::{HydroToken, HydroTokenType},
-  symboltable::HydroSymbolTable,
   symboltable::HydroSymbol,
+  symboltable::HydroSymbolTable,
   symboltable::HydroType,
 };
+use crate::util::{
+  errors::{OceanError, Severity},
+  span::Spanned,
+};
 use std::collections::HashMap;
-use crate::util::errors::{OceanError, Severity};
 
 pub fn hydro_semantic_check(
   instructions: &Vec<Instruction>,
@@ -31,7 +34,9 @@ fn typecheck_instruction(
   errors: &mut Vec<OceanError>,
 ) {
   match instruction {
-    Instruction::Operation(operation) => {typecheck_operation(operation, symbol_table, errors);}
+    Instruction::Operation(operation) => {
+      typecheck_operation(operation, symbol_table, errors);
+    }
     Instruction::Assignment(assignment) => typecheck_assignment(assignment, symbol_table, errors),
     Instruction::If(if_statement) => typecheck_if(if_statement, symbol_table, errors),
     Instruction::Loop(loop_statement) => typecheck_loop(loop_statement, symbol_table, errors),
@@ -40,139 +45,218 @@ fn typecheck_instruction(
     }
     Instruction::Function(function) => typecheck_function(function, symbol_table, errors),
     Instruction::Return(ret) => typecheck_return(ret, symbol_table, errors),
-    Instruction::Break => (),
-    Instruction::Continue => (),
+    Instruction::Break(_) => (),
+    Instruction::Continue(_) => (),
   };
 }
 
-fn typecheck_operation(operation: &mut Operation, symbol_table: &mut HydroSymbolTable, errors: &mut Vec<OceanError>) -> u64 {
+fn typecheck_function(
+  function: &mut Function,
+  symbol_table: &mut HydroSymbolTable,
+  errors: &mut Vec<OceanError>,
+) {
+  // typecheck args
+  // typecheck return type
+  // add function to the symbol table
+
+  // create sub scope
+  // add args to sub scope
+  // set return type id
+
+  // type check function body
+}
+
+fn typecheck_typevars(
+  typevars: Vec<TypeVar>,
+  symbol_table: &mut HydroSymbolTable,
+  errors: &mut Vec<OceanError>,
+) -> Vec<u64> {
+  let mut results = Vec::new();
+  for typevar in typevars {
+    match symbol_table.get_symbol_from_type(typevar.type_def.clone()) {
+      Some(symbol) => {
+        results.push(symbol_table.add_symbol(symbol));
+      }
+      None => {
+        errors.push(OceanError::SemanticError(
+          Severity::Error,
+          typevar.type_def.get_span(),
+          "Unknown type :(".to_string(),
+        ));
+        results.push(symbol_table.add_symbol(HydroSymbol::Base(HydroType::Unknown)));
+      }
+    }
+  }
+  results
+}
+
+fn typecheck_operation(
+  operation: &mut Operation,
+  symbol_table: &mut HydroSymbolTable,
+  errors: &mut Vec<OceanError>,
+) -> u64 {
   let mut args = Vec::new();
-  for arg in operation.arguments {
-    args.push(typecheck_primary(&mut arg, symbol_table, errors))
+  for arg in &mut operation.arguments {
+    args.push(typecheck_primary(arg, symbol_table, errors))
   }
 
-  match symbol_table.get_function_return_type_id(operation.identifier.lexeme, args) {
+  match symbol_table.get_function_return_type_id(operation.identifier.lexeme.clone(), args) {
     Some(x) => x,
     None => {
       errors.push(OceanError::SemanticError(
         Severity::Error,
-        (operation.identifier.start, operation.identifier.end), 
-        "Function not found with argument types :(".to_string()
+        operation.get_span(),
+        "Function not found with argument types :(".to_string(),
       ));
       symbol_table.add_symbol(HydroSymbol::Base(HydroType::Unknown))
     }
   }
 }
 
-fn typecheck_operation_primary(operation_primary: &mut OperationOrPrimary, symbol_table: &mut HydroSymbolTable, errors: &mut Vec<OceanError>) -> u64 {
+fn typecheck_operation_primary(
+  operation_primary: &mut OperationOrPrimary,
+  symbol_table: &mut HydroSymbolTable,
+  errors: &mut Vec<OceanError>,
+) -> u64 {
   match operation_primary {
     OperationOrPrimary::Operation(op) => typecheck_operation(op, symbol_table, errors),
     OperationOrPrimary::Primary(prim) => typecheck_primary(prim, symbol_table, errors),
   }
 }
 
-fn typecheck_assignment(assignment: &mut Assignment, symbol_table: &mut HydroSymbolTable, errors: &mut Vec<OceanError>) {
+fn typecheck_assignment(
+  assignment: &mut Assignment,
+  symbol_table: &mut HydroSymbolTable,
+  errors: &mut Vec<OceanError>,
+) {
   let exp_id = typecheck_operation_primary(&mut assignment.operation, symbol_table, errors);
-  match symbol_table.get_variable_type_id(assignment.identifier.lexeme) {
+  match symbol_table.get_variable_type_id(assignment.identifier.lexeme.clone()) {
     Some(x) => {
       errors.push(OceanError::SemanticError(
-        Severity::Error, 
+        Severity::Error,
         (assignment.identifier.start, assignment.identifier.end),
-        "Variable cannot be assigned twice :(".to_string()
+        "Variable cannot be assigned twice :(".to_string(),
       ));
     }
-    None => {
-      symbol_table.add_variable(assignment.identifier.lexeme, exp_id)
-    }
+    None => symbol_table.add_variable(assignment.identifier.lexeme.clone(), exp_id),
   }
 }
 
-fn typecheck_if(if_stmt: &mut If, symbol_table: &mut HydroSymbolTable, errors: &mut Vec<OceanError>) {
+fn typecheck_if(
+  if_stmt: &mut If,
+  symbol_table: &mut HydroSymbolTable,
+  errors: &mut Vec<OceanError>,
+) {
   let condition_id = typecheck_operation_primary(&mut if_stmt.condition, symbol_table, errors);
   if !symbol_table.matches_bool(condition_id) {
     errors.push(OceanError::SemanticError(
       Severity::Error,
-      (0, 0), // TODO
-      "If condition must evaluate to a boolean".to_string()
+      if_stmt.condition.get_span(),
+      "If condition must evaluate to a boolean".to_string(),
     ));
   }
 
-  for inst in if_stmt.true_body {
-    typecheck_instruction(&mut inst, symbol_table, errors)
+  for inst in &mut if_stmt.true_body {
+    typecheck_instruction(inst, symbol_table, errors)
   }
 
-  for inst in if_stmt.else_body {
-    typecheck_instruction(&mut inst, symbol_table, errors)
-  }
-}
-
-fn typecheck_loop(loop_stmt: &mut Loop, symbol_table: &mut HydroSymbolTable, errors: &mut Vec<OceanError>) {
-  for inst in loop_stmt.body {
-    typecheck_instruction(&mut inst, symbol_table, errors)
+  for inst in &mut if_stmt.else_body {
+    typecheck_instruction(inst, symbol_table, errors)
   }
 }
 
-fn typecheck_return(ret: &mut Return, symbol_table: &mut HydroSymbolTable, errors: &mut Vec<OceanError>) {
+fn typecheck_loop(
+  loop_stmt: &mut Loop,
+  symbol_table: &mut HydroSymbolTable,
+  errors: &mut Vec<OceanError>,
+) {
+  for inst in &mut loop_stmt.body {
+    typecheck_instruction(inst, symbol_table, errors)
+  }
+}
+
+fn typecheck_return(
+  ret: &mut Return,
+  symbol_table: &mut HydroSymbolTable,
+  errors: &mut Vec<OceanError>,
+) {
   let ret_id = typecheck_operation_primary(&mut ret.value, symbol_table, errors);
   match symbol_table.return_type_id {
-    Some(x) => if ret_id != x {
-      errors.push(OceanError::SemanticError(
-        Severity::Error,
-        (0, 0), // TODO
-        "Return type doesn't match expected return type".to_string()
-      ));
+    Some(x) => {
+      if ret_id != x {
+        errors.push(OceanError::SemanticError(
+          Severity::Error,
+          ret.value.get_span(),
+          "Return type doesn't match expected return type".to_string(),
+        ));
+      }
     }
-    None => {
-      symbol_table.return_type_id = Some(ret_id)
-    }
+    None => symbol_table.return_type_id = Some(ret_id),
   }
 }
 
-fn typecheck_typedefinition(type_def: &mut TypeDefinition, symbol_table: &mut HydroSymbolTable, errors: &mut Vec<OceanError>) {
-  let add_type_def = match symbol_table.get_type_id(type_def.identifier.lexeme) {
+fn typecheck_typedefinition(
+  type_def: &mut TypeDefinition,
+  symbol_table: &mut HydroSymbolTable,
+  errors: &mut Vec<OceanError>,
+) {
+  let add_type_def = match symbol_table.get_type_id(type_def.identifier.lexeme.clone()) {
     Some(x) => true,
     None => {
       errors.push(OceanError::SemanticError(
-        Severity::Error, 
-        (type_def.identifier.start, type_def.identifier.end), 
-        "Type already defined :(".to_string()
+        Severity::Error,
+        (type_def.identifier.start, type_def.identifier.end),
+        "Type already defined :(".to_string(),
       ));
       false
     }
   };
-  
-  let custom_type = HashMap::new();
-  for typevar in type_def.entries {
+
+  let mut custom_type = HashMap::new();
+  for typevar in &type_def.entries {
     match custom_type.get(&typevar.identifier.lexeme) {
       Some(_) => {
         errors.push(OceanError::SemanticError(
-          Severity::Error, 
+          Severity::Error,
           (typevar.identifier.start, typevar.identifier.end),
-          "Type member already defined for this type".to_string()
+          "Type member already defined for this type".to_string(),
         ));
       }
-      None => {
-        let tid = symbol_table.add_symbol(symbol_table.get_symbol_from_type(typevar.type_def));
-        custom_type.insert(typevar.identifier.lexeme, tid);
-      }
+      None => match symbol_table.get_symbol_from_type(typevar.type_def.clone()) {
+        Some(symbol) => {
+          let tid = symbol_table.add_symbol(symbol);
+          custom_type.insert(typevar.identifier.lexeme.clone(), tid);
+        }
+        None => {
+          errors.push(OceanError::SemanticError(
+            Severity::Error,
+            typevar.type_def.get_span(),
+            "Unknown type :(".to_string(),
+          ));
+        }
+      },
     }
   }
   if add_type_def {
-    symbol_table.add_type(type_def.identifier.lexeme, custom_type);
+    symbol_table.add_type(type_def.identifier.lexeme.clone(), custom_type);
   }
 }
 
-fn typecheck_primary(primary: &mut Primary, symbol_table: &mut HydroSymbolTable, errors: &mut Vec<OceanError>) -> u64 {
+fn typecheck_primary(
+  primary: &mut Primary,
+  symbol_table: &mut HydroSymbolTable,
+  errors: &mut Vec<OceanError>,
+) -> u64 {
   match primary.token.token_type {
     HydroTokenType::Identifier => todo!(),
-    HydroTokenType::StringLiteral => if primary.token.lexeme.len() == 1 {
-      symbol_table.add_symbol(HydroSymbol::Base(HydroType::Unsigned8))
-    } else {
-      symbol_table.add_symbol(HydroSymbol::Base(HydroType::String))
-    },
-    HydroTokenType::BooleanLiteral => {
-      symbol_table.add_symbol(HydroSymbol::Base(HydroType::Bool))
-    },
+    HydroTokenType::StringLiteral => {
+      if primary.token.lexeme.len() == 1 {
+        symbol_table.add_symbol(HydroSymbol::Base(HydroType::Unsigned8))
+      } else {
+        symbol_table.add_symbol(HydroSymbol::Base(HydroType::String))
+      }
+    }
+    HydroTokenType::BooleanLiteral => symbol_table.add_symbol(HydroSymbol::Base(HydroType::Bool)),
     HydroTokenType::NumberLiteral => {
       let lex = primary.token.lexeme.as_str();
       let value = match lex.parse::<i128>() {
@@ -205,7 +289,7 @@ fn typecheck_primary(primary: &mut Primary, symbol_table: &mut HydroSymbolTable,
           symbol_table.add_symbol(HydroSymbol::Base(HydroType::Signed64))
         }
         None if lex.contains('.') => {
-          //TODO make this better
+          //TODO make this choose between f32 and f64 instead of just defaulting to f64
           symbol_table.add_symbol(HydroSymbol::Base(HydroType::Float64))
         }
         _ => {
@@ -217,8 +301,20 @@ fn typecheck_primary(primary: &mut Primary, symbol_table: &mut HydroSymbolTable,
           symbol_table.add_symbol(HydroSymbol::Base(HydroType::Unknown))
         }
       }
-    },
-    HydroTokenType::Variable => todo!(),
+    }
+    HydroTokenType::Variable => {
+      match symbol_table.get_variable_type_id(primary.token.lexeme.clone()) {
+        Some(type_id) => type_id,
+        None => {
+          errors.push(OceanError::SemanticError(
+            Severity::Error,
+            primary.get_span(),
+            "Unknown variable :(".to_string(),
+          ));
+          symbol_table.add_symbol(HydroSymbol::Base(HydroType::Unknown))
+        }
+      }
+    }
     _ => {
       panic!("Unexpected primary")
     }

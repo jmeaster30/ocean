@@ -1,0 +1,10 @@
+# This is a sample. 
+# Really not sure about the creating new arrays or the appending to arrays
+# will need to think about that more
+
+op _>._ func (arr: auto T[], f: func(T, T : T)) -> (result: T):{
+  result = []
+  for val in arr {
+    result.push(val.f())
+  }
+}

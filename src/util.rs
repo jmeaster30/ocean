@@ -2,3 +2,4 @@
 
 pub mod argsparser;
 pub mod errors;
+pub mod span;

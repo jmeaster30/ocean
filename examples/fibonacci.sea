@@ -1,8 +1,8 @@
-func fib (input: i64) -> (result: i64):{
+let fib = func (input: i64) -> (result: i64):{
   if input == 0 {
     result = 0
   } else {
-    result = input + fib(input - 1)
+    result = input + self(input - 1)
   }
 }
 

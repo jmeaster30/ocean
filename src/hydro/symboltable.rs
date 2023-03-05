@@ -55,31 +55,37 @@ impl HydroSymbolTable {
     }
   }
 
-  pub fn get_symbol_from_type(&self, typevar: Type) -> HydroSymbol {
+  pub fn get_symbol_from_type(&self, typevar: Type) -> Option<HydroSymbol> {
     match typevar {
       Type::ArrayType(at) => {
         todo!()
-      },
+      }
       Type::BaseType(bt) => match bt.token.lexeme.as_str() {
-        "i8" => HydroSymbol::Base(HydroType::Signed8),
-        "i16" => HydroSymbol::Base(HydroType::Signed16),
-        "i32" => HydroSymbol::Base(HydroType::Signed32),
-        "i64" => HydroSymbol::Base(HydroType::Signed64),
-        "f32" => HydroSymbol::Base(HydroType::Float32),
-        "f64" => HydroSymbol::Base(HydroType::Float64),
-        "u8" => HydroSymbol::Base(HydroType::Unsigned8),
-        "u16" => HydroSymbol::Base(HydroType::Unsigned16),
-        "u32" => HydroSymbol::Base(HydroType::Unsigned32),
-        "u64" => HydroSymbol::Base(HydroType::Unsigned64),
-        "string" => HydroSymbol::Base(HydroType::String),
-        "bool" => HydroSymbol::Base(HydroType::Bool),
-        "void" => HydroSymbol::Base(HydroType::Void),
-        _ => todo!()
+        "i8" => Some(HydroSymbol::Base(HydroType::Signed8)),
+        "i16" => Some(HydroSymbol::Base(HydroType::Signed16)),
+        "i32" => Some(HydroSymbol::Base(HydroType::Signed32)),
+        "i64" => Some(HydroSymbol::Base(HydroType::Signed64)),
+        "f32" => Some(HydroSymbol::Base(HydroType::Float32)),
+        "f64" => Some(HydroSymbol::Base(HydroType::Float64)),
+        "u8" => Some(HydroSymbol::Base(HydroType::Unsigned8)),
+        "u16" => Some(HydroSymbol::Base(HydroType::Unsigned16)),
+        "u32" => Some(HydroSymbol::Base(HydroType::Unsigned32)),
+        "u64" => Some(HydroSymbol::Base(HydroType::Unsigned64)),
+        "string" => Some(HydroSymbol::Base(HydroType::String)),
+        "bool" => Some(HydroSymbol::Base(HydroType::Bool)),
+        "void" => Some(HydroSymbol::Base(HydroType::Void)),
+        custom_type_name => match self.get_type_id(custom_type_name.to_string()) {
+          Some(type_id) => match self.id_to_symbol.get(&type_id) {
+            Some(x) => Some(x.clone()),
+            None => None,
+          },
+          None => None,
+        },
       },
       Type::RefType(rt) => {
         todo!()
-      },
-    }  
+      }
+    }
   }
 
   fn get_next_symbol_id(&self) -> u64 {
@@ -98,17 +104,17 @@ impl HydroSymbolTable {
       Some(x) => Some(*x),
       None => match &self.parent_scope {
         Some(pscope) => pscope.find_symbol(symbol),
-        None => None
-      }
+        None => None,
+      },
     }
   }
 
   pub fn add_symbol(&mut self, symbol: HydroSymbol) -> u64 {
-    match self.find_symbol(symbol) {
+    match self.find_symbol(symbol.clone()) {
       Some(x) => x,
       None => {
         let next_id = self.get_next_symbol_id();
-        self.id_to_symbol.insert(next_id, symbol);
+        self.id_to_symbol.insert(next_id, symbol.clone());
         self.symbol_to_id.insert(symbol, next_id);
         next_id
       }
@@ -116,7 +122,7 @@ impl HydroSymbolTable {
   }
 
   pub fn add_type(&mut self, typename: String, typemembers: HashMap<String, u64>) -> u64 {
-    let id = self.add_symbol(HydroSymbol::Custom(typename));
+    let id = self.add_symbol(HydroSymbol::Custom(typename.clone()));
     self.type_to_id.insert(typename, id);
     self.id_to_member.insert(id, typemembers);
     id
@@ -128,31 +134,31 @@ impl HydroSymbolTable {
       None => match &self.parent_scope {
         Some(pscope) => pscope.get_type_id(typename),
         None => None,
-      }
+      },
     }
   }
 
   pub fn get_function_return_type_id(&self, func_name: String, argtypes: Vec<u64>) -> Option<u64> {
-    match self.functions.get(&(func_name, argtypes)) {
+    match self.functions.get(&(func_name.clone(), argtypes.clone())) {
       Some(x) => Some(*x),
-      None => match self.parent_scope {
+      None => match &self.parent_scope {
         Some(pscope) => pscope.get_function_return_type_id(func_name, argtypes),
-        None => None
-      }
+        None => None,
+      },
     }
   }
 
   pub fn get_variable_type_id(&self, var_name: String) -> Option<u64> {
     match self.variables.get(&var_name) {
       Some(x) => Some(*x),
-      None => match self.parent_scope {
+      None => match &self.parent_scope {
         Some(pscope) => pscope.get_variable_type_id(var_name),
-        None => None
-      }
+        None => None,
+      },
     }
   }
 
-  pub fn add_variable(&self, var_name: String, type_id: u64) {
+  pub fn add_variable(&mut self, var_name: String, type_id: u64) {
     self.variables.insert(var_name, type_id);
   }
 
@@ -160,7 +166,7 @@ impl HydroSymbolTable {
     match self.id_to_symbol.get(&type_id) {
       Some(HydroSymbol::Base(HydroType::Bool)) => true,
       Some(HydroSymbol::Ref(x)) => self.matches_bool(*x),
-      _ => false
+      _ => false,
     }
   }
 }

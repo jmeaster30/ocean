@@ -90,7 +90,7 @@ impl CompilationUnit {
       match pass {
         Pass::Lexer(_, errors) | Pass::Parser(_, errors) | Pass::SemanticCheck(_, _, errors) => {
           for error in errors {
-            display_error(self, &error)
+            display_ocean_error(self, &error)
           }
         }
         _ => {}

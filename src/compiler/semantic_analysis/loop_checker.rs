@@ -1,9 +1,9 @@
 use crate::compiler::parser::ast::Expression;
 use crate::compiler::parser::ast::*;
-use crate::compiler::parser::span::Spanned;
 use crate::compiler::semantic_analysis::Statement::*;
 use crate::util::errors::OceanError;
 use crate::util::errors::Severity;
+use crate::util::span::Spanned;
 
 pub fn loop_checker(program: &Program) -> Vec<OceanError> {
   let mut errors = Vec::new();
