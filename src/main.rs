@@ -60,7 +60,11 @@ fn main() -> std::io::Result<()> {
             Ok(mut file) => {
               let mut contents = String::new();
               file.read_to_string(&mut contents)?;
-              HydroCompilationUnit::from_file(source.to_string(), contents.to_string());
+              let compunit =
+                HydroCompilationUnit::from_file(source.to_string(), contents.to_string())
+                  .build_ast()
+                  .typecheck_ast()
+                  .generate_bytecode();
             }
             Err(err) => {
               println!("Unable to open file '{}' :(", source);

@@ -18,7 +18,6 @@ pub enum HydroTokenType {
   Type,
   Keyword,
   StringLiteral,
-  CharLiteral,
   BooleanLiteral,
   NumberLiteral,
   Newline,
@@ -238,22 +237,13 @@ pub fn hydro_lex(input: String) -> (Vec<HydroToken>, Vec<OceanError>) {
             (start_index, index),
             "Unending string".to_string(),
           ))
-        } else if delim == '"' {
+        } else {
           tokens.push(HydroToken::new(
             HydroTokenType::StringLiteral,
             lexeme.clone(),
             start_index,
             index,
           ));
-        } else if delim == '\'' {
-          tokens.push(HydroToken::new(
-            HydroTokenType::CharLiteral,
-            lexeme.clone(),
-            start_index,
-            index,
-          ));
-        } else {
-          panic!("{}", lexeme);
         }
         lexeme.clear();
       }

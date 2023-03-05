@@ -21,14 +21,12 @@ pub enum OperationOrPrimary {
 
 #[derive(Clone, Debug)]
 pub struct Primary {
-  pub token: HydroToken
+  pub token: HydroToken,
 }
 
 impl Primary {
   pub fn new(token: HydroToken) -> Self {
-    Self {
-      token
-    }
+    Self { token }
   }
 }
 

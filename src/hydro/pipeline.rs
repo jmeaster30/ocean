@@ -74,6 +74,8 @@ impl HydroCompilationUnit {
     let instructions = hydro_parse(&tokens);
     result.instructions = instructions;
 
+    println!("{:#?}", result.instructions);
+
     result
   }
 

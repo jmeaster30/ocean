@@ -124,12 +124,14 @@ fn parse_operation_or_primary(
         }
       }
       HydroTokenType::StringLiteral
-      | HydroTokenType::CharLiteral
       | HydroTokenType::BooleanLiteral
       | HydroTokenType::NumberLiteral
       | HydroTokenType::Variable => {
         index += 1;
-        (OperationOrPrimary::Primary(Primary::new(current_token.clone())), index)
+        (
+          OperationOrPrimary::Primary(Primary::new(current_token.clone())),
+          index,
+        )
       }
       _ => panic!("{:?}", current_token),
     }
@@ -146,7 +148,6 @@ fn parse_primary(tokens: &Vec<HydroToken>, token_index: usize) -> (Primary, usiz
     match current_token.token_type {
       HydroTokenType::Identifier
       | HydroTokenType::StringLiteral
-      | HydroTokenType::CharLiteral
       | HydroTokenType::BooleanLiteral
       | HydroTokenType::NumberLiteral
       | HydroTokenType::Variable => (Primary::new(current_token.clone()), index),
@@ -168,7 +169,6 @@ fn parse_operation(tokens: &Vec<HydroToken>, token_index: usize) -> (Instruction
       match current_token.token_type {
         HydroTokenType::Identifier
         | HydroTokenType::StringLiteral
-        | HydroTokenType::CharLiteral
         | HydroTokenType::BooleanLiteral
         | HydroTokenType::NumberLiteral
         | HydroTokenType::Variable => {
@@ -312,7 +312,7 @@ fn parse_if(tokens: &Vec<HydroToken>, token_index: usize) -> (Instruction, usize
     let (true_insts, new_index) = parse_compound(tokens, index);
     match tokens[new_index].token_type {
       HydroTokenType::Keyword if tokens[new_index].lexeme == "else" => {
-        // TODO add else if
+        // TODO add else if?
         let (false_insts, new_new_index) = parse_compound(tokens, new_index + 1);
         (
           Instruction::If(If::new(operation, true_insts, false_insts)),
