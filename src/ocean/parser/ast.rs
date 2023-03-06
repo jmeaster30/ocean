@@ -1,5 +1,5 @@
-use crate::compiler::lexer::Token;
-use crate::compiler::macros::MacroContents;
+use crate::ocean::lexer::Token;
+use crate::ocean::macros::MacroContents;
 use crate::util::errors::Severity;
 
 #[derive(Clone, Debug)]

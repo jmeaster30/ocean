@@ -1,6 +1,6 @@
-use crate::compiler::parser::ast::Expression;
-use crate::compiler::parser::ast::*;
-use crate::compiler::semantic_analysis::Statement::*;
+use crate::ocean::parser::ast::Expression;
+use crate::ocean::parser::ast::*;
+use crate::ocean::semantic_analysis::Statement::*;
 use crate::util::errors::OceanError;
 use crate::util::errors::Severity;
 use crate::util::span::Spanned;

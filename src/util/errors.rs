@@ -1,6 +1,6 @@
-use crate::compiler::parser::ast::ErrorStatement;
-use crate::compiler::CompilationUnit;
 use crate::hydro::pipeline::HydroCompilationUnit;
+use crate::ocean::parser::ast::ErrorStatement;
+use crate::ocean::CompilationUnit;
 
 use super::span::Spanned;
 

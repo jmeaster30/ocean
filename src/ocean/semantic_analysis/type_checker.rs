@@ -2,8 +2,8 @@
 
 use std::cmp::Ordering;
 
-use crate::compiler::lexer::TokenType;
-use crate::compiler::parser::ast::*;
+use crate::ocean::lexer::TokenType;
+use crate::ocean::parser::ast::*;
 use crate::util::errors::*;
 use crate::util::span::Spanned;
 

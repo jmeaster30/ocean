@@ -1,8 +1,8 @@
-mod compiler;
 mod hydro;
+mod ocean;
 mod util;
 
-use compiler::compile;
+use crate::ocean::compile;
 use hydro::pipeline::HydroCompilationUnit;
 use util::argsparser::{ArgsParser, Argument};
 

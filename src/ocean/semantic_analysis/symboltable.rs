@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::compiler::parser::ast::Type;
+use crate::ocean::parser::ast::Type;
 
 #[allow(unused_variables)]
 #[derive(Clone, Debug)]

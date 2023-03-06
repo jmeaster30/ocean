@@ -11,13 +11,14 @@ pub mod display;
 pub mod helpers;
 pub mod span;
 
-use crate::compiler::OceanError;
-use crate::compiler::{Token, TokenType};
+use crate::ocean::Token;
+use crate::ocean::TokenType;
+use crate::util::errors::OceanError;
+use crate::util::errors::Severity;
 use ast::*;
 use helpers::*;
 
 use super::macros::parse_macro_contents;
-use crate::util::errors::Severity;
 
 #[derive(Clone, Debug)]
 pub enum AstStackSymbol {
