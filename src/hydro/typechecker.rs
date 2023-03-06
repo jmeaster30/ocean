@@ -1,7 +1,7 @@
 use super::{
   instruction::{
-    Assignment, Function, If, Instruction, Loop, Operation, OperationOrPrimary, Primary, Return,
-    Type, TypeDefinition, TypeVar,
+    Assignment, Function, If, Instruction, Loop, New, Operation, OperationOrPrimary, Primary,
+    Return, Type, TypeDefinition, TypeVar,
   },
   lexer::{HydroToken, HydroTokenType},
   symboltable::HydroSymbol,
@@ -166,6 +166,7 @@ fn typecheck_operation_primary(
   match operation_primary {
     OperationOrPrimary::Operation(op) => typecheck_operation(op, symbol_table, errors),
     OperationOrPrimary::Primary(prim) => typecheck_primary(prim, symbol_table, errors),
+    OperationOrPrimary::New(new) => typecheck_new(new, symbol_table, errors),
   }
 }
 
@@ -272,8 +273,7 @@ fn typecheck_typedefinition(
   errors: &mut Vec<OceanError>,
 ) {
   let add_type_def = match symbol_table.get_type_id(type_def.identifier.lexeme.clone()) {
-    Some(x) => true,
-    None => {
+    Some(x) => {
       errors.push(OceanError::SemanticError(
         Severity::Error,
         (type_def.identifier.start, type_def.identifier.end),
@@ -281,6 +281,7 @@ fn typecheck_typedefinition(
       ));
       false
     }
+    None => true,
   };
 
   let mut custom_type = HashMap::new();
@@ -310,6 +311,24 @@ fn typecheck_typedefinition(
   }
   if add_type_def {
     symbol_table.add_type(type_def.identifier.lexeme.clone(), custom_type);
+  }
+}
+
+fn typecheck_new(
+  new: &mut New,
+  symbol_table: &mut HydroSymbolTable,
+  errors: &mut Vec<OceanError>,
+) -> u64 {
+  match symbol_table.get_symbol_from_type(new.new_type.clone()) {
+    Some(symbol) => symbol_table.add_symbol(symbol),
+    None => {
+      errors.push(OceanError::SemanticError(
+        Severity::Error,
+        new.new_type.get_span(),
+        "Unknown type :(".to_string(),
+      ));
+      symbol_table.add_symbol(HydroSymbol::Base(HydroType::Unknown))
+    }
   }
 }
 

@@ -1,42 +1,62 @@
 {
-    "name": "ocean-language-support",
-    "displayName": "Ocean Language Support",
-    "description": "Language support for the ocean programming language",
-    "version": "0.0.1",
-    "engines": {
-        "vscode": "^1.69.0"
-    },
-    "categories": [
-        "Programming Languages"
+  "name": "ocean-language-support",
+  "displayName": "Ocean Language Support",
+  "description": "Language support for the ocean programming language",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.69.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "hydro",
+        "aliases": [
+          "hydro",
+          "h2o"
+        ],
+        "extensions": [
+          ".h2o",
+          ".hydro"
+        ],
+        "configuration": "./hydro-language-configuration.json"
+      },
+      {
+        "id": "ocean",
+        "aliases": [
+          "ocean",
+          "sea"
+        ],
+        "extensions": [
+          ".sea",
+          ".ocean"
+        ],
+        "configuration": "./ocean-language-configuration.json"
+      }
     ],
-    "contributes": {
-        "languages": [{
-            "id": "hydro",
-            "aliases": ["hydro", "h2o"],
-            "extensions": [".h2o", ".hydro"],
-            "configuration": "./hydro-language-configuration.json"
-        }, {
-            "id": "ocean",
-            "aliases": ["ocean", "sea"],
-            "extensions": [".sea", ".ocean"],
-            "configuration": "./ocean-language-configuration.json"
-        }],
-        "grammars": [{
-            "language": "hydro",
-            "scopeName": "source.hydro",
-            "path": "./syntaxes/hydro.tmLanguage.json",
-            "injectTo": ["source.ocean"]
-        }, {
-            "language": "ocean",
-            "scopeName": "source.ocean",
-            "path": "./syntaxes/ocean.tmLanguage.json",
-            "embeddedLanguages": {
-                "meta.embedded.inline.hydro": "source.hydro",
-                "meta.embedded.block.hydro": "source.hydro"
-            }
-        }]
-    },
-    "scripts": {
-        "load-ext-vsc": "cp -r . ~/.vscode/extensions/ocean-language-support"
-    }
+    "grammars": [
+      {
+        "language": "hydro",
+        "scopeName": "source.hydro",
+        "path": "./syntaxes/hydro.tmLanguage.json",
+        "injectTo": [
+          "source.ocean"
+        ]
+      },
+      {
+        "language": "ocean",
+        "scopeName": "source.ocean",
+        "path": "./syntaxes/ocean.tmLanguage.json",
+        "embeddedLanguages": {
+          "meta.embedded.inline.hydro": "source.hydro",
+          "meta.embedded.block.hydro": "source.hydro"
+        }
+      }
+    ]
+  },
+  "scripts": {
+    "build": "vsce package"
+  }
 }

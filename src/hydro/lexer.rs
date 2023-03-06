@@ -91,7 +91,7 @@ pub fn hydro_lex(input: String) -> (Vec<HydroToken>, Vec<OceanError>) {
               index,
             ));
           }
-          "if" | "else" | "return" | "continue" | "loop" | "break" | "type" => {
+          "if" | "else" | "return" | "continue" | "loop" | "break" | "type" | "new" => {
             tokens.push(HydroToken::new(
               HydroTokenType::Keyword,
               lexeme.clone(),

@@ -17,6 +17,7 @@ pub enum Instruction {
 pub enum OperationOrPrimary {
   Operation(Operation),
   Primary(Primary),
+  New(New),
 }
 
 #[derive(Clone, Debug)]
@@ -40,6 +41,23 @@ impl Operation {
   pub fn new(identifier: HydroToken, arguments: Vec<Primary>) -> Self {
     Self {
       identifier,
+      arguments,
+    }
+  }
+}
+
+#[derive(Clone, Debug)]
+pub struct New {
+  pub token: HydroToken,
+  pub new_type: Type,
+  pub arguments: Vec<Primary>,
+}
+
+impl New {
+  pub fn new(token: HydroToken, new_type: Type, arguments: Vec<Primary>) -> Self {
+    Self {
+      token,
+      new_type,
       arguments,
     }
   }

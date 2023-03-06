@@ -1,8 +1,8 @@
 use crate::util::span::Spanned;
 
 use super::instruction::{
-  ArrayType, Assignment, BaseType, Function, If, Instruction, Loop, Operation, OperationOrPrimary,
-  Primary, RefType, Return, Type, TypeDefinition,
+  ArrayType, Assignment, BaseType, Function, If, Instruction, Loop, New, Operation,
+  OperationOrPrimary, Primary, RefType, Return, Type, TypeDefinition,
 };
 
 impl Spanned for Instruction {
@@ -37,6 +37,18 @@ impl Spanned for Operation {
 impl Spanned for Primary {
   fn get_span(&self) -> (usize, usize) {
     (self.token.start, self.token.end)
+  }
+}
+
+impl Spanned for New {
+  fn get_span(&self) -> (usize, usize) {
+    let arglen = self.arguments.len();
+    let (_, end) = if arglen == 0 {
+      self.new_type.get_span()
+    } else {
+      self.arguments[arglen - 1].get_span()
+    };
+    (self.token.start, end)
   }
 }
 
@@ -98,6 +110,7 @@ impl Spanned for OperationOrPrimary {
     match self {
       OperationOrPrimary::Operation(x) => x.get_span(),
       OperationOrPrimary::Primary(x) => x.get_span(),
+      OperationOrPrimary::New(x) => x.get_span(),
     }
   }
 }

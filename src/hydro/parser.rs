@@ -122,6 +122,7 @@ fn parse_operation_or_primary(
           _ => panic!("{:?}", tokens[index]),
         }
       }
+      HydroTokenType::Keyword if current_token.lexeme == "new" => parse_new(tokens, index),
       HydroTokenType::StringLiteral
       | HydroTokenType::BooleanLiteral
       | HydroTokenType::NumberLiteral
@@ -134,6 +135,45 @@ fn parse_operation_or_primary(
       }
       _ => panic!("{:?}", current_token),
     }
+  } else {
+    panic!("out of range {} > {}", token_index, tokens.len())
+  }
+}
+
+fn parse_new(tokens: &Vec<HydroToken>, token_index: usize) -> (OperationOrPrimary, usize) {
+  if token_index < tokens.len() {
+    let mut index = token_index;
+    let new_token = match tokens[token_index].token_type {
+      HydroTokenType::Keyword if tokens[token_index].lexeme == "new" => tokens[token_index].clone(),
+      _ => panic!("bad"),
+    };
+    index += 1;
+
+    let (new_type, next_index) = parse_type(tokens, index);
+    index = next_index;
+
+    let mut args = Vec::new();
+    while index < tokens.len() {
+      let current_token = tokens[index].clone();
+      match current_token.token_type {
+        HydroTokenType::Identifier
+        | HydroTokenType::StringLiteral
+        | HydroTokenType::BooleanLiteral
+        | HydroTokenType::NumberLiteral
+        | HydroTokenType::Variable => {
+          let primary;
+          (primary, index) = parse_primary(tokens, index);
+          args.push(primary);
+        }
+        HydroTokenType::Newline | HydroTokenType::LCurly | HydroTokenType::EndOfInput => break,
+        _ => panic!("{:?}", tokens[index]),
+      }
+    }
+
+    (
+      OperationOrPrimary::New(New::new(new_token, new_type, args)),
+      index,
+    )
   } else {
     panic!("out of range {} > {}", token_index, tokens.len())
   }
@@ -259,10 +299,21 @@ fn parse_optional_type(tokens: &Vec<HydroToken>, token_index: usize) -> (Option<
 fn parse_type(tokens: &Vec<HydroToken>, token_index: usize) -> (Type, usize) {
   if token_index < tokens.len() {
     match tokens[token_index].token_type {
-      HydroTokenType::Identifier | HydroTokenType::Type => (
-        Type::BaseType(BaseType::new(tokens[token_index].clone())),
-        token_index + 1,
-      ),
+      HydroTokenType::Identifier | HydroTokenType::Type => {
+        if tokens[token_index].lexeme == "ref" {
+          let ref_token = &tokens[token_index];
+          let (sub_type, new_index) = parse_type(tokens, token_index + 1);
+          (
+            Type::RefType(RefType::new(ref_token.clone(), Box::new(sub_type))),
+            new_index,
+          )
+        } else {
+          (
+            Type::BaseType(BaseType::new(tokens[token_index].clone())),
+            token_index + 1,
+          )
+        }
+      }
       _ => panic!("{:?}", tokens[token_index]),
     }
   } else {
@@ -312,7 +363,6 @@ fn parse_if(tokens: &Vec<HydroToken>, token_index: usize) -> (Instruction, usize
     let (true_insts, new_index) = parse_compound(tokens, index);
     match tokens[new_index].token_type {
       HydroTokenType::Keyword if tokens[new_index].lexeme == "else" => {
-        // TODO add else if?
         let (false_insts, new_new_index) = parse_compound(tokens, new_index + 1);
         (
           Instruction::If(If::new(
@@ -374,7 +424,73 @@ fn parse_break(tokens: &Vec<HydroToken>, token_index: usize) -> (Instruction, us
 }
 
 fn parse_type_def(tokens: &Vec<HydroToken>, token_index: usize) -> (Instruction, usize) {
-  todo!()
+  if token_index < tokens.len() {
+    let mut index = token_index;
+
+    let type_token = match tokens[index].token_type {
+      HydroTokenType::Keyword if tokens[index].lexeme == "type" => tokens[index].clone(),
+      _ => panic!("{:?}", tokens[index].token_type),
+    };
+    index += 1;
+
+    let type_name = match tokens[index].token_type {
+      HydroTokenType::Identifier => tokens[index].clone(),
+      _ => panic!("Expected identifier {:?}", tokens[index].token_type),
+    };
+    index += 1;
+
+    let lcurly = match tokens[index].token_type {
+      HydroTokenType::LCurly => tokens[index].clone(),
+      _ => panic!("Expected left curly"),
+    };
+    index += 1;
+
+    let (type_entries, next_index) = parse_type_entries(tokens, index);
+    index = next_index;
+
+    let rcurly = match tokens[index].token_type {
+      HydroTokenType::RCurly => tokens[index].clone(),
+      _ => panic!("Expected right curly"),
+    };
+    index += 1;
+
+    (
+      Instruction::TypeDefinition(TypeDefinition::new(
+        type_token,
+        type_name,
+        lcurly,
+        type_entries,
+        rcurly,
+      )),
+      index,
+    )
+  } else {
+    panic!("out of range {} > {}", token_index, tokens.len())
+  }
+}
+
+fn parse_type_entries(tokens: &Vec<HydroToken>, token_index: usize) -> (Vec<TypeVar>, usize) {
+  let mut results = Vec::new();
+  let mut current_index = token_index;
+  while current_index < tokens.len() {
+    match tokens[current_index].token_type {
+      HydroTokenType::RCurly => break,
+      HydroTokenType::Variable => {
+        let (type_var, next_index) = parse_type_var(tokens, current_index);
+        results.push(type_var);
+        current_index = next_index;
+      }
+      HydroTokenType::Newline => {
+        current_index += 1;
+      }
+      _ => panic!("Unexpected token {:?}", tokens[current_index]),
+    }
+  }
+  if current_index < tokens.len() {
+    (results, current_index)
+  } else {
+    panic!("out of range {} > {}", token_index, tokens.len())
+  }
 }
 
 fn parse_type_var(tokens: &Vec<HydroToken>, token_index: usize) -> (TypeVar, usize) {
