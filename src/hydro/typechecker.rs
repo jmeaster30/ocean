@@ -59,19 +59,17 @@ fn typecheck_function(
   let args = typecheck_typevars(function.parameter_list.clone(), symbol_table, errors);
   // typecheck return type
   let ret = match &function.return_type {
-    Some(ret_type) => {
-      match symbol_table.get_symbol_from_type(ret_type.clone()) {
-        Some(symbol) => symbol_table.add_symbol(symbol),
-        None => {
-          errors.push(OceanError::SemanticError(
-            Severity::Error,
-            ret_type.get_span(), 
-            "Unknown type :(".to_string()
-          ));
-          symbol_table.add_symbol(HydroSymbol::Base(HydroType::Unknown))
-        } 
+    Some(ret_type) => match symbol_table.get_symbol_from_type(ret_type.clone()) {
+      Some(symbol) => symbol_table.add_symbol(symbol),
+      None => {
+        errors.push(OceanError::SemanticError(
+          Severity::Error,
+          ret_type.get_span(),
+          "Unknown type :(".to_string(),
+        ));
+        symbol_table.add_symbol(HydroSymbol::Base(HydroType::Unknown))
       }
-    }
+    },
     None => symbol_table.add_symbol(HydroSymbol::Base(HydroType::Void)),
   };
 
@@ -81,7 +79,7 @@ fn typecheck_function(
       errors.push(OceanError::SemanticError(
         Severity::Error,
         (function.identifier.start, function.identifier.end),
-        "Function already defined".to_string()
+        "Function already defined".to_string(),
       ));
     }
     None => {}
@@ -91,14 +89,25 @@ fn typecheck_function(
   let mut sub_scope = HydroSymbolTable::new(Some(Box::new(symbol_table.clone())));
   // add args to sub scope
   for (type_var, type_var_id) in function.parameter_list.iter().zip(args.iter()) {
-    sub_scope.add_variable(type_var.identifier.lexeme.clone(), *type_var_id)
+    sub_scope.set_variable(type_var.identifier.lexeme.clone(), *type_var_id)
   }
   // set return type id
   sub_scope.return_type_id = Some(ret);
+  sub_scope.start_return_branch();
 
   // type check function body
   for inst in &mut function.body {
     typecheck_instruction(inst, &mut sub_scope, errors)
+  }
+  match sub_scope.check_return_branch() {
+    Some(false) => {
+      errors.push(OceanError::SemanticError(
+        Severity::Error,
+        (function.identifier.start, function.identifier.end),
+        "Not all code paths return a value".to_string(),
+      ));
+    }
+    _ => {}
   }
 }
 
@@ -167,14 +176,15 @@ fn typecheck_assignment(
 ) {
   let exp_id = typecheck_operation_primary(&mut assignment.operation, symbol_table, errors);
   match symbol_table.get_variable_type_id(assignment.identifier.lexeme.clone()) {
-    Some(x) => {
-      errors.push(OceanError::SemanticError(
+    Some(x) => match symbol_table.matches_type(x, exp_id) {
+      Some(value) => symbol_table.set_variable(assignment.identifier.lexeme.clone(), value),
+      None => errors.push(OceanError::SemanticError(
         Severity::Error,
-        (assignment.identifier.start, assignment.identifier.end),
-        "Variable cannot be assigned twice :(".to_string(),
-      ));
-    }
-    None => symbol_table.add_variable(assignment.identifier.lexeme.clone(), exp_id),
+        assignment.operation.get_span(),
+        "RHS of assignment does not evaluate to the same type as the LHS".to_string(),
+      )),
+    },
+    None => symbol_table.set_variable(assignment.identifier.lexeme.clone(), exp_id),
   }
 }
 
@@ -192,13 +202,33 @@ fn typecheck_if(
     ));
   }
 
+  let mut both_branches_return = true;
+  symbol_table.start_return_branch();
   for inst in &mut if_stmt.true_body {
     typecheck_instruction(inst, symbol_table, errors)
   }
+  match symbol_table.check_return_branch() {
+    Some(value) => {
+      both_branches_return = value;
+    }
+    None => {
+      both_branches_return = true;
+    }
+  }
 
+  symbol_table.start_return_branch();
   for inst in &mut if_stmt.else_body {
     typecheck_instruction(inst, symbol_table, errors)
   }
+  match symbol_table.check_return_branch() {
+    Some(value) => {
+      both_branches_return &= value;
+    }
+    None => {
+      both_branches_return &= true;
+    }
+  }
+  symbol_table.require_return(both_branches_return)
 }
 
 fn typecheck_loop(
@@ -217,17 +247,22 @@ fn typecheck_return(
   errors: &mut Vec<OceanError>,
 ) {
   let ret_id = typecheck_operation_primary(&mut ret.value, symbol_table, errors);
-  match symbol_table.return_type_id {
-    Some(x) => {
-      if ret_id != x {
-        errors.push(OceanError::SemanticError(
-          Severity::Error,
-          ret.value.get_span(),
-          "Return type doesn't match expected return type".to_string(),
-        ));
-      }
+  match symbol_table.found_return(ret_id) {
+    Some(true) => {}
+    Some(false) => {
+      errors.push(OceanError::SemanticError(
+        Severity::Error,
+        ret.value.get_span(),
+        "Return type doesn't match expected return type".to_string(),
+      ));
     }
-    None => symbol_table.return_type_id = Some(ret_id),
+    None => {
+      errors.push(OceanError::SemanticError(
+        Severity::Error,
+        ret.get_span(),
+        "Return statements don't make sense in this context".to_string(),
+      ));
+    }
   }
 }
 

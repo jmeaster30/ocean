@@ -25,7 +25,6 @@ fn parse_instructions(
   while index < tokens.len() && tokens[index].token_type != end {
     let current_token = tokens[index].clone();
     let inst;
-    println!("{}: {}", index, current_token);
 
     match current_token.token_type {
       HydroTokenType::Identifier => {
@@ -249,12 +248,10 @@ fn parse_optional_type(tokens: &Vec<HydroToken>, token_index: usize) -> (Option<
       HydroTokenType::LCurly => (None, token_index),
       _ => {
         let (t, idx) = parse_type(tokens, token_index);
-        println!("{:?}", t);
         (Some(t), idx)
       }
     }
   } else {
-    println!("empty return type");
     (None, token_index)
   }
 }
@@ -285,7 +282,6 @@ fn parse_compound(tokens: &Vec<HydroToken>, token_index: usize) -> (Vec<Instruct
         match tokens[index].token_type {
           HydroTokenType::RCurly => {
             index += 1;
-            println!("here {}", index);
             (instructions, index)
           }
           _ => panic!("{:?}", tokens[new_index]),
