@@ -21,13 +21,40 @@ pub enum OperationOrPrimary {
 }
 
 #[derive(Clone, Debug)]
-pub struct Primary {
+pub enum Primary {
+  Var(Var),
+  Access(Access),
+}
+
+#[derive(Clone, Debug)]
+pub struct Var {
   pub token: HydroToken,
 }
 
-impl Primary {
+impl Var {
   pub fn new(token: HydroToken) -> Self {
     Self { token }
+  }
+}
+
+#[derive(Clone, Debug)]
+pub struct Access {
+  pub primary: Box<Primary>,
+  pub identifier: Option<HydroToken>,
+  pub index: Option<Box<Primary>>,
+}
+
+impl Access {
+  pub fn new(
+    primary: Box<Primary>,
+    identifier: Option<HydroToken>,
+    index: Option<Box<Primary>>,
+  ) -> Self {
+    Self {
+      primary,
+      identifier,
+      index,
+    }
   }
 }
 
@@ -65,15 +92,15 @@ impl New {
 
 #[derive(Clone, Debug)]
 pub struct Assignment {
-  pub identifier: HydroToken,
+  pub primary: Primary,
   pub equal: HydroToken,
   pub operation: OperationOrPrimary,
 }
 
 impl Assignment {
-  pub fn new(identifier: HydroToken, equal: HydroToken, operation: OperationOrPrimary) -> Self {
+  pub fn new(primary: Primary, equal: HydroToken, operation: OperationOrPrimary) -> Self {
     Self {
-      identifier,
+      primary,
       equal,
       operation,
     }

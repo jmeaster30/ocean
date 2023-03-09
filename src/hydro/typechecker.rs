@@ -1,7 +1,7 @@
 use super::{
   instruction::{
-    Assignment, Function, If, Instruction, Loop, New, Operation, OperationOrPrimary, Primary,
-    Return, Type, TypeDefinition, TypeVar,
+    Access, Assignment, Function, If, Instruction, Loop, New, Operation, OperationOrPrimary,
+    Primary, Return, Type, TypeDefinition, TypeVar, Var,
   },
   lexer::{HydroToken, HydroTokenType},
   symboltable::HydroSymbol,
@@ -176,16 +176,32 @@ fn typecheck_assignment(
   errors: &mut Vec<OceanError>,
 ) {
   let exp_id = typecheck_operation_primary(&mut assignment.operation, symbol_table, errors);
-  match symbol_table.get_variable_type_id(assignment.identifier.lexeme.clone()) {
-    Some(x) => match symbol_table.matches_type(x, exp_id) {
-      Some(value) => symbol_table.set_variable(assignment.identifier.lexeme.clone(), value),
-      None => errors.push(OceanError::SemanticError(
-        Severity::Error,
-        assignment.operation.get_span(),
-        "RHS of assignment does not evaluate to the same type as the LHS".to_string(),
-      )),
-    },
-    None => symbol_table.set_variable(assignment.identifier.lexeme.clone(), exp_id),
+  match &mut assignment.primary {
+    Primary::Var(var_name) => {
+      match symbol_table.get_variable_type_id(var_name.token.lexeme.to_string()) {
+        Some(x) => match symbol_table.matches_type(x, exp_id) {
+          Some(value) => symbol_table.set_variable(var_name.token.lexeme.to_string(), value),
+          None => errors.push(OceanError::SemanticError(
+            Severity::Error,
+            assignment.operation.get_span(),
+            "RHS of assignment does not evaluate to the same type as the LHS".to_string(),
+          )),
+        },
+        None => symbol_table.set_variable(var_name.token.lexeme.to_string(), exp_id),
+      }
+    }
+    Primary::Access(access) => {
+      // we already have the variable so just typecheck it
+      let access_type_id = typecheck_access(access, symbol_table, errors);
+      match symbol_table.matches_type(exp_id, access_type_id) {
+        Some(x) if x == access_type_id => {}
+        _ => errors.push(OceanError::SemanticError(
+          Severity::Error,
+          assignment.operation.get_span(),
+          "RHS of assignment does not evaluate to the same type as the LHS".to_string(),
+        )),
+      }
+    }
   }
 }
 
@@ -254,7 +270,11 @@ fn typecheck_return(
       errors.push(OceanError::SemanticError(
         Severity::Error,
         ret.value.get_span(),
-        "Return type doesn't match expected return type".to_string(),
+        format!(
+          "Return type '{:?}' doesn't match expected return type '{:?}'",
+          symbol_table.get_symbol_by_id(ret_id),
+          symbol_table.get_return_symbol()
+        ),
       ));
     }
     None => {
@@ -286,7 +306,7 @@ fn typecheck_typedefinition(
 
   let mut custom_type = HashMap::new();
   for typevar in &type_def.entries {
-    match custom_type.get(&typevar.identifier.lexeme) {
+    match custom_type.get(&symbol_table.clean_type_name(typevar.identifier.lexeme.clone())) {
       Some(_) => {
         errors.push(OceanError::SemanticError(
           Severity::Error,
@@ -297,7 +317,10 @@ fn typecheck_typedefinition(
       None => match symbol_table.get_symbol_from_type(typevar.type_def.clone()) {
         Some(symbol) => {
           let tid = symbol_table.add_symbol(symbol);
-          custom_type.insert(typevar.identifier.lexeme.clone(), tid);
+          custom_type.insert(
+            symbol_table.clean_type_name(typevar.identifier.lexeme.clone()),
+            tid,
+          );
         }
         None => {
           errors.push(OceanError::SemanticError(
@@ -311,6 +334,7 @@ fn typecheck_typedefinition(
   }
   if add_type_def {
     symbol_table.add_type(type_def.identifier.lexeme.clone(), custom_type);
+    println!("{:#?}", symbol_table);
   }
 }
 
@@ -337,10 +361,66 @@ fn typecheck_primary(
   symbol_table: &mut HydroSymbolTable,
   errors: &mut Vec<OceanError>,
 ) -> u64 {
-  match primary.token.token_type {
+  match primary {
+    Primary::Var(var) => typecheck_var(var, symbol_table, errors),
+    Primary::Access(access) => typecheck_access(access, symbol_table, errors),
+  }
+}
+
+fn typecheck_access(
+  access: &mut Access,
+  symbol_table: &mut HydroSymbolTable,
+  errors: &mut Vec<OceanError>,
+) -> u64 {
+  let prim_id = typecheck_primary(&mut access.primary, symbol_table, errors);
+  match &access.identifier {
+    Some(iden) => {
+      // check that iden is a member of primid
+      match symbol_table.get_member_type_id(prim_id, iden.lexeme.clone()) {
+        Some(result_id) => result_id,
+        None => {
+          errors.push(OceanError::SemanticError(
+            Severity::Error,
+            (iden.start, iden.end),
+            format!(
+              "Type '{:?}' doesn't have member variable '{}'",
+              symbol_table.get_symbol_by_id(prim_id),
+              iden.lexeme.clone()
+            ),
+          ));
+          symbol_table.add_symbol(HydroSymbol::Base(HydroType::Unknown))
+        }
+      }
+    }
+    None => match &mut access.index {
+      Some(idx) => {
+        let actual_index_id = typecheck_primary(idx, symbol_table, errors);
+        match symbol_table.is_indexable_by_type(prim_id, actual_index_id) {
+          Some(result_id) => result_id,
+          None => {
+            errors.push(OceanError::SemanticError(
+              Severity::Error,
+              access.get_span(),
+              "Not indexable by type".to_string(),
+            ));
+            symbol_table.add_symbol(HydroSymbol::Base(HydroType::Unknown))
+          }
+        }
+      }
+      None => panic!("This should not be hit"),
+    },
+  }
+}
+
+fn typecheck_var(
+  var: &mut Var,
+  symbol_table: &mut HydroSymbolTable,
+  errors: &mut Vec<OceanError>,
+) -> u64 {
+  match var.token.token_type {
     HydroTokenType::Identifier => todo!(),
     HydroTokenType::StringLiteral => {
-      if primary.token.lexeme.len() == 1 {
+      if var.token.lexeme.len() == 1 {
         symbol_table.add_symbol(HydroSymbol::Base(HydroType::Unsigned8))
       } else {
         symbol_table.add_symbol(HydroSymbol::Base(HydroType::String))
@@ -348,7 +428,7 @@ fn typecheck_primary(
     }
     HydroTokenType::BooleanLiteral => symbol_table.add_symbol(HydroSymbol::Base(HydroType::Bool)),
     HydroTokenType::NumberLiteral => {
-      let lex = primary.token.lexeme.as_str();
+      let lex = var.token.lexeme.as_str();
       let value = match lex.parse::<i128>() {
         Ok(x) => Some(x),
         Err(_) => None,
@@ -385,26 +465,24 @@ fn typecheck_primary(
         _ => {
           errors.push(OceanError::SemanticError(
             Severity::Error,
-            (primary.token.start, primary.token.end),
+            (var.token.start, var.token.end),
             "This number is not representable by any of our number types :(.".to_string(),
           ));
           symbol_table.add_symbol(HydroSymbol::Base(HydroType::Unknown))
         }
       }
     }
-    HydroTokenType::Variable => {
-      match symbol_table.get_variable_type_id(primary.token.lexeme.clone()) {
-        Some(type_id) => type_id,
-        None => {
-          errors.push(OceanError::SemanticError(
-            Severity::Error,
-            primary.get_span(),
-            "Unknown variable :(".to_string(),
-          ));
-          symbol_table.add_symbol(HydroSymbol::Base(HydroType::Unknown))
-        }
+    HydroTokenType::Variable => match symbol_table.get_variable_type_id(var.token.lexeme.clone()) {
+      Some(type_id) => type_id,
+      None => {
+        errors.push(OceanError::SemanticError(
+          Severity::Error,
+          var.get_span(),
+          "Unknown variable :(".to_string(),
+        ));
+        symbol_table.add_symbol(HydroSymbol::Base(HydroType::Unknown))
       }
-    }
+    },
     _ => {
       panic!("Unexpected primary")
     }

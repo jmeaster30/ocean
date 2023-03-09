@@ -85,15 +85,15 @@ fn parse_instructions(
 fn parse_assignment(tokens: &Vec<HydroToken>, token_index: usize) -> (Instruction, usize) {
   let mut index = token_index;
   if index < tokens.len() {
-    let var = tokens[index].clone();
-    index += 1;
+    let (var_name, next_index) = parse_primary(tokens, index);
+    index = next_index;
     if index < tokens.len() {
       let equal = tokens[index].clone();
       index += 1;
       if equal.token_type == HydroTokenType::Equal {
         let (operation_or_primary, index) = parse_operation_or_primary(tokens, index);
         (
-          Instruction::Assignment(Assignment::new(var, equal, operation_or_primary)),
+          Instruction::Assignment(Assignment::new(var_name, equal, operation_or_primary)),
           index,
         )
       } else {
@@ -111,7 +111,7 @@ fn parse_operation_or_primary(
   tokens: &Vec<HydroToken>,
   token_index: usize,
 ) -> (OperationOrPrimary, usize) {
-  let mut index = token_index;
+  let index = token_index;
   if index < tokens.len() {
     let current_token = tokens[index].clone();
     match current_token.token_type {
@@ -127,11 +127,8 @@ fn parse_operation_or_primary(
       | HydroTokenType::BooleanLiteral
       | HydroTokenType::NumberLiteral
       | HydroTokenType::Variable => {
-        index += 1;
-        (
-          OperationOrPrimary::Primary(Primary::new(current_token.clone())),
-          index,
-        )
+        let (prim, next_index) = parse_primary(tokens, index);
+        (OperationOrPrimary::Primary(prim), next_index)
       }
       _ => panic!("{:?}", current_token),
     }
@@ -165,7 +162,10 @@ fn parse_new(tokens: &Vec<HydroToken>, token_index: usize) -> (OperationOrPrimar
           (primary, index) = parse_primary(tokens, index);
           args.push(primary);
         }
-        HydroTokenType::Newline | HydroTokenType::LCurly | HydroTokenType::EndOfInput => break,
+        HydroTokenType::Newline
+        | HydroTokenType::RSquare
+        | HydroTokenType::LCurly
+        | HydroTokenType::EndOfInput => break,
         _ => panic!("{:?}", tokens[index]),
       }
     }
@@ -189,9 +189,83 @@ fn parse_primary(tokens: &Vec<HydroToken>, token_index: usize) -> (Primary, usiz
       | HydroTokenType::StringLiteral
       | HydroTokenType::BooleanLiteral
       | HydroTokenType::NumberLiteral
-      | HydroTokenType::Variable => (Primary::new(current_token.clone()), index),
+      | HydroTokenType::Variable => {
+        parse_primary_follow(tokens, index, Primary::Var(Var::new(current_token)))
+      }
       _ => panic!("{:?}", tokens[token_index]),
     }
+  } else {
+    panic!("out of range {} > {}", token_index, tokens.len())
+  }
+}
+
+fn parse_primary_follow(
+  tokens: &Vec<HydroToken>,
+  token_index: usize,
+  prim: Primary,
+) -> (Primary, usize) {
+  if token_index < tokens.len() {
+    let mut index = token_index;
+    let sep_token = match tokens[index].token_type {
+      HydroTokenType::LSquare | HydroTokenType::Dot => tokens[index].clone(),
+      _ => {
+        return (prim, index);
+      }
+    };
+    index += 1;
+
+    match sep_token.token_type {
+      HydroTokenType::LSquare => {
+        let (index_node, next_index) = parse_primary(tokens, index);
+        index = next_index;
+
+        match tokens[index].token_type {
+          HydroTokenType::RSquare => parse_primary_follow(
+            tokens,
+            index + 1,
+            Primary::Access(Access::new(
+              Box::new(prim),
+              None,
+              Some(Box::new(index_node)),
+            )),
+          ),
+          _ => panic!("Expected right square bracket {:?}", tokens[index]),
+        }
+      }
+      HydroTokenType::Dot => {
+        let iden = match tokens[index].token_type {
+          HydroTokenType::Identifier => Primary::Access(Access::new(
+            Box::new(prim),
+            Some(tokens[index].clone()),
+            None,
+          )),
+          _ => panic!("Expected identifier"),
+        };
+        (iden, index + 1)
+      }
+      _ => panic!("UNexpected"),
+    }
+
+    /*let member = match tokens[index].token_type {
+      HydroTokenType::Identifier => Some(tokens[index].clone()),
+      _ => None,
+    }
+
+    match member {
+      Some(_) => {
+        index += 1;
+        let lcurly = match tokens[index].token_type {
+          HydroTokenType::RCurly => {
+            index += 1;
+            parse_primary_follow(tokens, index, Primary::Access(Access::new(Box::new(prim), member, None)))
+          }
+          _ => panic!("{:?}", tokens[index].clone())
+        }
+      }
+      None => match tokens[index].token_type {
+        HydroTokenType::
+      }
+    }*/
   } else {
     panic!("out of range {} > {}", token_index, tokens.len())
   }
@@ -488,6 +562,29 @@ fn parse_type_entries(tokens: &Vec<HydroToken>, token_index: usize) -> (Vec<Type
   }
   if current_index < tokens.len() {
     (results, current_index)
+  } else {
+    panic!("out of range {} > {}", token_index, tokens.len())
+  }
+}
+
+fn parse_type_entry(tokens: &Vec<HydroToken>, token_index: usize) -> (TypeVar, usize) {
+  if token_index < tokens.len() {
+    let mut index = token_index;
+    match tokens[index].token_type {
+      HydroTokenType::Identifier => {
+        let var_name = tokens[index].clone();
+        index += 1;
+        match tokens[index].token_type {
+          HydroTokenType::Colon => {
+            index += 1;
+            let (var_type, new_index) = parse_type(tokens, index);
+            (TypeVar::new(var_name, var_type), new_index)
+          }
+          _ => panic!("{:?}", tokens[index].token_type),
+        }
+      }
+      _ => panic!("{:?}", tokens[index].token_type),
+    }
   } else {
     panic!("out of range {} > {}", token_index, tokens.len())
   }

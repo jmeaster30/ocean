@@ -221,11 +221,34 @@ impl HydroSymbolTable {
     }
   }
 
+  // I don't know if I like this
+  pub fn clean_type_name(&self, name: String) -> String {
+    let mut result = name;
+    if result.starts_with("@") {
+      result.remove(0);
+    }
+    result
+  }
+
   pub fn add_type(&mut self, typename: String, typemembers: HashMap<String, u64>) -> u64 {
-    let id = self.add_symbol(HydroSymbol::Custom(typename.clone()));
-    self.type_to_id.insert(typename, id);
+    let fixed = self.clean_type_name(typename);
+    let id = self.add_symbol(HydroSymbol::Custom(fixed.clone()));
+    self.type_to_id.insert(fixed, id);
     self.id_to_member.insert(id, typemembers);
     id
+  }
+
+  pub fn get_member_type_id(&mut self, typeid: u64, membername: String) -> Option<u64> {
+    match self.id_to_member.get(&typeid) {
+      Some(members) => match members.get(&self.clean_type_name(membername)) {
+        Some(result_id) => Some(*result_id),
+        None => None,
+      },
+      None => match &mut self.parent_scope {
+        Some(pscope) => pscope.get_member_type_id(typeid, membername),
+        None => None,
+      },
+    }
   }
 
   pub fn get_type_id(&self, typename: String) -> Option<u64> {
@@ -289,6 +312,18 @@ impl HydroSymbolTable {
     }
   }
 
+  pub fn is_indexable_by_type(&self, type_id: u64, actual_index_id: u64) -> Option<u64> {
+    match self.get_symbol_by_id(type_id) {
+      Some(HydroSymbol::Array(base_id, expected_index_id)) => {
+        match self.matches_type(actual_index_id, expected_index_id) {
+          Some(_) => Some(base_id),
+          None => None,
+        }
+      }
+      _ => None,
+    }
+  }
+
   pub fn matches_type(&self, a: u64, b: u64) -> Option<u64> {
     match self.get_symbol_by_id(a) {
       Some(x) => match self.get_symbol_by_id(b) {
@@ -304,6 +339,8 @@ impl HydroSymbolTable {
 
   fn match_symbol(&self, sub: HydroSymbol, sup: HydroSymbol) -> Option<bool> {
     match (sub.clone(), sup.clone()) {
+      (HydroSymbol::Base(HydroType::Unknown), _) => None,
+      (_, HydroSymbol::Base(HydroType::Unknown)) => None,
       (_, HydroSymbol::Ref(id)) => {
         let sym = self.get_symbol_by_id(id);
         match sym {
@@ -334,7 +371,18 @@ impl HydroSymbolTable {
           None
         }
       }
-      _ => todo!(),
+      _ => {
+        println!("{:?}", sub);
+        println!("{:?}", sup);
+        None
+      }
+    }
+  }
+
+  pub fn get_return_symbol(&self) -> Option<HydroSymbol> {
+    match self.return_type_id {
+      Some(x) => self.get_symbol_by_id(x),
+      None => None,
     }
   }
 
