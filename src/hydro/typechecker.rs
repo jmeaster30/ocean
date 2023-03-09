@@ -334,7 +334,6 @@ fn typecheck_typedefinition(
   }
   if add_type_def {
     symbol_table.add_type(type_def.identifier.lexeme.clone(), custom_type);
-    println!("{:#?}", symbol_table);
   }
 }
 

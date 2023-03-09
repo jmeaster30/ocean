@@ -133,7 +133,7 @@ impl HydroSymbolTable {
   }
 
   pub fn get_symbol_from_type(&mut self, typevar: Type) -> Option<HydroSymbol> {
-    match typevar {
+    match typevar.clone() {
       Type::ArrayType(at) => {
         let base_type = self.get_symbol_from_type(*at.base_type);
         let index_type = self.get_symbol_from_type(*at.index_type);
@@ -143,7 +143,10 @@ impl HydroSymbolTable {
             let it_id = self.add_symbol(itsym);
             Some(HydroSymbol::Array(bt_id, it_id))
           }
-          _ => None,
+          _ => match &mut self.parent_scope {
+            Some(pscope) => pscope.get_symbol_from_type(typevar),
+            None => None,
+          },
         }
       }
       Type::BaseType(bt) => match bt.token.lexeme.as_str() {
@@ -163,7 +166,10 @@ impl HydroSymbolTable {
         custom_type_name => match self.get_type_id(custom_type_name.to_string()) {
           Some(type_id) => match self.id_to_symbol.get(&type_id) {
             Some(x) => Some(x.clone()),
-            None => None,
+            None => match &mut self.parent_scope {
+              Some(pscope) => pscope.get_symbol_from_type(typevar),
+              None => None,
+            },
           },
           None => None,
         },
@@ -173,7 +179,10 @@ impl HydroSymbolTable {
           let bt_id = self.add_symbol(sym);
           Some(HydroSymbol::Ref(bt_id))
         }
-        None => None,
+        None => match &mut self.parent_scope {
+          Some(pscope) => pscope.get_symbol_from_type(typevar),
+          None => None,
+        },
       },
     }
   }
