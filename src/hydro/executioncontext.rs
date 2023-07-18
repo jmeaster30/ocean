@@ -1,10 +1,12 @@
 use super::value::Value;
 use super::instruction::Instruction;
 
+use std::cell::RefCell;
 use std::collections::HashMap;
+use std::rc::Rc;
 
 pub struct ExecutionContext {
-  pub parent_execution_context: Option<Box<ExecutionContext>>,
+  pub parent_execution_context: Option<Rc<RefCell<ExecutionContext>>>,
   pub stack: Vec<Value>,
   pub program_counter: usize,
   pub instructions: Vec<Instruction>,

@@ -3,13 +3,6 @@
 version = 3
 
 [[package]]
-name = "ocean"
-version = "0.1.0"
-dependencies = [
- "ocean_macros",
-]
-
-[[package]]
 name = "ocean_macros"
 version = "0.1.0"
 dependencies = [

@@ -7,3 +7,4 @@ exclude = ["./ocean-language-support/*"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+ocean_macros = { path = "ocean_macros" }
