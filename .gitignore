@@ -4,6 +4,6 @@ scratch/*
 
 # Added by cargo
 
-/target
+target
 
 *.vsix
