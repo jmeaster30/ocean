@@ -1,14 +1,8 @@
-mod hydro;
-mod ocean;
-mod util;
+pub mod hydro;
+pub mod util;
 
-use crate::ocean::compile;
-use hydro::pipeline::HydroCompilationUnit;
 use util::argsparser::{ArgsParser, Argument};
-
 use std::env;
-use std::fs::File;
-use std::io::prelude::*;
 
 fn main() -> std::io::Result<()> {
   let args: Vec<String> = env::args().collect();
@@ -32,55 +26,6 @@ fn main() -> std::io::Result<()> {
       .default("main.sea")
       .help("The main source file to compile"));
   let parsed_args = arg_parser.parse(args[1..].to_vec());
-  match parsed_args {
-    Ok(x) => {
-      let command = x.get("Command").unwrap().clone().unwrap();
-      match command.as_str() {
-        "version" => arg_parser.print_version_info(),
-        "help" => arg_parser.print_help(),
-        "build" | "run" => {
-          let source = x.get("Source File").unwrap().clone().unwrap();
-          let file_result = File::open(source.clone());
-          match file_result {
-            Ok(mut file) => {
-              let mut contents = String::new();
-              file.read_to_string(&mut contents)?;
-              compile(source.to_string(), contents.to_string());
-            }
-            Err(err) => {
-              println!("Unable to open file '{}' :(", source);
-              println!("{}", err);
-            }
-          }
-        }
-        "hydro" => {
-          let source = x.get("Source File").unwrap().clone().unwrap();
-          let file_result = File::open(source.clone());
-          match file_result {
-            Ok(mut file) => {
-              let mut contents = String::new();
-              file.read_to_string(&mut contents)?;
-              let compunit =
-                HydroCompilationUnit::from_file(source.to_string(), contents.to_string())
-                  .build_ast()
-                  .typecheck_ast()
-                  .generate_bytecode();
-              compunit.print_errors();
-            }
-            Err(err) => {
-              println!("Unable to open file '{}' :(", source);
-              println!("{}", err);
-            }
-          }
-        }
-        _ => todo!(),
-      }
-    }
-    Err(msg) => {
-      println!("Arg parsing error: {}", msg);
-      arg_parser.print_usage();
-    }
-  }
-
+  
   Ok(())
 }

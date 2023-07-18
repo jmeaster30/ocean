@@ -1,285 +1,149 @@
-use super::lexer::HydroToken;
+use super::value::Value;
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
 pub enum Instruction {
-  Operation(Operation),
-  Assignment(Assignment),
-  If(If),
-  Loop(Loop),
-  Function(Function),
-  TypeDefinition(TypeDefinition),
+  PushValue(PushValue),
+  PopValue(PopValue),
+
+  Add(Add),
+  Subtract(Subtract),
+  Multiply(Multiply),
+  Divide(Divide),
+  Modulo(Modulo),
+  
+  LeftShift(LeftShift),
+  RightShift(RightShift),
+  
+  BitwiseAnd(BitwiseAnd),
+  BitwiseOr(BitwiseOr),
+  BitwiseXor(BitwiseXor),
+  BitwiseNot(BitwiseNot),
+
+  And(And),
+  Or(Or),
+  Xor(Xor),
+  Not(Not),
+
+  Equal(Equal),
+  NotEqual(NotEqual),
+  LessThan(LessThan),
+  GreaterThan(GreaterThan),
+  LessThanEqual(LessThanEqual),
+  GreaterThanEqual(GreaterThanEqual),
+  
+  Jump(Jump),
+  Branch(Branch),
+  
+  Call(Call),
   Return(Return),
-  Break(HydroToken),
-  Continue(HydroToken),
+
+  LoadVariable(LoadVariable),
+  StoreVariable(StoreVariable),
+
+  LoadIndex(LoadIndex),
+  StoreIndex(StoreIndex),
 }
 
-#[derive(Clone, Debug)]
-pub enum OperationOrPrimary {
-  Operation(Operation),
-  Primary(Primary),
-  New(New),
+#[derive(Debug, Clone)]
+pub struct PushValue {
+  pub value: Value,
 }
 
-#[derive(Clone, Debug)]
-pub enum Primary {
-  Var(Var),
-  Access(Access),
+#[derive(Debug, Clone)]
+pub struct PopValue {}
+
+#[derive(Debug, Clone)]
+pub struct Add {}
+
+#[derive(Debug, Clone)]
+pub struct Subtract {}
+
+#[derive(Debug, Clone)]
+pub struct Multiply {}
+
+#[derive(Debug, Clone)]
+pub struct Divide {}
+
+#[derive(Debug, Clone)]
+pub struct Modulo {}
+
+#[derive(Debug, Clone)]
+pub struct LeftShift {}
+
+#[derive(Debug, Clone)]
+pub struct RightShift {}
+
+#[derive(Debug, Clone)]
+pub struct BitwiseAnd {}
+
+#[derive(Debug, Clone)]
+pub struct BitwiseOr {}
+
+#[derive(Debug, Clone)]
+pub struct BitwiseXor {}
+
+#[derive(Debug, Clone)]
+pub struct BitwiseNot {}
+
+#[derive(Debug, Clone)]
+pub struct And {}
+
+#[derive(Debug, Clone)]
+pub struct Or {}
+
+#[derive(Debug, Clone)]
+pub struct Xor {}
+
+#[derive(Debug, Clone)]
+pub struct Not {}
+
+#[derive(Debug, Clone)]
+pub struct Equal {}
+
+#[derive(Debug, Clone)]
+pub struct NotEqual {}
+
+#[derive(Debug, Clone)]
+pub struct LessThan {}
+
+#[derive(Debug, Clone)]
+pub struct GreaterThan {}
+
+#[derive(Debug, Clone)]
+pub struct LessThanEqual {}
+
+#[derive(Debug, Clone)]
+pub struct GreaterThanEqual {}
+
+#[derive(Debug, Clone)]
+pub struct Jump {
+  pub index: usize,
 }
 
-#[derive(Clone, Debug)]
-pub struct Var {
-  pub token: HydroToken,
+#[derive(Debug, Clone)]
+pub struct Branch {
+  pub true_index: usize,
+  pub false_index: usize,
 }
 
-impl Var {
-  pub fn new(token: HydroToken) -> Self {
-    Self { token }
-  }
+#[derive(Debug, Clone)]
+pub struct Call {}
+
+#[derive(Debug, Clone)]
+pub struct Return {}
+
+#[derive(Debug, Clone)]
+pub struct LoadVariable {
+  pub identifier: String,
 }
 
-#[derive(Clone, Debug)]
-pub struct Access {
-  pub primary: Box<Primary>,
-  pub identifier: Option<HydroToken>,
-  pub index: Option<Box<Primary>>,
+#[derive(Debug, Clone)]
+pub struct StoreVariable {
+  pub identifier: String,
 }
 
-impl Access {
-  pub fn new(
-    primary: Box<Primary>,
-    identifier: Option<HydroToken>,
-    index: Option<Box<Primary>>,
-  ) -> Self {
-    Self {
-      primary,
-      identifier,
-      index,
-    }
-  }
-}
+#[derive(Debug, Clone)]
+pub struct LoadIndex {}
 
-#[derive(Clone, Debug)]
-pub struct Operation {
-  pub identifier: HydroToken,
-  pub arguments: Vec<Primary>,
-}
-
-impl Operation {
-  pub fn new(identifier: HydroToken, arguments: Vec<Primary>) -> Self {
-    Self {
-      identifier,
-      arguments,
-    }
-  }
-}
-
-#[derive(Clone, Debug)]
-pub struct New {
-  pub token: HydroToken,
-  pub new_type: Type,
-  pub arguments: Vec<Primary>,
-}
-
-impl New {
-  pub fn new(token: HydroToken, new_type: Type, arguments: Vec<Primary>) -> Self {
-    Self {
-      token,
-      new_type,
-      arguments,
-    }
-  }
-}
-
-#[derive(Clone, Debug)]
-pub struct Assignment {
-  pub primary: Primary,
-  pub equal: HydroToken,
-  pub operation: OperationOrPrimary,
-}
-
-impl Assignment {
-  pub fn new(primary: Primary, equal: HydroToken, operation: OperationOrPrimary) -> Self {
-    Self {
-      primary,
-      equal,
-      operation,
-    }
-  }
-}
-
-#[derive(Clone, Debug)]
-pub struct If {
-  pub if_token: HydroToken,
-  pub condition: OperationOrPrimary,
-  pub true_body: Vec<Instruction>,
-  pub else_body: Vec<Instruction>,
-}
-
-impl If {
-  pub fn new(
-    if_token: HydroToken,
-    condition: OperationOrPrimary,
-    true_body: Vec<Instruction>,
-    else_body: Vec<Instruction>,
-  ) -> Self {
-    Self {
-      if_token,
-      condition,
-      true_body,
-      else_body,
-    }
-  }
-}
-
-#[derive(Clone, Debug)]
-pub struct Return {
-  pub return_token: HydroToken,
-  pub value: OperationOrPrimary,
-}
-
-impl Return {
-  pub fn new(return_token: HydroToken, value: OperationOrPrimary) -> Self {
-    Self {
-      return_token,
-      value,
-    }
-  }
-}
-
-#[derive(Clone, Debug)]
-pub struct Loop {
-  pub loop_token: HydroToken,
-  pub body: Vec<Instruction>,
-}
-
-impl Loop {
-  pub fn new(loop_token: HydroToken, body: Vec<Instruction>) -> Self {
-    Self { loop_token, body }
-  }
-}
-
-#[derive(Clone, Debug)]
-pub struct Function {
-  pub func_token: HydroToken,
-  pub identifier: HydroToken,
-  pub parameter_list: Vec<TypeVar>,
-  pub return_type: Option<Type>,
-  pub body: Vec<Instruction>,
-}
-
-impl Function {
-  pub fn new(
-    func_token: HydroToken,
-    identifier: HydroToken,
-    parameter_list: Vec<TypeVar>,
-    return_type: Option<Type>,
-    body: Vec<Instruction>,
-  ) -> Self {
-    Self {
-      func_token,
-      identifier,
-      parameter_list,
-      return_type,
-      body,
-    }
-  }
-}
-
-#[derive(Clone, Debug)]
-pub struct TypeDefinition {
-  pub type_token: HydroToken,
-  pub identifier: HydroToken,
-  pub left_curly: HydroToken,
-  pub entries: Vec<TypeVar>,
-  pub right_curly: HydroToken,
-}
-
-impl TypeDefinition {
-  pub fn new(
-    type_token: HydroToken,
-    identifier: HydroToken,
-    left_curly: HydroToken,
-    entries: Vec<TypeVar>,
-    right_curly: HydroToken,
-  ) -> Self {
-    Self {
-      type_token,
-      identifier,
-      left_curly,
-      entries,
-      right_curly,
-    }
-  }
-}
-
-#[derive(Clone, Debug)]
-pub struct TypeVar {
-  pub identifier: HydroToken,
-  pub type_def: Type,
-}
-
-impl TypeVar {
-  pub fn new(identifier: HydroToken, type_def: Type) -> Self {
-    Self {
-      identifier,
-      type_def,
-    }
-  }
-}
-
-#[derive(Clone, Debug)]
-pub enum Type {
-  ArrayType(ArrayType),
-  BaseType(BaseType),
-  RefType(RefType),
-}
-
-#[derive(Clone, Debug)]
-pub struct ArrayType {
-  pub base_type: Box<Type>,
-  pub left_square: HydroToken,
-  pub index_type: Box<Type>,
-  pub right_square: HydroToken,
-}
-
-impl ArrayType {
-  pub fn new(
-    base_type: Box<Type>,
-    left_square: HydroToken,
-    index_type: Box<Type>,
-    right_square: HydroToken,
-  ) -> Self {
-    Self {
-      base_type,
-      left_square,
-      index_type,
-      right_square,
-    }
-  }
-}
-
-#[derive(Clone, Debug)]
-pub struct BaseType {
-  pub token: HydroToken,
-}
-
-impl BaseType {
-  pub fn new(token: HydroToken) -> Self {
-    Self { token }
-  }
-}
-
-#[derive(Clone, Debug)]
-pub struct RefType {
-  pub ref_token: HydroToken,
-  pub base_type: Box<Type>,
-}
-
-impl RefType {
-  pub fn new(ref_token: HydroToken, base_type: Box<Type>) -> Self {
-    Self {
-      ref_token,
-      base_type,
-    }
-  }
-}
+#[derive(Debug, Clone)]
+pub struct StoreIndex {}
