@@ -2,7 +2,7 @@ use super::value::Value;
 use super::instruction::Instruction;
 
 use std::collections::HashMap;
-use ocean_macros::make_add_numbers;
+use ocean_macros::{make_add_operations, make_comparison_operations};
 
 #[derive(Clone)]
 pub struct ExecutionContext {
@@ -38,7 +38,7 @@ impl ExecutionContext {
       (Value::Character(a), Value::String(b)) => Value::String(a.to_string() + b.as_str()),
       (Value::String(a), Value::Character(b)) => Value::String(a + b.to_string().as_str()),
       (Value::String(a), Value::String(b)) => Value::String(a + b.as_str()), // there has to be a better way than '.as_str()'
-      (a, b) => make_add_numbers!(a, b),
+      (a, b) => make_add_operations!(+),
     }
   }
 
@@ -47,7 +47,7 @@ impl ExecutionContext {
     let b_value = self.resolve(b);
 
     match (a_value, b_value) {
-      (a, b) => make_add_numbers!(a, b),
+      (a, b) => make_add_operations!(-),
     }
   }
 
@@ -56,7 +56,7 @@ impl ExecutionContext {
     let b_value = self.resolve(b);
 
     match (a_value, b_value) {
-      (a, b) => make_add_numbers!(a, b),
+      (a, b) => make_add_operations!(*),
     }
   }
 
@@ -65,7 +65,7 @@ impl ExecutionContext {
     let b_value = self.resolve(b);
 
     match (a_value, b_value) {
-      (a, b) => make_add_numbers!(a, b),
+      (a, b) => make_add_operations!(/),
     }
   }
 
@@ -74,7 +74,7 @@ impl ExecutionContext {
     let b_value = self.resolve(b);
 
     match (a_value, b_value) {
-      (a, b) => make_add_numbers!(a, b),
+      (a, b) => make_add_operations!(%),
     }
   }
 
@@ -122,7 +122,7 @@ impl ExecutionContext {
     let b_value = self.resolve(b);
 
     match (a_value, b_value) {
-      (a, b) => make_add_numbers!(a, b),
+      (a, b) => make_add_operations!(&),
     }
   }
 
@@ -131,7 +131,7 @@ impl ExecutionContext {
     let b_value = self.resolve(b);
 
     match (a_value, b_value) {
-      (a, b) => make_add_numbers!(a, b),
+      (a, b) => make_add_operations!(|),
     }
   }
 
@@ -140,7 +140,7 @@ impl ExecutionContext {
     let b_value = self.resolve(b);
 
     match (a_value, b_value) {
-      (a, b) => make_add_numbers!(a, b),
+      (a, b) => make_add_operations!(^),
     }
   }
 
@@ -220,7 +220,7 @@ impl ExecutionContext {
       (Value::Character(a), Value::String(b)) => Value::Boolean(a.to_string() == b),
       (Value::String(a), Value::Character(b)) => Value::Boolean(a == b.to_string()),
       (Value::String(a), Value::String(b)) => Value::Boolean(a == b),
-      (a, b) => make_add_numbers!(a, b),
+      (a, b) => make_comparison_operations!(==),
       _ => panic!("Operator unimplemented for type"),
     }
   }
@@ -235,7 +235,7 @@ impl ExecutionContext {
       (Value::Character(a), Value::String(b)) => Value::Boolean(a.to_string() != b),
       (Value::String(a), Value::Character(b)) => Value::Boolean(a != b.to_string()),
       (Value::String(a), Value::String(b)) => Value::Boolean(a != b),
-      (a, b) => make_add_numbers!(a, b),
+      (a, b) => make_comparison_operations!(!=),
     }
 
   }
@@ -250,7 +250,7 @@ impl ExecutionContext {
       (Value::Character(a), Value::String(b)) => Value::Boolean(a.to_string() < b),
       (Value::String(a), Value::Character(b)) => Value::Boolean(a < b.to_string()),
       (Value::String(a), Value::String(b)) => Value::Boolean(a < b),
-      (a, b) => make_add_numbers!(a, b),
+      (a, b) => make_comparison_operations!(<),
     }
   }
 
@@ -264,7 +264,7 @@ impl ExecutionContext {
       (Value::Character(a), Value::String(b)) => Value::Boolean(a.to_string() > b),
       (Value::String(a), Value::Character(b)) => Value::Boolean(a > b.to_string()),
       (Value::String(a), Value::String(b)) => Value::Boolean(a > b),
-      (a, b) => make_add_numbers!(a, b),
+      (a, b) => make_comparison_operations!(>),
     }
   }
 
@@ -278,7 +278,7 @@ impl ExecutionContext {
       (Value::Character(a), Value::String(b)) => Value::Boolean(a.to_string() <= b),
       (Value::String(a), Value::Character(b)) => Value::Boolean(a <= b.to_string()),
       (Value::String(a), Value::String(b)) => Value::Boolean(a <= b),
-      (a, b) => make_add_numbers!(a, b),
+      (a, b) => make_comparison_operations!(<=),
     }
   }
 
@@ -292,7 +292,7 @@ impl ExecutionContext {
       (Value::Character(a), Value::String(b)) => Value::Boolean(a.to_string() >= b),
       (Value::String(a), Value::Character(b)) => Value::Boolean(a >= b.to_string()),
       (Value::String(a), Value::String(b)) => Value::Boolean(a >= b),
-      (a, b) => make_add_numbers!(a, b),
+      (a, b) => make_comparison_operations!(>=),
     }
   }
 }
