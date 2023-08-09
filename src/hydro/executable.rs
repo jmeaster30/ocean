@@ -16,10 +16,10 @@ pub fn execute(instructions: &Vec<Instruction>, args: Vec<(String, Value)>, pare
     context.variables.insert(arg.0, arg.1);
   }
   
-  for inst in instructions {
-    inst.execute(&mut context);
-
-    if context.return_value.is_some() {
+  while context.program_counter.clone() < instructions.len() {
+    let inst = context.instructions[context.program_counter.clone()].clone();
+    let cont = inst.execute(&mut context);
+    if !cont {
       break;
     }
   }
@@ -28,33 +28,67 @@ pub fn execute(instructions: &Vec<Instruction>, args: Vec<(String, Value)>, pare
 }
 
 pub trait Executable {
-  fn execute(&self, context: &mut ExecutionContext);
+  fn execute(&self, context: &mut ExecutionContext) -> bool;
 }
 
 impl Instruction {
-  fn execute(&self, context: &mut ExecutionContext) {
-    
+  fn execute(&self, context: &mut ExecutionContext) -> bool {
+    match self {
+      Instruction::PushValue(x) => x.execute(context),
+      Instruction::PopValue(x) => x.execute(context),
+      Instruction::Add(x) => x.execute(context),
+      Instruction::Subtract(x) => x.execute(context),
+      Instruction::Multiply(x) => x.execute(context),
+      Instruction::Divide(x) => x.execute(context),
+      Instruction::Modulo(x) => x.execute(context),
+      Instruction::LeftShift(x) => x.execute(context),
+      Instruction::RightShift(x) => x.execute(context),
+      Instruction::BitwiseAnd(x) => x.execute(context),
+      Instruction::BitwiseOr(x) => x.execute(context),
+      Instruction::BitwiseXor(x) => x.execute(context),
+      Instruction::BitwiseNot(x) => x.execute(context),
+      Instruction::And(x) => x.execute(context),
+      Instruction::Or(x) => x.execute(context),
+      Instruction::Xor(x) => x.execute(context),
+      Instruction::Not(x) => x.execute(context),
+      Instruction::Equal(x) => x.execute(context),
+      Instruction::NotEqual(x) => x.execute(context),
+      Instruction::LessThan(x) => x.execute(context),
+      Instruction::GreaterThan(x) => x.execute(context),
+      Instruction::LessThanEqual(x) => x.execute(context),
+      Instruction::GreaterThanEqual(x) => x.execute(context),
+      Instruction::Jump(x) => x.execute(context),
+      Instruction::Branch(x) => x.execute(context),
+      Instruction::Call(x) => x.execute(context),
+      Instruction::Return(x) => x.execute(context),
+      Instruction::LoadVariable(x) => x.execute(context),
+      Instruction::StoreVariable(x) => x.execute(context),
+      Instruction::LoadIndex(x) => x.execute(context),
+      Instruction::StoreIndex(x) => x.execute(context),
+    }
   }
 }
 
 impl Executable for PushValue {
-  fn execute(&self, context: &mut ExecutionContext) {
+  fn execute(&self, context: &mut ExecutionContext) -> bool {
     context.stack.push(self.value.clone());
     context.program_counter += 1;
+    true
   }
 }
 
 impl Executable for PopValue {
-  fn execute(&self, mut context: &mut ExecutionContext) {
+  fn execute(&self, mut context: &mut ExecutionContext) -> bool {
     if context.stack.pop().is_none() {
       panic!("Stack was empty when it was expected to have some value :(");
     }
     context.program_counter += 1;
+    true
   }
 }
 
 impl Executable for Add {
-  fn execute(&self, mut context: &mut ExecutionContext) {
+  fn execute(&self, mut context: &mut ExecutionContext) -> bool {
     if context.stack.len() < 2 {
       panic!("Stack didn't have enough elements for the add operation :(");
     }
@@ -65,11 +99,12 @@ impl Executable for Add {
     context.stack.push(context.add(a, b));
 
     context.program_counter += 1;
+    true
   }
 }
 
 impl Executable for Subtract {
-  fn execute(&self, context: &mut ExecutionContext) {
+  fn execute(&self, context: &mut ExecutionContext) -> bool {
     if context.stack.len() < 2 {
       panic!("Stack didn't have enough elements for the sub operation :(");
     }
@@ -80,11 +115,12 @@ impl Executable for Subtract {
     context.stack.push(context.sub(a, b));
 
     context.program_counter += 1;
+    true
   }
 }
 
 impl Executable for Multiply {
-  fn execute(&self, context: &mut ExecutionContext) {
+  fn execute(&self, context: &mut ExecutionContext) -> bool {
     if context.stack.len() < 2 {
       panic!("Stack didn't have enough elements for the mult operation :(");
     }
@@ -95,11 +131,12 @@ impl Executable for Multiply {
     context.stack.push(context.mult(a, b));
 
     context.program_counter += 1;
+    true
   }
 }
 
 impl Executable for Divide {
-  fn execute(&self, context: &mut ExecutionContext) {
+  fn execute(&self, context: &mut ExecutionContext) -> bool {
     if context.stack.len() < 2 {
       panic!("Stack didn't have enough elements for the div operation :(");
     }
@@ -110,11 +147,12 @@ impl Executable for Divide {
     context.stack.push(context.div(a, b));
 
     context.program_counter += 1;
+    true
   }
 }
 
 impl Executable for Modulo {
-  fn execute(&self, context: &mut ExecutionContext) {
+  fn execute(&self, context: &mut ExecutionContext) -> bool {
     if context.stack.len() < 2 {
       panic!("Stack didn't have enough elements for the mod operation :(");
     }
@@ -125,11 +163,12 @@ impl Executable for Modulo {
     context.stack.push(context.modulo(a, b));
 
     context.program_counter += 1;
+    true
   }
 }
 
 impl Executable for LeftShift {
-  fn execute(&self, context: &mut ExecutionContext) {
+  fn execute(&self, context: &mut ExecutionContext) -> bool {
     if context.stack.len() < 2 {
       panic!("Stack didn't have enough elements for the left shift operation :(");
     }
@@ -140,11 +179,12 @@ impl Executable for LeftShift {
     context.stack.push(context.shiftleft(a, b));
 
     context.program_counter += 1;
+    true
   }
 }
 
 impl Executable for RightShift {
-  fn execute(&self, context: &mut ExecutionContext) {
+  fn execute(&self, context: &mut ExecutionContext) -> bool {
     if context.stack.len() < 2 {
       panic!("Stack didn't have enough elements for the right shift operation :(");
     }
@@ -155,11 +195,12 @@ impl Executable for RightShift {
     context.stack.push(context.shiftright(a, b));
 
     context.program_counter += 1;
+    true
   }
 }
 
 impl Executable for BitwiseAnd {
-  fn execute(&self, context: &mut ExecutionContext) {
+  fn execute(&self, context: &mut ExecutionContext) -> bool {
     if context.stack.len() < 2 {
       panic!("Stack didn't have enough elements for the bit and operation :(");
     }
@@ -170,11 +211,12 @@ impl Executable for BitwiseAnd {
     context.stack.push(context.bitand(a, b));
 
     context.program_counter += 1;
+    true
   }
 }
 
 impl Executable for BitwiseOr {
-  fn execute(&self, context: &mut ExecutionContext) {
+  fn execute(&self, context: &mut ExecutionContext) -> bool {
     if context.stack.len() < 2 {
       panic!("Stack didn't have enough elements for the bit or operation :(");
     }
@@ -185,11 +227,12 @@ impl Executable for BitwiseOr {
     context.stack.push(context.bitor(a, b));
 
     context.program_counter += 1;
+    true
   }
 }
 
 impl Executable for BitwiseXor {
-  fn execute(&self, context: &mut ExecutionContext) {
+  fn execute(&self, context: &mut ExecutionContext) -> bool {
     if context.stack.len() < 2 {
       panic!("Stack didn't have enough elements for the bit xor operation :(");
     }
@@ -200,11 +243,12 @@ impl Executable for BitwiseXor {
     context.stack.push(context.bitxor(a, b));
 
     context.program_counter += 1;
+    true
   }
 }
 
 impl Executable for BitwiseNot {
-  fn execute(&self, context: &mut ExecutionContext) {
+  fn execute(&self, context: &mut ExecutionContext) -> bool {
     if context.stack.len() < 1 {
       panic!("Stack didn't have enough elements for the bit not operation :(");
     }
@@ -214,11 +258,12 @@ impl Executable for BitwiseNot {
     context.stack.push(context.bitnot(a));
 
     context.program_counter += 1;
+    true
   }
 }
 
 impl Executable for And {
-  fn execute(&self, context: &mut ExecutionContext) {
+  fn execute(&self, context: &mut ExecutionContext) -> bool {
     if context.stack.len() < 2 {
       panic!("Stack didn't have enough elements for the and operation :(");
     }
@@ -229,11 +274,12 @@ impl Executable for And {
     context.stack.push(context.and(a, b));
 
     context.program_counter += 1;
+    true
   }
 }
 
 impl Executable for Or {
-  fn execute(&self, context: &mut ExecutionContext) {
+  fn execute(&self, context: &mut ExecutionContext) -> bool {
     if context.stack.len() < 2 {
       panic!("Stack didn't have enough elements for the or operation :(");
     }
@@ -244,11 +290,12 @@ impl Executable for Or {
     context.stack.push(context.or(a, b));
 
     context.program_counter += 1;
+    true
   }
 }
 
 impl Executable for Xor {
-  fn execute(&self, context: &mut ExecutionContext) {
+  fn execute(&self, context: &mut ExecutionContext) -> bool {
     if context.stack.len() < 2 {
       panic!("Stack didn't have enough elements for the xor operation :(");
     }
@@ -259,11 +306,12 @@ impl Executable for Xor {
     context.stack.push(context.xor(a, b));
 
     context.program_counter += 1;
+    true
   }
 }
 
 impl Executable for Not {
-  fn execute(&self, context: &mut ExecutionContext) {
+  fn execute(&self, context: &mut ExecutionContext) -> bool {
     if context.stack.len() < 2 {
       panic!("Stack didn't have enough elements for the not operation :(");
     }
@@ -273,11 +321,12 @@ impl Executable for Not {
     context.stack.push(context.not(a));
 
     context.program_counter += 1;
+    true
   }
 }
 
 impl Executable for Equal {
-  fn execute(&self, context: &mut ExecutionContext) {
+  fn execute(&self, context: &mut ExecutionContext) -> bool {
     if context.stack.len() < 2 {
       panic!("Stack didn't have enough elements for the equal operation :(");
     }
@@ -288,11 +337,12 @@ impl Executable for Equal {
     context.stack.push(context.equal(a, b));
 
     context.program_counter += 1;
+    true
   }
 }
 
 impl Executable for NotEqual {
-  fn execute(&self, context: &mut ExecutionContext) {
+  fn execute(&self, context: &mut ExecutionContext) -> bool {
     if context.stack.len() < 2 {
       panic!("Stack didn't have enough elements for the not equal operation :(");
     }
@@ -303,11 +353,12 @@ impl Executable for NotEqual {
     context.stack.push(context.notequal(a, b));
 
     context.program_counter += 1;
+    true
   }
 }
 
 impl Executable for LessThan {
-  fn execute(&self, context: &mut ExecutionContext) {
+  fn execute(&self, context: &mut ExecutionContext) -> bool {
     if context.stack.len() < 2 {
       panic!("Stack didn't have enough elements for the less than operation :(");
     }
@@ -318,11 +369,12 @@ impl Executable for LessThan {
     context.stack.push(context.lessthan(a, b));
 
     context.program_counter += 1;
+    true
   }
 }
 
 impl Executable for GreaterThan {
-  fn execute(&self, context: &mut ExecutionContext) {
+  fn execute(&self, context: &mut ExecutionContext) -> bool {
     if context.stack.len() < 2 {
       panic!("Stack didn't have enough elements for the greater than operation :(");
     }
@@ -333,11 +385,12 @@ impl Executable for GreaterThan {
     context.stack.push(context.greaterthan(a, b));
 
     context.program_counter += 1;
+    true
   }
 }
 
 impl Executable for LessThanEqual {
-  fn execute(&self, context: &mut ExecutionContext) {
+  fn execute(&self, context: &mut ExecutionContext) -> bool {
     if context.stack.len() < 2 {
       panic!("Stack didn't have enough elements for the less than equal operation :(");
     }
@@ -348,11 +401,12 @@ impl Executable for LessThanEqual {
     context.stack.push(context.lessthanequal(a, b));
 
     context.program_counter += 1;
+    true
   }
 }
 
 impl Executable for GreaterThanEqual {
-  fn execute(&self, context: &mut ExecutionContext) {
+  fn execute(&self, context: &mut ExecutionContext) -> bool {
     if context.stack.len() < 2 {
       panic!("Stack didn't have enough elements for the greater than equal operation :(");
     }
@@ -363,17 +417,19 @@ impl Executable for GreaterThanEqual {
     context.stack.push(context.greaterthanequal(a, b));
 
     context.program_counter += 1;
+    true
   }
 }
 
 impl Executable for Jump {
-  fn execute(&self, context: &mut ExecutionContext) {
+  fn execute(&self, context: &mut ExecutionContext) -> bool {
     context.program_counter = self.index;
+    true
   }
 }
 
 impl Executable for Branch {
-  fn execute(&self, context: &mut ExecutionContext) {
+  fn execute(&self, context: &mut ExecutionContext) -> bool {
     if context.stack.len() < 1 {
       panic!("Stack didn't have enough elements for the branch operation :(");
     }
@@ -386,11 +442,12 @@ impl Executable for Branch {
     } else {
       context.program_counter = self.false_index;
     }
+    true
   }
 }
 
 impl Executable for Call {
-  fn execute(&self, context: &mut ExecutionContext) {
+  fn execute(&self, context: &mut ExecutionContext) -> bool {
     if context.stack.len() < 1 {
       panic!("Stack didn't have enough elements for the call operation :(")
     }
@@ -416,36 +473,45 @@ impl Executable for Call {
     }
 
     context.program_counter += 1;
+    true
   }
 }
 
 impl Executable for Return {
-  fn execute(&self, context: &mut ExecutionContext) {
+  fn execute(&self, context: &mut ExecutionContext) -> bool {
+    if context.stack.len() < 1 {
+      panic!("Stack didn't have enough elements for the branch operation :(");
+    }
 
+    let result = context.stack.pop().unwrap();
+    context.return_value = Some(result);
+
+    context.program_counter += 1;
+    false
   }
 }
 
 impl Executable for LoadVariable { 
-  fn execute(&self, context: &mut ExecutionContext) {
-
+  fn execute(&self, context: &mut ExecutionContext) -> bool {
+    todo!();
   }
 }
 
 impl Executable for StoreVariable {
-  fn execute(&self, context: &mut ExecutionContext) {
-
+  fn execute(&self, context: &mut ExecutionContext) -> bool {
+    todo!();
   }
 }
 
 impl Executable for LoadIndex {
-  fn execute(&self, context: &mut ExecutionContext) {
-
+  fn execute(&self, context: &mut ExecutionContext) -> bool {
+    todo!();
   }
 }
 
 impl Executable for StoreIndex {
-  fn execute(&self, context: &mut ExecutionContext) {
-
+  fn execute(&self, context: &mut ExecutionContext) -> bool {
+    todo!();
   }
 }
 
