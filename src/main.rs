@@ -4,10 +4,10 @@ pub mod util;
 use std::collections::HashMap;
 use util::argsparser::{ArgsParser, Argument};
 use std::env;
-use crate::hydro::executable::execute;
-use crate::hydro::executioncontext::ExecutionContext;
+use crate::hydro::function::Function;
 use crate::hydro::instruction::{Add, Instruction, LessThan, Return};
 use crate::hydro::instruction::PushValue;
+use crate::hydro::module::Module;
 use crate::hydro::value::Value;
 
 fn main() -> std::io::Result<()> {
@@ -33,18 +33,19 @@ fn main() -> std::io::Result<()> {
       .help("The main source file to compile"));
   let _parsed_args = arg_parser.parse(args[1..].to_vec());
 
-  let instructions = vec![
-    Instruction::PushValue(PushValue { value: Value::Signed8(-50) }),
-    Instruction::PushValue(PushValue { value: Value::Unsigned16(69) }),
-    Instruction::Add(Add { }),
-    Instruction::PushValue(PushValue { value: Value::Unsigned16(15) }),
-    Instruction::PushValue(PushValue { value: Value::Unsigned16(12) }),
-    Instruction::Add(Add { }),
-    Instruction::LessThan(LessThan { }),
-    Instruction::Return(Return {}),
-  ];
+  let module = Module::new(
+    HashMap::new(),
+    HashMap::from([
+      ("Main".to_string(), Function::new("Main".to_string(), Vec::new(), vec![
+        Instruction::PushValue(PushValue { value: Value::Signed8(-50) }),
+        Instruction::PushValue(PushValue { value: Value::Unsigned16(69) }),
+        Instruction::Add(Add { }),
+        Instruction::Return(Return {}),
+      ]))
+    ])
+  );
 
-  let return_value = execute(&instructions, Vec::new(), None);
+  let return_value = module.execute("Main".to_string(), Vec::new(), None);
 
   println!("{:#?}", return_value);
 

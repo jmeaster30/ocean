@@ -37,11 +37,11 @@ pub enum Instruction {
   Call(Call),
   Return(Return),
 
-  LoadVariable(LoadVariable),
-  StoreVariable(StoreVariable),
-
-  LoadIndex(LoadIndex),
-  StoreIndex(StoreIndex),
+  Load(Load),
+  Store(Store),
+  Index(Index),
+  AllocArray(AllocArray),
+  AllocMap(AllocMap),
 }
 
 #[derive(Debug, Clone)]
@@ -133,17 +133,16 @@ pub struct Call {}
 pub struct Return {}
 
 #[derive(Debug, Clone)]
-pub struct LoadVariable {
-  pub identifier: String,
-}
+pub struct Load {}
 
 #[derive(Debug, Clone)]
-pub struct StoreVariable {
-  pub identifier: String,
-}
+pub struct Store {}
 
 #[derive(Debug, Clone)]
-pub struct LoadIndex {}
+pub struct Index {}
 
 #[derive(Debug, Clone)]
-pub struct StoreIndex {}
+pub struct AllocArray {}
+
+#[derive(Debug, Clone)]
+pub struct AllocMap {}

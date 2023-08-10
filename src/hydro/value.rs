@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use super::instruction::Instruction;
 
 #[derive(Debug, Clone)]
@@ -5,7 +6,8 @@ pub enum Value {
   Boolean(bool),
   Character(char),
   String(String),
-  Function(Function),
+  Array(Array),
+  FunctionPointer(FunctionPointer),
   Reference(Reference),
 
   Unsigned8(u8),
@@ -50,16 +52,7 @@ impl StringValue {
   pub fn new(value: String) -> Self { Self { value } }
 }
 
-#[derive(Debug, Clone)]
-pub struct Function {
-  pub name: String,
-  pub parameters: Vec<String>,
-  pub body: Vec<Instruction>
-}
 
-impl Function {
-  pub fn new(name: String, parameters: Vec<String>, body: Vec<Instruction>) -> Self { Self { name, parameters, body } }
-}
 
 #[derive(Debug, Clone)]
 pub struct Integer {
@@ -72,9 +65,19 @@ impl Integer {
 }
 
 #[derive(Debug, Clone)]
+pub struct FunctionPointer {
+  pub module: Option<String>,
+  pub function: String,
+}
+
+impl FunctionPointer {
+  pub fn new(module: Option<String>, function: String) -> Self { Self { module, function } }
+}
+
+#[derive(Debug, Clone)]
 pub enum Reference {
   Variable(VariableRef),
-  Index(IndexRef)
+  Index(IndexRef),
 }
 
 #[derive(Debug, Clone)]
@@ -94,4 +97,23 @@ pub struct IndexRef {
 
 impl IndexRef {
   pub fn new(reference: Box<Reference>, index: Box<Value>) -> Self { Self { reference, index } }
+}
+
+#[derive(Debug, Clone)]
+pub struct Array {
+  pub length: Box<Value>,
+  pub values: Vec<Value>,
+}
+
+impl Array {
+  pub fn new(length: Box<Value>) -> Self { Self { length, values: Vec::new() } }
+}
+
+#[derive(Debug, Clone)]
+pub struct Map {
+  pub values: HashMap<String, Value>,
+}
+
+impl Map {
+  pub fn new(values: HashMap<String, Value>) -> Self { Self { values } }
 }
