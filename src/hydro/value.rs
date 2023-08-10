@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use super::instruction::Instruction;
 
 #[derive(Debug, Clone)]
 pub enum Value {

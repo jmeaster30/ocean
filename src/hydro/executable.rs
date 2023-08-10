@@ -1,6 +1,5 @@
 use super::{executioncontext::ExecutionContext, instruction::*, value::Value};
 
-use std::collections::HashMap;
 use crate::hydro::module::Module;
 
 pub trait Executable {
@@ -47,7 +46,7 @@ impl Instruction {
 }
 
 impl Executable for PushValue {
-  fn execute(&self, module: &Module, context: &mut ExecutionContext) -> bool {
+  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> bool {
     context.stack.push(self.value.clone());
     context.program_counter += 1;
     true
@@ -55,7 +54,7 @@ impl Executable for PushValue {
 }
 
 impl Executable for PopValue {
-  fn execute(&self, module: &Module, context: &mut ExecutionContext) -> bool {
+  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> bool {
     if context.stack.pop().is_none() {
       panic!("Stack was empty when it was expected to have some value :(");
     }
@@ -65,7 +64,7 @@ impl Executable for PopValue {
 }
 
 impl Executable for Add {
-  fn execute(&self, module: &Module, context: &mut ExecutionContext) -> bool {
+  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> bool {
     if context.stack.len() < 2 {
       panic!("Stack didn't have enough elements for the add operation :(");
     }
@@ -81,7 +80,7 @@ impl Executable for Add {
 }
 
 impl Executable for Subtract {
-  fn execute(&self, module: &Module, context: &mut ExecutionContext) -> bool {
+  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> bool {
     if context.stack.len() < 2 {
       panic!("Stack didn't have enough elements for the sub operation :(");
     }
@@ -97,7 +96,7 @@ impl Executable for Subtract {
 }
 
 impl Executable for Multiply {
-  fn execute(&self, module: &Module, context: &mut ExecutionContext) -> bool {
+  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> bool {
     if context.stack.len() < 2 {
       panic!("Stack didn't have enough elements for the mult operation :(");
     }
@@ -113,7 +112,7 @@ impl Executable for Multiply {
 }
 
 impl Executable for Divide {
-  fn execute(&self, module: &Module, context: &mut ExecutionContext) -> bool {
+  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> bool {
     if context.stack.len() < 2 {
       panic!("Stack didn't have enough elements for the div operation :(");
     }
@@ -129,7 +128,7 @@ impl Executable for Divide {
 }
 
 impl Executable for Modulo {
-  fn execute(&self, module: &Module, context: &mut ExecutionContext) -> bool {
+  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> bool {
     if context.stack.len() < 2 {
       panic!("Stack didn't have enough elements for the mod operation :(");
     }
@@ -145,7 +144,7 @@ impl Executable for Modulo {
 }
 
 impl Executable for LeftShift {
-  fn execute(&self, module: &Module, context: &mut ExecutionContext) -> bool {
+  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> bool {
     if context.stack.len() < 2 {
       panic!("Stack didn't have enough elements for the left shift operation :(");
     }
@@ -161,7 +160,7 @@ impl Executable for LeftShift {
 }
 
 impl Executable for RightShift {
-  fn execute(&self, module: &Module, context: &mut ExecutionContext) -> bool {
+  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> bool {
     if context.stack.len() < 2 {
       panic!("Stack didn't have enough elements for the right shift operation :(");
     }
@@ -177,7 +176,7 @@ impl Executable for RightShift {
 }
 
 impl Executable for BitwiseAnd {
-  fn execute(&self, module: &Module, context: &mut ExecutionContext) -> bool {
+  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> bool {
     if context.stack.len() < 2 {
       panic!("Stack didn't have enough elements for the bit and operation :(");
     }
@@ -193,7 +192,7 @@ impl Executable for BitwiseAnd {
 }
 
 impl Executable for BitwiseOr {
-  fn execute(&self, module: &Module, context: &mut ExecutionContext) -> bool {
+  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> bool {
     if context.stack.len() < 2 {
       panic!("Stack didn't have enough elements for the bit or operation :(");
     }
@@ -209,7 +208,7 @@ impl Executable for BitwiseOr {
 }
 
 impl Executable for BitwiseXor {
-  fn execute(&self, module: &Module, context: &mut ExecutionContext) -> bool {
+  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> bool {
     if context.stack.len() < 2 {
       panic!("Stack didn't have enough elements for the bit xor operation :(");
     }
@@ -225,7 +224,7 @@ impl Executable for BitwiseXor {
 }
 
 impl Executable for BitwiseNot {
-  fn execute(&self, module: &Module, context: &mut ExecutionContext) -> bool {
+  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> bool {
     if context.stack.len() < 1 {
       panic!("Stack didn't have enough elements for the bit not operation :(");
     }
@@ -240,7 +239,7 @@ impl Executable for BitwiseNot {
 }
 
 impl Executable for And {
-  fn execute(&self, module: &Module, context: &mut ExecutionContext) -> bool {
+  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> bool {
     if context.stack.len() < 2 {
       panic!("Stack didn't have enough elements for the and operation :(");
     }
@@ -256,7 +255,7 @@ impl Executable for And {
 }
 
 impl Executable for Or {
-  fn execute(&self, module: &Module, context: &mut ExecutionContext) -> bool {
+  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> bool {
     if context.stack.len() < 2 {
       panic!("Stack didn't have enough elements for the or operation :(");
     }
@@ -272,7 +271,7 @@ impl Executable for Or {
 }
 
 impl Executable for Xor {
-  fn execute(&self, module: &Module, context: &mut ExecutionContext) -> bool {
+  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> bool {
     if context.stack.len() < 2 {
       panic!("Stack didn't have enough elements for the xor operation :(");
     }
@@ -288,7 +287,7 @@ impl Executable for Xor {
 }
 
 impl Executable for Not {
-  fn execute(&self, module: &Module, context: &mut ExecutionContext) -> bool {
+  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> bool {
     if context.stack.len() < 2 {
       panic!("Stack didn't have enough elements for the not operation :(");
     }
@@ -303,7 +302,7 @@ impl Executable for Not {
 }
 
 impl Executable for Equal {
-  fn execute(&self, module: &Module, context: &mut ExecutionContext) -> bool {
+  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> bool {
     if context.stack.len() < 2 {
       panic!("Stack didn't have enough elements for the equal operation :(");
     }
@@ -319,7 +318,7 @@ impl Executable for Equal {
 }
 
 impl Executable for NotEqual {
-  fn execute(&self, module: &Module, context: &mut ExecutionContext) -> bool {
+  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> bool {
     if context.stack.len() < 2 {
       panic!("Stack didn't have enough elements for the not equal operation :(");
     }
@@ -335,7 +334,7 @@ impl Executable for NotEqual {
 }
 
 impl Executable for LessThan {
-  fn execute(&self, module: &Module, context: &mut ExecutionContext) -> bool {
+  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> bool {
     if context.stack.len() < 2 {
       panic!("Stack didn't have enough elements for the less than operation :(");
     }
@@ -351,7 +350,7 @@ impl Executable for LessThan {
 }
 
 impl Executable for GreaterThan {
-  fn execute(&self, module: &Module, context: &mut ExecutionContext) -> bool {
+  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> bool {
     if context.stack.len() < 2 {
       panic!("Stack didn't have enough elements for the greater than operation :(");
     }
@@ -367,7 +366,7 @@ impl Executable for GreaterThan {
 }
 
 impl Executable for LessThanEqual {
-  fn execute(&self, module: &Module, context: &mut ExecutionContext) -> bool {
+  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> bool {
     if context.stack.len() < 2 {
       panic!("Stack didn't have enough elements for the less than equal operation :(");
     }
@@ -383,7 +382,7 @@ impl Executable for LessThanEqual {
 }
 
 impl Executable for GreaterThanEqual {
-  fn execute(&self, module: &Module, context: &mut ExecutionContext) -> bool {
+  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> bool {
     if context.stack.len() < 2 {
       panic!("Stack didn't have enough elements for the greater than equal operation :(");
     }
@@ -399,14 +398,14 @@ impl Executable for GreaterThanEqual {
 }
 
 impl Executable for Jump {
-  fn execute(&self, module: &Module, context: &mut ExecutionContext) -> bool {
+  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> bool {
     context.program_counter = self.index;
     true
   }
 }
 
 impl Executable for Branch {
-  fn execute(&self, module: &Module, context: &mut ExecutionContext) -> bool {
+  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> bool {
     if context.stack.len() < 1 {
       panic!("Stack didn't have enough elements for the branch operation :(");
     }
@@ -433,10 +432,8 @@ impl Executable for Call {
     let func = context.stack.pop().unwrap();
     match func {
       Value::FunctionPointer(func_pointer) => {
-
-
         let target_module = match func_pointer.module {
-          Some(moduleName) => match module.modules.get(&moduleName) {
+          Some(module_name) => match module.modules.get(&module_name) {
             Some(modu) => modu,
             None => panic!("FAILED TO LOAD MODULE"),
           },
@@ -465,7 +462,7 @@ impl Executable for Call {
 }
 
 impl Executable for Return {
-  fn execute(&self, module: &Module, context: &mut ExecutionContext) -> bool {
+  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> bool {
     if context.stack.len() < 1 {
       panic!("Stack didn't have enough elements for the branch operation :(");
     }
@@ -479,31 +476,31 @@ impl Executable for Return {
 }
 
 impl Executable for Load {
-  fn execute(&self, module: &Module, context: &mut ExecutionContext) -> bool {
+  fn execute(&self, _module: &Module, _context: &mut ExecutionContext) -> bool {
     todo!();
   }
 }
 
 impl Executable for Store {
-  fn execute(&self, module: &Module, context: &mut ExecutionContext) -> bool {
+  fn execute(&self, _module: &Module, _context: &mut ExecutionContext) -> bool {
     todo!();
   }
 }
 
 impl Executable for Index {
-  fn execute(&self, module: &Module, context: &mut ExecutionContext) -> bool {
+  fn execute(&self, _module: &Module, _context: &mut ExecutionContext) -> bool {
     todo!();
   }
 }
 
 impl Executable for AllocArray {
-  fn execute(&self, module: &Module, context: &mut ExecutionContext) -> bool {
+  fn execute(&self, _module: &Module, _context: &mut ExecutionContext) -> bool {
     todo!();
   }
 }
 
 impl Executable for AllocMap {
-  fn execute(&self, module: &Module, context: &mut ExecutionContext) -> bool {
+  fn execute(&self, _module: &Module, _context: &mut ExecutionContext) -> bool {
     todo!();
   }
 }

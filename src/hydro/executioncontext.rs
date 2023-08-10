@@ -2,7 +2,6 @@ use super::value::Value;
 
 use std::collections::HashMap;
 use ocean_macros::{make_add_operations, make_bit_operations, make_comparison_operations};
-use crate::hydro::module::Module;
 
 #[derive(Clone)]
 pub struct ExecutionContext {
@@ -168,7 +167,6 @@ impl ExecutionContext {
       (Value::String(a), Value::Character(b)) => Value::Boolean(a == b.to_string()),
       (Value::String(a), Value::String(b)) => Value::Boolean(a == b),
       (a, b) => make_comparison_operations!(==),
-      _ => panic!("Operator unimplemented for type"),
     }
   }
 

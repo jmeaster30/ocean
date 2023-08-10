@@ -5,13 +5,18 @@ use crate::hydro::value::Value;
 
 #[derive(Debug, Clone)]
 pub struct Module {
+    pub name: String,
     pub modules: HashMap<String, Module>,
     pub functions: HashMap<String, Function>
 }
 
 impl Module {
-    pub fn new(modules: HashMap<String, Module>, functions: HashMap<String, Function>) -> Self {
-        Self { modules, functions }
+    pub fn new(name: String, modules: Vec<Module>, functions: Vec<Function>) -> Self {
+        Self {
+            name,
+            modules: modules.iter().map(|x| (x.clone().name, x.clone())).collect::<HashMap<String, Module>>(),
+            functions: functions.iter().map(|x| (x.clone().name, x.clone())).collect::<HashMap<String, Function>>()
+        }
     }
 
     pub fn execute(&self, function_name: String, arguments: Vec<(String, Value)>, parent_context: Option<Box<ExecutionContext>>) -> Option<Value> {
