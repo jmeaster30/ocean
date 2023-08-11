@@ -6,6 +6,7 @@ pub enum Value {
   Character(char),
   String(String),
   Array(Array),
+  Map(Map),
   FunctionPointer(FunctionPointer),
   Reference(Reference),
 
@@ -90,12 +91,12 @@ impl VariableRef {
 
 #[derive(Debug, Clone)]
 pub struct IndexRef {
-  pub reference: Box<Reference>,
+  pub reference: Box<Value>,
   pub index: Box<Value>,
 }
 
 impl IndexRef {
-  pub fn new(reference: Box<Reference>, index: Box<Value>) -> Self { Self { reference, index } }
+  pub fn new(reference: Box<Value>, index: Box<Value>) -> Self { Self { reference, index } }
 }
 
 #[derive(Debug, Clone)]

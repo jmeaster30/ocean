@@ -1,7 +1,9 @@
 use super::value::Value;
 
 use std::collections::HashMap;
+use std::ops::Deref;
 use ocean_macros::{make_add_operations, make_bit_operations, make_comparison_operations};
+use crate::hydro::value::Reference;
 
 #[derive(Clone)]
 pub struct ExecutionContext {
@@ -19,6 +21,39 @@ impl ExecutionContext {
       Value::Boolean(x) => x,
       _ => panic!("Bool does not make sense for this Value type :("),
     }
+  }
+
+  pub fn resolve(&self, value: Value) -> Value {
+    match value {
+      Value::Reference(base_reference) => match base_reference {
+        Reference::Variable(variable_reference) => match self.variables.get(variable_reference.name.clone().as_str()) {
+          Some(found_variable) => found_variable.clone(),
+          None => todo!("Create exceptions and throw an exception here"),
+        },
+        Reference::Index(index_reference) => match (index_reference.index.deref(), self.resolve(index_reference.reference.deref().clone())) {
+          (Value::Signed8(x), Value::Array(array)) => array.values[*x as usize].clone(),
+          (Value::Signed16(x), Value::Array(array)) => array.values[*x as usize].clone(),
+          (Value::Signed32(x), Value::Array(array)) => array.values[*x as usize].clone(),
+          (Value::Signed64(x), Value::Array(array)) => array.values[*x as usize].clone(),
+          (Value::Signed128(x), Value::Array(array)) => array.values[*x as usize].clone(),
+          (Value::Unsigned8(x), Value::Array(array)) => array.values[*x as usize].clone(),
+          (Value::Unsigned16(x), Value::Array(array)) => array.values[*x as usize].clone(),
+          (Value::Unsigned32(x), Value::Array(array)) => array.values[*x as usize].clone(),
+          (Value::Unsigned64(x), Value::Array(array)) => array.values[*x as usize].clone(),
+          (Value::Unsigned128(x), Value::Array(array)) => array.values[*x as usize].clone(),
+          (Value::String(x), Value::Map(map)) => match map.values.get(x.as_str()) {
+            Some(found_result) => found_result.clone(),
+            None => todo!("Create exceptions and throw an exception here"),
+          }
+          _ => todo!("Create Exceptions and throw an exception here"),
+        }
+      }
+      _ => value.clone(),
+    }
+  }
+
+  pub fn modify(&mut self, reference: Reference, value: Value) {
+    todo!("Finish this")
   }
 
   pub fn add(&self, a_value: Value, b_value: Value) -> Value {

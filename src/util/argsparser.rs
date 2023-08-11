@@ -60,21 +60,21 @@ impl Argument {
     match &self.position {
       Some(x) => {
         if *x == 0 {
-          println!("   Position: First");
+          println!("    Position: First");
         } else if *x == usize::MAX {
-          println!("   Position: Last");
+          println!("    Position: Last");
         } else {
-          println!("   Position: {}", x);
+          println!("    Position: {}", x);
         }
       }
       None => {
         println!(
-          "   Short Name: {}{}",
+          "    Short Name: {}{}",
           self.short_tag,
           if self.takes_value { " <value>" } else { "" }
         );
         println!(
-          "   Long Name: {}{}",
+          "    Long Name: {}{}",
           self.long_tag,
           if self.takes_value { " <value>" } else { "" }
         );
@@ -85,9 +85,9 @@ impl Argument {
       _ => {}
     }
     if !self.possible_values.is_empty() {
-      println!("   Possible Values:");
+      println!("    Possible Values:");
       for val in &self.possible_values {
-        println!("    '{}'", val);
+        println!("      '{}'", val);
       }
     }
   }
@@ -143,12 +143,49 @@ impl Argument {
   }
 }
 
+pub struct Command {
+  command_name: String,
+  description: String,
+  arguments: Vec<Argument>,
+}
+
+impl Command {
+  pub fn new(command_name: &str) -> Self {
+    Self {
+      command_name: command_name.to_string(),
+      description: "".to_string(),
+      arguments: Vec::new(),
+    }
+  }
+
+  pub fn description(mut self, description: &str) -> Self {
+    self.description = description.to_string();
+    self
+  }
+
+  pub fn arg(mut self, arg: Argument) -> Self {
+    self.arguments.push(arg);
+    self.arguments.sort();
+    self
+  }
+
+  pub fn print(&self) {
+    println!("{} - {}", self.command_name, self.description);
+    if self.arguments.len() > 0 {
+      println!("  Options:");
+    }
+    for arg in &self.arguments {
+      arg.print();
+    }
+  }
+}
+
 pub struct ArgsParser {
   program_name: String,
   version: String,
   author: String,
   description: String,
-  arguments: Vec<Argument>,
+  commands: HashMap<String, Command>,
 }
 
 impl ArgsParser {
@@ -158,18 +195,28 @@ impl ArgsParser {
       version: "".to_string(),
       author: "".to_string(),
       description: "".to_string(),
-      arguments: Vec::new(),
+      commands: HashMap::new(),
     }
   }
 
   pub fn parse(&self, args: Vec<String>) -> Result<HashMap<String, Option<String>>, String> {
+    if args.len() < 1 {
+      return Err("Expected a command but no arguments provided :(".to_string());
+    }
+
+    let opt_command = self.commands.get(&*args[0].clone());
+    if opt_command.is_none() {
+      return Err(format!("Unknown command {} expected one of [{}].", args[0], self.commands.iter().map(|x| x.0.clone()).collect::<Vec<String>>().join(", ")));
+    }
+    let command = opt_command.unwrap();
+
     let mut clargs = Vec::new();
-    for i in 0..args.len() {
+    for i in 1..args.len() {
       clargs.push((i, args[i].clone()));
     }
     let total = clargs.len();
     let mut args_map = HashMap::new();
-    for arg_schema in &self.arguments {
+    for arg_schema in &command.arguments {
       match arg_schema.position {
         Some(x) => {
           let index = if x == usize::MAX {
@@ -242,9 +289,8 @@ impl ArgsParser {
     self
   }
 
-  pub fn arg(mut self, arg: Argument) -> Self {
-    self.arguments.push(arg);
-    self.arguments.sort();
+  pub fn command(mut self, command: Command) -> Self {
+    self.commands.insert(command.command_name.clone(), command);
     self
   }
 
@@ -260,13 +306,14 @@ impl ArgsParser {
   }
 
   pub fn print_usage(&self) {
-    println!("\nUSAGE:\n");
+    println!("\nUSAGE:");
     println!(
-      "{} [COMMAND] [OPTIONS] [SOURCE FILE]\n",
+      "\t{} [COMMAND] [OPTIONS] [SOURCE FILE]\n",
       self.program_name.to_lowercase()
     );
-    for arg in &self.arguments {
-      arg.print();
+    println!("Commands:");
+    for (_, command) in &self.commands {
+      command.print();
       println!();
     }
   }
