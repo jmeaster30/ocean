@@ -4,10 +4,10 @@ pub mod util;
 use util::argsparser::{ArgsParser, Argument};
 use std::env;
 use crate::hydro::function::Function;
-use crate::hydro::instruction::{Add, Instruction, Load, Return};
+use crate::hydro::instruction::{Add, Call, Instruction, Load, Return};
 use crate::hydro::instruction::PushValue;
 use crate::hydro::module::Module;
-use crate::hydro::value::{Reference, Value, VariableRef};
+use crate::hydro::value::{FunctionPointer, Reference, Value, VariableRef};
 use crate::util::argsparser::Command;
 
 fn main() -> std::io::Result<()> {
@@ -60,12 +60,24 @@ fn main() -> std::io::Result<()> {
 
   let module = Module::new(
     "Main".to_string(),
-    Vec::new(),
+    vec![
+      Module::new(
+        "Std".to_string(),
+        Vec::new(),
+        vec![
+          Function::new("GetFunnyNumber2".to_string(), Vec::new(), vec![
+            Instruction::PushValue(PushValue { value: Value::Unsigned16(420) }),
+            Instruction::Return(Return {}),
+          ])
+        ]
+      )
+    ],
     vec![
       Function::new("Main".to_string(), Vec::new(), vec![
         Instruction::PushValue(PushValue { value: Value::Reference(Reference::Variable(VariableRef::new("funnyNumber".to_string()))) }),
         Instruction::Load(Load { }),
-        Instruction::PushValue(PushValue { value: Value::Unsigned16(69) }),
+        Instruction::PushValue(PushValue { value: Value::FunctionPointer(FunctionPointer::new(Some("Std".to_string()), "GetFunnyNumber2".to_string()))}),
+        Instruction::Call(Call { }),
         Instruction::Add(Add { }),
         Instruction::Return(Return {}),
       ])
