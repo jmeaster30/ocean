@@ -1,14 +1,15 @@
+use crate::hydro::exception::Exception;
 use super::{executioncontext::ExecutionContext, instruction::*, value::Value};
 
 use crate::hydro::module::Module;
 use crate::hydro::value::{IndexRef, Reference};
 
 pub trait Executable {
-  fn execute(&self, module: &Module, context: &mut ExecutionContext) -> bool;
+  fn execute(&self, module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception>;
 }
 
 impl Instruction {
-  pub fn execute(&self, module: &Module, context: &mut ExecutionContext) -> bool {
+  pub fn execute(&self, module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
     match self {
       Instruction::PushValue(x) => x.execute(module, context),
       Instruction::PopValue(x) => x.execute(module, context),
@@ -47,27 +48,27 @@ impl Instruction {
 }
 
 impl Executable for PushValue {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> bool {
+  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
     context.stack.push(self.value.clone());
     context.program_counter += 1;
-    true
+    Ok(true)
   }
 }
 
 impl Executable for PopValue {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> bool {
+  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.pop().is_none() {
-      todo!("Create exceptions and throw an exception here");
+      return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 1 and got none."))
     }
     context.program_counter += 1;
-    true
+    Ok(true)
   }
 }
 
 impl Executable for Add {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> bool {
+  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 2 {
-      todo!("Create exceptions and throw an exception here");
+      return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 2 and got 1."))
     }
 
     let b = context.stack.pop().unwrap();
@@ -76,14 +77,14 @@ impl Executable for Add {
     context.stack.push(context.add(a, b));
 
     context.program_counter += 1;
-    true
+    Ok(true)
   }
 }
 
 impl Executable for Subtract {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> bool {
+  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 2 {
-      todo!("Create exceptions and throw an exception here");
+      return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 2 and got 1."))
     }
 
     let b = context.stack.pop().unwrap();
@@ -92,14 +93,14 @@ impl Executable for Subtract {
     context.stack.push(context.sub(a, b));
 
     context.program_counter += 1;
-    true
+    Ok(true)
   }
 }
 
 impl Executable for Multiply {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> bool {
+  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 2 {
-      todo!("Create exceptions and throw an exception here");
+      return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 2 and got 1."))
     }
 
     let b = context.stack.pop().unwrap();
@@ -108,14 +109,14 @@ impl Executable for Multiply {
     context.stack.push(context.mult(a, b));
 
     context.program_counter += 1;
-    true
+    Ok(true)
   }
 }
 
 impl Executable for Divide {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> bool {
+  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 2 {
-      todo!("Create exceptions and throw an exception here");
+      return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 2 and got 1."))
     }
 
     let b = context.stack.pop().unwrap();
@@ -124,14 +125,14 @@ impl Executable for Divide {
     context.stack.push(context.div(a, b));
 
     context.program_counter += 1;
-    true
+    Ok(true)
   }
 }
 
 impl Executable for Modulo {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> bool {
+  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 2 {
-      todo!("Create exceptions and throw an exception here");
+      return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 2 and got 1."))
     }
 
     let b = context.stack.pop().unwrap();
@@ -140,14 +141,14 @@ impl Executable for Modulo {
     context.stack.push(context.modulo(a, b));
 
     context.program_counter += 1;
-    true
+    Ok(true)
   }
 }
 
 impl Executable for LeftShift {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> bool {
+  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 2 {
-      todo!("Create exceptions and throw an exception here");
+      return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 2 and got 1."))
     }
 
     let b = context.stack.pop().unwrap();
@@ -156,14 +157,14 @@ impl Executable for LeftShift {
     context.stack.push(context.shiftleft(a, b));
 
     context.program_counter += 1;
-    true
+    Ok(true)
   }
 }
 
 impl Executable for RightShift {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> bool {
+  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 2 {
-      todo!("Create exceptions and throw an exception here");
+      return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 2 and got 1."))
     }
 
     let b = context.stack.pop().unwrap();
@@ -172,14 +173,14 @@ impl Executable for RightShift {
     context.stack.push(context.shiftright(a, b));
 
     context.program_counter += 1;
-    true
+    Ok(true)
   }
 }
 
 impl Executable for BitwiseAnd {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> bool {
+  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 2 {
-      todo!("Create exceptions and throw an exception here");
+      return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 2 and got 1."))
     }
 
     let b = context.stack.pop().unwrap();
@@ -188,14 +189,14 @@ impl Executable for BitwiseAnd {
     context.stack.push(context.bitand(a, b));
 
     context.program_counter += 1;
-    true
+    Ok(true)
   }
 }
 
 impl Executable for BitwiseOr {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> bool {
+  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 2 {
-      todo!("Create exceptions and throw an exception here");
+      return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 2 and got 1."))
     }
 
     let b = context.stack.pop().unwrap();
@@ -204,14 +205,14 @@ impl Executable for BitwiseOr {
     context.stack.push(context.bitor(a, b));
 
     context.program_counter += 1;
-    true
+    Ok(true)
   }
 }
 
 impl Executable for BitwiseXor {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> bool {
+  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 2 {
-      todo!("Create exceptions and throw an exception here");
+      return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 2 and got 1."))
     }
 
     let b = context.stack.pop().unwrap();
@@ -220,14 +221,14 @@ impl Executable for BitwiseXor {
     context.stack.push(context.bitxor(a, b));
 
     context.program_counter += 1;
-    true
+    Ok(true)
   }
 }
 
 impl Executable for BitwiseNot {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> bool {
+  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 1 {
-      todo!("Create exceptions and throw an exception here");
+      return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 1 and got none."))
     }
 
     let a = context.stack.pop().unwrap();
@@ -235,14 +236,14 @@ impl Executable for BitwiseNot {
     context.stack.push(context.bitnot(a));
 
     context.program_counter += 1;
-    true
+    Ok(true)
   }
 }
 
 impl Executable for And {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> bool {
+  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 2 {
-      todo!("Create exceptions and throw an exception here");
+      return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 2 and got 1."))
     }
 
     let b = context.stack.pop().unwrap();
@@ -251,14 +252,14 @@ impl Executable for And {
     context.stack.push(context.and(a, b));
 
     context.program_counter += 1;
-    true
+    Ok(true)
   }
 }
 
 impl Executable for Or {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> bool {
+  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 2 {
-      todo!("Create exceptions and throw an exception here");
+      return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 2 and got 1."))
     }
 
     let b = context.stack.pop().unwrap();
@@ -267,14 +268,14 @@ impl Executable for Or {
     context.stack.push(context.or(a, b));
 
     context.program_counter += 1;
-    true
+    Ok(true)
   }
 }
 
 impl Executable for Xor {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> bool {
+  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 2 {
-      todo!("Create exceptions and throw an exception here");
+      return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 2 and got 1."))
     }
 
     let b = context.stack.pop().unwrap();
@@ -283,14 +284,14 @@ impl Executable for Xor {
     context.stack.push(context.xor(a, b));
 
     context.program_counter += 1;
-    true
+    Ok(true)
   }
 }
 
 impl Executable for Not {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> bool {
+  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 2 {
-      todo!("Create exceptions and throw an exception here");
+      return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 2 and got 1."))
     }
 
     let a = context.stack.pop().unwrap();
@@ -298,14 +299,14 @@ impl Executable for Not {
     context.stack.push(context.not(a));
 
     context.program_counter += 1;
-    true
+    Ok(true)
   }
 }
 
 impl Executable for Equal {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> bool {
+  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 2 {
-      todo!("Create exceptions and throw an exception here");
+      return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 2 and got 1."))
     }
 
     let b = context.stack.pop().unwrap();
@@ -314,14 +315,14 @@ impl Executable for Equal {
     context.stack.push(context.equal(a, b));
 
     context.program_counter += 1;
-    true
+    Ok(true)
   }
 }
 
 impl Executable for NotEqual {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> bool {
+  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 2 {
-      todo!("Create exceptions and throw an exception here");
+      return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 2 and got 1."))
     }
 
     let b = context.stack.pop().unwrap();
@@ -330,14 +331,14 @@ impl Executable for NotEqual {
     context.stack.push(context.notequal(a, b));
 
     context.program_counter += 1;
-    true
+    Ok(true)
   }
 }
 
 impl Executable for LessThan {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> bool {
+  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 2 {
-      todo!("Create exceptions and throw an exception here");
+      return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 2 and got 1."))
     }
 
     let b = context.stack.pop().unwrap();
@@ -346,14 +347,14 @@ impl Executable for LessThan {
     context.stack.push(context.lessthan(a, b));
 
     context.program_counter += 1;
-    true
+    Ok(true)
   }
 }
 
 impl Executable for GreaterThan {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> bool {
+  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 2 {
-      todo!("Create exceptions and throw an exception here");
+      return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 2 and got 1."))
     }
 
     let b = context.stack.pop().unwrap();
@@ -362,14 +363,14 @@ impl Executable for GreaterThan {
     context.stack.push(context.greaterthan(a, b));
 
     context.program_counter += 1;
-    true
+    Ok(true)
   }
 }
 
 impl Executable for LessThanEqual {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> bool {
+  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 2 {
-      todo!("Create exceptions and throw an exception here");
+      return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 2 and got 1."))
     }
 
     let b = context.stack.pop().unwrap();
@@ -378,14 +379,14 @@ impl Executable for LessThanEqual {
     context.stack.push(context.lessthanequal(a, b));
 
     context.program_counter += 1;
-    true
+    Ok(true)
   }
 }
 
 impl Executable for GreaterThanEqual {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> bool {
+  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 2 {
-      todo!("Create exceptions and throw an exception here");
+      return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 2 and got 1."))
     }
 
     let b = context.stack.pop().unwrap();
@@ -394,21 +395,21 @@ impl Executable for GreaterThanEqual {
     context.stack.push(context.greaterthanequal(a, b));
 
     context.program_counter += 1;
-    true
+    Ok(true)
   }
 }
 
 impl Executable for Jump {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> bool {
+  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
     context.program_counter = self.index;
-    true
+    Ok(true)
   }
 }
 
 impl Executable for Branch {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> bool {
+  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 1 {
-      todo!("Create exceptions and throw an exception here");
+      return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 1 and got none."))
     }
 
     let a = context.stack.pop().unwrap();
@@ -419,14 +420,14 @@ impl Executable for Branch {
     } else {
       context.program_counter = self.false_index;
     }
-    true
+    Ok(true)
   }
 }
 
 impl Executable for Call {
-  fn execute(&self, module: &Module, context: &mut ExecutionContext) -> bool {
+  fn execute(&self, module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 1 {
-      todo!("Create exceptions and throw an exception here")
+      return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 1 and got none."))
     }
 
     // make call and loop through execution context
@@ -436,71 +437,91 @@ impl Executable for Call {
         let target_module = match func_pointer.module {
           Some(module_name) => match module.modules.get(&module_name) {
             Some(modu) => modu,
-            None => todo!("Create exceptions and throw an exception here"),
+            None => {
+              return Err(Exception::new(context.clone(), format!("Could not find module '{}'", module_name).as_str()))
+            },
           },
           None => module
         };
 
         let mut arguments = Vec::new();
-        let target_function = target_module.functions.get(func_pointer.function.clone().as_str()).unwrap();
+        let target_function = match target_module.functions.get(func_pointer.function.clone().as_str()) {
+          Some(func) => func,
+          None => {
+            return Err(Exception::new(context.clone(), format!("Could not find function '{}' in module '{}'", func_pointer.function.clone().as_str(), target_module.name).as_str()))
+          }
+        };
+
+        if context.stack.len() < target_function.parameters.len() {
+          return Err(Exception::new(context.clone(), format!("Unexpected number of stack values. Expected {} and got {}.", target_function.parameters.len(), context.stack.len()).as_str()))
+        }
+
         for param in &target_function.parameters {
           let param_value = context.stack.pop().unwrap();
           arguments.push((param.clone(), param_value));
         }
 
         let return_value = target_module.execute(func_pointer.function, arguments, Some(Box::new(context.clone())));
-
-        if return_value.is_some() {
-          context.stack.push(return_value.unwrap());
+        match return_value {
+          Ok(optional_return) => match optional_return {
+            Some(value) => context.stack.push(value),
+            None => {}
+          }
+          Err(e) => return Err(e)
         }
       }
-      _ => todo!("Create exceptions and throw an exception here")
+      _ => {
+        return Err(Exception::new(context.clone(), "Non-invokable value was attempted to be invoked"))
+      }
     }
 
     context.program_counter += 1;
-    true
+    Ok(true)
   }
 }
 
 impl Executable for Return {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> bool {
+  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 1 {
-      todo!("Create exceptions and throw an exception here");
+      return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 1 and got none."))
     }
 
     let result = context.stack.pop().unwrap();
     context.return_value = Some(result);
 
     context.program_counter += 1;
-    false
+    Ok(false)
   }
 }
 
 impl Executable for Load {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> bool {
+  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 1 {
-      todo!("Create exceptions and throw an exception here");
+      return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 1 and got none."))
     }
 
     let reference = context.stack.pop().unwrap();
     let result = context.resolve(reference);
-    context.stack.push(result);
+    match result {
+      Ok(value) => context.stack.push(value),
+      Err(e) => return Err(e)
+    }
 
     context.program_counter += 1;
-    true
+    Ok(true)
   }
 }
 
 impl Executable for Store {
-  fn execute(&self, _module: &Module, _context: &mut ExecutionContext) -> bool {
+  fn execute(&self, _module: &Module, _context: &mut ExecutionContext) -> Result<bool, Exception> {
     todo!();
   }
 }
 
 impl Executable for Index {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> bool {
+  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 2 {
-      todo!("Create exceptions and throw an exception here");
+      return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 2 and got 1."))
     }
 
     let index = context.stack.pop().unwrap();
@@ -510,18 +531,18 @@ impl Executable for Index {
     )));
 
     context.program_counter += 1;
-    true
+    Ok(true)
   }
 }
 
 impl Executable for AllocArray {
-  fn execute(&self, _module: &Module, _context: &mut ExecutionContext) -> bool {
+  fn execute(&self, _module: &Module, _context: &mut ExecutionContext) -> Result<bool, Exception> {
     todo!();
   }
 }
 
 impl Executable for AllocMap {
-  fn execute(&self, _module: &Module, _context: &mut ExecutionContext) -> bool {
+  fn execute(&self, _module: &Module, _context: &mut ExecutionContext) -> Result<bool, Exception> {
     todo!();
   }
 }

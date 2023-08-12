@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use crate::hydro::exception::Exception;
 use crate::hydro::executioncontext::ExecutionContext;
 use crate::hydro::function::Function;
 use crate::hydro::value::Value;
@@ -19,7 +20,7 @@ impl Module {
         }
     }
 
-    pub fn execute(&self, function_name: String, arguments: Vec<(String, Value)>, parent_context: Option<Box<ExecutionContext>>) -> Option<Value> {
+    pub fn execute(&self, function_name: String, arguments: Vec<(String, Value)>, parent_context: Option<Box<ExecutionContext>>) -> Result<Option<Value>, Exception> {
         let mut context = ExecutionContext {
             parent_execution_context: parent_context,
             stack: Vec::new(),
@@ -27,6 +28,7 @@ impl Module {
             variables: HashMap::new(),
             return_value: None,
             current_function: function_name.clone(),
+            current_module: self.name.clone(),
         };
 
         for arg in arguments {
@@ -38,11 +40,15 @@ impl Module {
         while context.program_counter.clone() < current_function.body.len() {
             let inst = current_function.body[context.program_counter.clone()].clone();
             let cont = inst.execute(self, &mut context);
-            if !cont {
-                break;
+            match cont {
+                Ok(should_continue) if !should_continue => break,
+                Err(exception) => {
+                    return Err(exception)
+                }
+                _ => {}
             }
         }
 
-        return context.return_value.clone();
+        return Ok(context.return_value.clone());
     }
 }

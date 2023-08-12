@@ -67,6 +67,7 @@ fn main() -> std::io::Result<()> {
         vec![
           Function::new("GetFunnyNumber2".to_string(), Vec::new(), vec![
             Instruction::PushValue(PushValue { value: Value::Unsigned16(420) }),
+            Instruction::Call(Call { }),
             Instruction::Return(Return {}),
           ])
         ]
@@ -88,7 +89,10 @@ fn main() -> std::io::Result<()> {
     ("funnyNumber".to_string(), Value::Unsigned32(69))
   ], None);
 
-  println!("{:#?}", return_value);
+  match return_value {
+    Ok(result) => println!("{:#?}", result),
+    Err(e) => e.print_stacktrace(),
+  }
 
   Ok(())
 }

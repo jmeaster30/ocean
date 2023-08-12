@@ -3,9 +3,10 @@ use super::value::Value;
 use std::collections::HashMap;
 use std::ops::Deref;
 use ocean_macros::{make_add_operations, make_bit_operations, make_comparison_operations};
+use crate::hydro::exception::Exception;
 use crate::hydro::value::Reference;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct ExecutionContext {
   pub parent_execution_context: Option<Box<ExecutionContext>>,
   pub stack: Vec<Value>,
@@ -13,9 +14,18 @@ pub struct ExecutionContext {
   pub variables: HashMap<String, Value>,
   pub return_value: Option<Value>,
   pub current_function: String,
+  pub current_module: String,
 }
 
 impl ExecutionContext {
+  pub fn print_stacktrace_internal(&self) {
+    println!("\tModule: '{}' Function: '{}' at PC: {}", self.current_module, self.current_function, self.program_counter);
+    match &self.parent_execution_context {
+      Some(next_context) => next_context.print_stacktrace_internal(),
+      None => {}
+    }
+  }
+
   pub fn bool(&self, value: Value) -> bool {
     match value {
       Value::Boolean(x) => x,
@@ -23,32 +33,33 @@ impl ExecutionContext {
     }
   }
 
-  pub fn resolve(&self, value: Value) -> Value {
+  pub fn resolve(&self, value: Value) -> Result<Value, Exception> {
     match value {
       Value::Reference(base_reference) => match base_reference {
         Reference::Variable(variable_reference) => match self.variables.get(variable_reference.name.clone().as_str()) {
-          Some(found_variable) => found_variable.clone(),
-          None => todo!("Create exceptions and throw an exception here"),
+          Some(found_variable) => Ok(found_variable.clone()),
+          None => Err(Exception::new(self.clone(), format!("Could not find variable of name '{}'", variable_reference.name).as_str())),
         },
         Reference::Index(index_reference) => match (index_reference.index.deref(), self.resolve(index_reference.reference.deref().clone())) {
-          (Value::Signed8(x), Value::Array(array)) => array.values[*x as usize].clone(),
-          (Value::Signed16(x), Value::Array(array)) => array.values[*x as usize].clone(),
-          (Value::Signed32(x), Value::Array(array)) => array.values[*x as usize].clone(),
-          (Value::Signed64(x), Value::Array(array)) => array.values[*x as usize].clone(),
-          (Value::Signed128(x), Value::Array(array)) => array.values[*x as usize].clone(),
-          (Value::Unsigned8(x), Value::Array(array)) => array.values[*x as usize].clone(),
-          (Value::Unsigned16(x), Value::Array(array)) => array.values[*x as usize].clone(),
-          (Value::Unsigned32(x), Value::Array(array)) => array.values[*x as usize].clone(),
-          (Value::Unsigned64(x), Value::Array(array)) => array.values[*x as usize].clone(),
-          (Value::Unsigned128(x), Value::Array(array)) => array.values[*x as usize].clone(),
-          (Value::String(x), Value::Map(map)) => match map.values.get(x.as_str()) {
-            Some(found_result) => found_result.clone(),
-            None => todo!("Create exceptions and throw an exception here"),
+          (Value::Signed8(x), Ok(Value::Array(array))) => Ok(array.values[*x as usize].clone()),
+          (Value::Signed16(x), Ok(Value::Array(array))) => Ok(array.values[*x as usize].clone()),
+          (Value::Signed32(x), Ok(Value::Array(array))) => Ok(array.values[*x as usize].clone()),
+          (Value::Signed64(x), Ok(Value::Array(array))) => Ok(array.values[*x as usize].clone()),
+          (Value::Signed128(x), Ok(Value::Array(array))) => Ok(array.values[*x as usize].clone()),
+          (Value::Unsigned8(x), Ok(Value::Array(array))) => Ok(array.values[*x as usize].clone()),
+          (Value::Unsigned16(x), Ok(Value::Array(array))) => Ok(array.values[*x as usize].clone()),
+          (Value::Unsigned32(x), Ok(Value::Array(array))) => Ok(array.values[*x as usize].clone()),
+          (Value::Unsigned64(x), Ok(Value::Array(array))) => Ok(array.values[*x as usize].clone()),
+          (Value::Unsigned128(x), Ok(Value::Array(array))) => Ok(array.values[*x as usize].clone()),
+          (Value::String(x), Ok(Value::Map(map))) => match map.values.get(x.as_str()) {
+            Some(found_result) => Ok(found_result.clone()),
+            None => Err(Exception::new(self.clone(), format!("Could not find entry '{}' in map.", x).as_str())),
           }
-          _ => todo!("Create Exceptions and throw an exception here"),
+          (_, Err(e)) => Err(e),
+          _ => Err(Exception::new(self.clone(), "Value could not be indexed by the specified index")),
         }
       }
-      _ => value.clone(),
+      _ => Ok(value.clone()),
     }
   }
 
