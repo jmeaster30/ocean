@@ -18,6 +18,18 @@ pub struct ExecutionContext {
 }
 
 impl ExecutionContext {
+  pub fn copy(&self) -> Self {
+    Self {
+      parent_execution_context: self.parent_execution_context.clone(),
+      stack: self.stack.clone(),
+      program_counter: self.program_counter,
+      variables: self.variables.clone(),
+      return_value: self.return_value.clone(),
+      current_function: self.current_function.clone(),
+      current_module: self.current_module.clone(),
+    }
+  }
+
   pub fn print_stacktrace_internal(&self) {
     println!("\tModule: '{}' Function: '{}' at PC: {}", self.current_module, self.current_function, self.program_counter);
     match &self.parent_execution_context {
@@ -40,31 +52,89 @@ impl ExecutionContext {
           Some(found_variable) => Ok(found_variable.clone()),
           None => Err(Exception::new(self.clone(), format!("Could not find variable of name '{}'", variable_reference.name).as_str())),
         },
-        Reference::Index(index_reference) => match (index_reference.index.deref(), self.resolve(index_reference.reference.deref().clone())) {
-          (Value::Signed8(x), Ok(Value::Array(array))) => Ok(array.values[*x as usize].clone()),
-          (Value::Signed16(x), Ok(Value::Array(array))) => Ok(array.values[*x as usize].clone()),
-          (Value::Signed32(x), Ok(Value::Array(array))) => Ok(array.values[*x as usize].clone()),
-          (Value::Signed64(x), Ok(Value::Array(array))) => Ok(array.values[*x as usize].clone()),
-          (Value::Signed128(x), Ok(Value::Array(array))) => Ok(array.values[*x as usize].clone()),
-          (Value::Unsigned8(x), Ok(Value::Array(array))) => Ok(array.values[*x as usize].clone()),
-          (Value::Unsigned16(x), Ok(Value::Array(array))) => Ok(array.values[*x as usize].clone()),
-          (Value::Unsigned32(x), Ok(Value::Array(array))) => Ok(array.values[*x as usize].clone()),
-          (Value::Unsigned64(x), Ok(Value::Array(array))) => Ok(array.values[*x as usize].clone()),
-          (Value::Unsigned128(x), Ok(Value::Array(array))) => Ok(array.values[*x as usize].clone()),
-          (Value::String(x), Ok(Value::Map(map))) => match map.values.get(x.as_str()) {
-            Some(found_result) => Ok(found_result.clone()),
-            None => Err(Exception::new(self.clone(), format!("Could not find entry '{}' in map.", x).as_str())),
+        Reference::Index(index_reference) => {
+          let resolved = self.resolve(index_reference.reference.deref().clone())?;
+          match (index_reference.index.deref(), resolved) {
+            (Value::Signed8(x), Value::Array(array)) => Ok(array.values[*x as usize].clone()),
+            (Value::Signed16(x), Value::Array(array)) => Ok(array.values[*x as usize].clone()),
+            (Value::Signed32(x), Value::Array(array)) => Ok(array.values[*x as usize].clone()),
+            (Value::Signed64(x), Value::Array(array)) => Ok(array.values[*x as usize].clone()),
+            (Value::Signed128(x), Value::Array(array)) => Ok(array.values[*x as usize].clone()),
+            (Value::Unsigned8(x), Value::Array(array)) => Ok(array.values[*x as usize].clone()),
+            (Value::Unsigned16(x), Value::Array(array)) => Ok(array.values[*x as usize].clone()),
+            (Value::Unsigned32(x), Value::Array(array)) => Ok(array.values[*x as usize].clone()),
+            (Value::Unsigned64(x), Value::Array(array)) => Ok(array.values[*x as usize].clone()),
+            (Value::Unsigned128(x), Value::Array(array)) => Ok(array.values[*x as usize].clone()),
+            (Value::String(x), Value::Layout(layout)) => match layout.values.get(x.as_str()) {
+              Some(found_result) => Ok(found_result.clone()),
+              None => Err(Exception::new(self.clone(), format!("Could not find entry '{}' in layout.", x).as_str())),
+            }
+            _ => Err(Exception::new(self.clone(), "Value could not be indexed by the specified index")),
           }
-          (_, Err(e)) => Err(e),
-          _ => Err(Exception::new(self.clone(), "Value could not be indexed by the specified index")),
         }
       }
       _ => Ok(value.clone()),
     }
   }
 
-  pub fn modify(&mut self, reference: Reference, value: Value) {
-    todo!("Finish this")
+  fn get_value_reference(&mut self, reference_value: &Value) -> Result<&mut Value, Exception> {
+    let context_copy = self.copy();
+    match reference_value {
+      Value::Reference(reference) => match reference {
+        Reference::Variable(variable_reference) => match self.variables.get_mut(variable_reference.name.clone().as_str()) {
+          Some(mutable_value) => Ok(mutable_value),
+          None => Err(Exception::new(context_copy, format!("Could not find variable '{}'", variable_reference.name.clone()).as_str())),
+        }
+        Reference::Index(index_reference) => {
+          let mutable_value = self.get_value_reference(index_reference.reference.deref())?;
+          match (index_reference.index.deref().clone(), mutable_value) {
+            (Value::Signed8(x), Value::Array(array)) => Ok(&mut array.values[x as usize]),
+            (Value::Signed16(x), Value::Array(array)) => Ok(&mut array.values[x as usize]),
+            (Value::Signed32(x), Value::Array(array)) => Ok(&mut array.values[x as usize]),
+            (Value::Signed64(x), Value::Array(array)) => Ok(&mut array.values[x as usize]),
+            (Value::Signed128(x), Value::Array(array)) => Ok(&mut array.values[x as usize]),
+            (Value::Unsigned8(x), Value::Array(array)) => Ok(&mut array.values[x as usize]),
+            (Value::Unsigned16(x), Value::Array(array)) => Ok(&mut array.values[x as usize]),
+            (Value::Unsigned32(x), Value::Array(array)) => Ok(&mut array.values[x as usize]),
+            (Value::Unsigned64(x), Value::Array(array)) => Ok(&mut array.values[x as usize]),
+            (Value::Unsigned128(x), Value::Array(array)) => Ok(&mut array.values[x as usize]),
+            (Value::String(x), Value::Layout(layout)) => match layout.values.get_mut(x.as_str()) {
+              Some(mutable_layout_member) => Ok(mutable_layout_member),
+              None => return Err(Exception::new(context_copy, format!("Could not find entry '{}' in layout.", x).as_str())),
+            }
+            _ => return Err(Exception::new(context_copy, "Value could not be indexed by the specified index")),
+          }
+        }
+      }
+      _ => Err(Exception::new(context_copy, "Cannot get mutable reference to non-reference value"))
+    }
+  }
+
+  pub fn modify(&mut self, reference: &Reference, value: Value) -> Result<(), Exception> {
+    match reference {
+      Reference::Index(index_reference) => {
+        let value_reference = self.get_value_reference(index_reference.reference.deref())?;
+        match (index_reference.index.deref().clone(), value_reference) {
+          (Value::Signed8(x), Value::Array(array)) => array.values[x as usize] = value,
+          (Value::Signed16(x), Value::Array(array)) => array.values[x as usize] = value,
+          (Value::Signed32(x), Value::Array(array)) => array.values[x as usize] = value,
+          (Value::Signed64(x), Value::Array(array)) => array.values[x as usize] = value,
+          (Value::Signed128(x), Value::Array(array)) => array.values[x as usize] = value,
+          (Value::Unsigned8(x), Value::Array(array)) => array.values[x as usize] = value,
+          (Value::Unsigned16(x), Value::Array(array)) => array.values[x as usize] = value,
+          (Value::Unsigned32(x), Value::Array(array)) => array.values[x as usize] = value,
+          (Value::Unsigned64(x), Value::Array(array)) => array.values[x as usize] = value,
+          (Value::Unsigned128(x), Value::Array(array)) => array.values[x as usize] = value,
+          (Value::String(x), Value::Layout(layout)) => match layout.values.get(x.as_str()) {
+            Some(_) => {layout.values.insert(x, value);},
+            None => return Err(Exception::new(self.clone(), format!("Could not find entry '{}' in layout.", x).as_str())),
+          }
+          _ => return Err(Exception::new(self.clone(), "Value could not be indexed by the specified index")),
+        }
+      },
+      Reference::Variable(variable_reference) => {self.variables.insert(variable_reference.name.clone(), value.clone());},
+    }
+    Ok(())
   }
 
   pub fn add(&self, a_value: Value, b_value: Value) -> Value {

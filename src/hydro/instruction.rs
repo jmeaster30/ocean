@@ -41,7 +41,7 @@ pub enum Instruction {
   Store(Store),
   Index(Index),
   AllocArray(AllocArray),
-  AllocMap(AllocMap),
+  AllocLayout(AllocLayout),
 }
 
 #[derive(Debug, Clone)]
@@ -142,7 +142,14 @@ pub struct Store {}
 pub struct Index {}
 
 #[derive(Debug, Clone)]
-pub struct AllocArray {}
+pub struct AllocArray {
+  // TODO There should be a better interface for this instruction.
+  pub length: usize,
+  pub default_value: Value,
+}
 
 #[derive(Debug, Clone)]
-pub struct AllocMap {}
+pub struct AllocLayout {
+  pub module_name: Option<String>,
+  pub layout_template_name: String
+}

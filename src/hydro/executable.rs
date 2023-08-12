@@ -41,7 +41,7 @@ impl Instruction {
       Instruction::Load(x) => x.execute(module, context),
       Instruction::Store(x) => x.execute(module, context),
       Instruction::AllocArray(x) => x.execute(module, context),
-      Instruction::AllocMap(x) => x.execute(module, context),
+      Instruction::AllocLayout(x) => x.execute(module, context),
       Instruction::Index(x) => x.execute(module, context),
     }
   }
@@ -513,8 +513,23 @@ impl Executable for Load {
 }
 
 impl Executable for Store {
-  fn execute(&self, _module: &Module, _context: &mut ExecutionContext) -> Result<bool, Exception> {
-    todo!();
+  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
+    if context.stack.len() < 2 {
+      return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 2 and got 1."))
+    }
+
+    let value = context.stack.pop().unwrap();
+    let reference_value = context.stack.pop().unwrap();
+
+    match &reference_value {
+      Value::Reference(reference) => context.modify(reference, value)?,
+      _ => return Err(Exception::new(context.clone(), "Cannot store value into non-reference value")),
+    }
+
+    context.stack.push(reference_value.clone());
+
+    context.program_counter += 1;
+    Ok(true)
   }
 }
 
@@ -541,9 +556,43 @@ impl Executable for AllocArray {
   }
 }
 
-impl Executable for AllocMap {
-  fn execute(&self, _module: &Module, _context: &mut ExecutionContext) -> Result<bool, Exception> {
-    todo!();
+impl Executable for AllocLayout {
+  fn execute(&self, module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
+    if context.stack.len() < 1 {
+      return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 2 and got 1."))
+    }
+
+    let layout_template = match self.module_name.clone() {
+      Some(template_module_name) => match module.modules.get(template_module_name.as_str()) {
+        Some(template_module) => match template_module.layout_templates.get(self.layout_template_name.as_str()) {
+          Some(template) => template,
+          None => {
+            return Err(Exception::new(context.clone(), format!("Layout '{}' not found in module '{}'", self.layout_template_name, template_module_name).as_str()))
+          },
+        }
+        None => {
+          return Err(Exception::new(context.clone(), format!("Module '{}' not found.", template_module_name).as_str()))
+        },
+      }
+      None => match module.layout_templates.get(self.layout_template_name.as_str()) {
+        Some(template) => template,
+        None => {
+          return Err(Exception::new(context.clone(), format!("Layout '{}' not found in module '{}'", self.layout_template_name, module.name).as_str()))
+        },
+      }
+    };
+
+    let allocated = layout_template.create_value();
+    let value_reference = context.stack.pop().unwrap();
+    match &value_reference {
+      Value::Reference(reference) => context.modify(reference, allocated)?,
+      _ => return Err(Exception::new(context.clone(), "Could not allocate layout into a non-reference value"))
+    }
+
+    context.stack.push(value_reference.clone());
+
+    context.program_counter += 1;
+    Ok(true)
   }
 }
 

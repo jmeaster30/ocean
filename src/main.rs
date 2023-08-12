@@ -4,8 +4,9 @@ pub mod util;
 use util::argsparser::{ArgsParser, Argument};
 use std::env;
 use crate::hydro::function::Function;
-use crate::hydro::instruction::{Add, Call, Instruction, Load, Return};
+use crate::hydro::instruction::{Add, AllocLayout, Call, Index, Instruction, Load, Return, Store};
 use crate::hydro::instruction::PushValue;
+use crate::hydro::layouttemplate::LayoutTemplate;
 use crate::hydro::module::Module;
 use crate::hydro::value::{FunctionPointer, Reference, Value, VariableRef};
 use crate::util::argsparser::Command;
@@ -58,32 +59,32 @@ fn main() -> std::io::Result<()> {
     //   .help("The main source file to compile"));
   let _parsed_args = arg_parser.parse(args[1..].to_vec());
 
-  let module = Module::new(
-    "Main".to_string(),
-    vec![
-      Module::new(
-        "Std".to_string(),
-        Vec::new(),
-        vec![
-          Function::new("GetFunnyNumber2".to_string(), Vec::new(), vec![
-            Instruction::PushValue(PushValue { value: Value::Unsigned16(420) }),
-            Instruction::Call(Call { }),
-            Instruction::Return(Return {}),
-          ])
-        ]
-      )
-    ],
-    vec![
-      Function::new("Main".to_string(), Vec::new(), vec![
-        Instruction::PushValue(PushValue { value: Value::Reference(Reference::Variable(VariableRef::new("funnyNumber".to_string()))) }),
-        Instruction::Load(Load { }),
-        Instruction::PushValue(PushValue { value: Value::FunctionPointer(FunctionPointer::new(Some("Std".to_string()), "GetFunnyNumber2".to_string()))}),
-        Instruction::Call(Call { }),
-        Instruction::Add(Add { }),
+  let module = Module::build("Main")
+    .import(Module::build("Std")
+      .layout(LayoutTemplate::build("point")
+        .member("x", Value::Signed128(0))
+        .member("y", Value::Signed128(0)))
+      .function(Function::new("GetFunnyNumber2".to_string(), Vec::new(), vec![
+        Instruction::PushValue(PushValue { value: Value::Unsigned16(420) }),
         Instruction::Return(Return {}),
-      ])
-    ]
-  );
+      ])))
+    .function(Function::new("Main".to_string(), Vec::new(), vec![
+      // TODO add some helpers so that writing these out doesn't suck this much
+      Instruction::PushValue(PushValue { value: Value::Reference(Reference::Variable(VariableRef::new("funnyCoordinate".to_string()))) }),
+      Instruction::AllocLayout(AllocLayout { module_name: Some("Std".to_string()), layout_template_name: "point".to_string() }),
+      Instruction::PushValue(PushValue { value: Value::String("x".to_string()) }),
+      Instruction::Index(Index { }),
+      Instruction::PushValue(PushValue { value: Value::Signed128(8008) }),
+      Instruction::Store(Store { }),
+      Instruction::Load(Load { }),
+      Instruction::PushValue(PushValue { value: Value::Reference(Reference::Variable(VariableRef::new("funnyNumber".to_string()))) }),
+      Instruction::Load(Load { }),
+      Instruction::PushValue(PushValue { value: Value::FunctionPointer(FunctionPointer::new(Some("Std".to_string()), "GetFunnyNumber2".to_string()))}),
+      Instruction::Call(Call { }),
+      Instruction::Add(Add { }),
+      Instruction::Add(Add { }),
+      Instruction::Return(Return { }),
+    ]));
 
   let return_value = module.execute("Main".to_string(), vec![
     ("funnyNumber".to_string(), Value::Unsigned32(69))

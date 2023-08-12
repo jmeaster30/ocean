@@ -6,7 +6,7 @@ pub enum Value {
   Character(char),
   String(String),
   Array(Array),
-  Map(Map),
+  Layout(Layout),
   FunctionPointer(FunctionPointer),
   Reference(Reference),
 
@@ -110,10 +110,10 @@ impl Array {
 }
 
 #[derive(Debug, Clone)]
-pub struct Map {
+pub struct Layout {
   pub values: HashMap<String, Value>,
 }
 
-impl Map {
+impl Layout {
   pub fn new(values: HashMap<String, Value>) -> Self { Self { values } }
 }
