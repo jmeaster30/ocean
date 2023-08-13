@@ -1,2 +1,3 @@
-pub mod parser;
-pub mod token;
+mod parser;
+mod token;
+pub mod compiler;

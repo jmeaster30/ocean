@@ -199,7 +199,7 @@ impl ArgsParser {
     }
   }
 
-  pub fn parse(&self, args: Vec<String>) -> Result<HashMap<String, Option<String>>, String> {
+  pub fn parse(&self, args: Vec<String>) -> Result<HashMap<String, String>, String> {
     if args.len() < 1 {
       return Err("Expected a command but no arguments provided :(".to_string());
     }
@@ -216,15 +216,12 @@ impl ArgsParser {
     }
     let total = clargs.len();
     let mut args_map = HashMap::new();
+    args_map.insert("command".to_string(), command.command_name.clone());
     for arg_schema in &command.arguments {
       match arg_schema.position {
         Some(x) => {
           let index = if x == usize::MAX {
-            if clargs.len() == 0 {
-              0
-            } else {
-              total - 1
-            }
+            total
           } else {
             x
           };
@@ -237,19 +234,22 @@ impl ArgsParser {
           match &value {
             Some(value_text) => {
               if arg_schema.possible_values.is_empty() {
-                args_map.insert(arg_schema.arg_name.clone(), value);
+                args_map.insert(arg_schema.arg_name.clone(), value_text.clone());
                 if index < clargs.len() {
                   clargs.remove(index);
                 }
               } else if arg_schema.possible_values.contains(value_text) {
-                args_map.insert(arg_schema.arg_name.clone(), value);
+                args_map.insert(arg_schema.arg_name.clone(), value_text.clone());
                 if index < clargs.len() {
                   clargs.remove(index);
                 }
               } else if arg_schema.default_value.is_some() {
                 args_map.insert(
                   arg_schema.arg_name.clone(),
-                  arg_schema.default_value.clone(),
+                  match arg_schema.default_value.clone() {
+                    Some(default_value) => default_value,
+                    None => panic!("Shouldn't hit here :)")
+                  },
                 );
               } else {
                 return Err(format!(

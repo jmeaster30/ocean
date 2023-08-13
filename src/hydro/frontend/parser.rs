@@ -656,6 +656,7 @@ impl Parser {
           "body" => TokenType::Body,
           "layout" => TokenType::Layout,
           "array" => TokenType::Array,
+          "this" => TokenType::This,
           "alloc" => TokenType::Alloc,
           "push" => TokenType::Push,
           "pop" => TokenType::Pop,

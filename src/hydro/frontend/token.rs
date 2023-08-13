@@ -4,9 +4,6 @@ pub enum TokenType {
   Comment,
   Identifier,
   Number,
-  LeftCurly,
-  RightCurly,
-  Comma,
 
   Type,
   FunctionPointer,
