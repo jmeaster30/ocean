@@ -6,3 +6,4 @@ pub mod module;
 pub mod function;
 pub mod exception;
 pub mod layouttemplate;
+pub mod frontend;

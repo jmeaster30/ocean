@@ -3,6 +3,8 @@ pub mod util;
 
 use util::argsparser::{ArgsParser, Argument};
 use std::env;
+use std::path::Path;
+use crate::hydro::frontend::parser::Parser;
 use crate::hydro::function::Function;
 use crate::hydro::layouttemplate::LayoutTemplate;
 use crate::hydro::module::Module;
@@ -57,17 +59,22 @@ fn main() -> std::io::Result<()> {
     //   .help("The main source file to compile"));
   let _parsed_args = arg_parser.parse(args[1..].to_vec());
 
-  let module = Module::build("Main")
-    .import(Module::build("Std")
+  let mut parser = Parser::new(Path::new("./scratch/test.h2o"))?;
+  let modules = parser.parse();
+  println!("{:?}", modules);
+
+  let module = Module::build("main")
+    .import(Module::build("sample")
       .layout(LayoutTemplate::build("point")
         .member("x", Value::Signed128(0))
         .member("y", Value::Signed128(0)))
-      .function(Function::build("GetFunnyNumber2")
+      .function(Function::build("getFunnyNumber")
         .push_value(Value::Unsigned16(420))
         .return_()))
-    .function(Function::build("Main")
+    .function(Function::build("main")
+      .parameter("funnyNumber")
       .push_value(Value::Reference(Reference::Variable(VariableRef::new("funnyCoordinate".to_string()))))
-      .alloc_layout(Some("Std"), "point")
+      .alloc_layout(Some("sample"), "point")
       .push_value(Value::String("x".to_string()))
       .index()
       .push_value(Value::Signed128(8008))
@@ -75,13 +82,13 @@ fn main() -> std::io::Result<()> {
       .load()
       .push_value(Value::Reference(Reference::Variable(VariableRef::new("funnyNumber".to_string()))))
       .load()
-      .push_value(Value::FunctionPointer(FunctionPointer::new(Some("Std".to_string()), "GetFunnyNumber2".to_string())))
+      .push_value(Value::FunctionPointer(FunctionPointer::new(Some("sample".to_string()), "getFunnyNumber".to_string())))
       .call()
       .add()
       .add()
       .return_());
 
-  let return_value = module.execute("Main".to_string(), vec![
+  let return_value = module.execute("main".to_string(), vec![
     ("funnyNumber".to_string(), Value::Unsigned32(69))
   ], None);
 

@@ -8,3 +8,4 @@ exclude = ["./ocean-language-support/*"]
 
 [dependencies]
 ocean_macros = { path = "ocean_macros" }
+regex = "1.9.3"
