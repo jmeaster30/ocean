@@ -16,13 +16,27 @@ pub struct Module {
 }
 
 impl Module {
-  pub fn new(name: String, modules: Vec<Module>, layout_templates: Vec<LayoutTemplate>, functions: Vec<Function>) -> Self {
+  pub fn new(
+    name: String,
+    modules: Vec<Module>,
+    layout_templates: Vec<LayoutTemplate>,
+    functions: Vec<Function>,
+  ) -> Self {
     Self {
       name,
       unresolved_modules: Vec::new(),
-      modules: modules.iter().map(|x| (x.clone().name, x.clone())).collect::<HashMap<String, Module>>(),
-      layout_templates: layout_templates.iter().map(|x| (x.clone().name, x.clone())).collect::<HashMap<String, LayoutTemplate>>(),
-      functions: functions.iter().map(|x| (x.clone().name, x.clone())).collect::<HashMap<String, Function>>(),
+      modules: modules
+        .iter()
+        .map(|x| (x.clone().name, x.clone()))
+        .collect::<HashMap<String, Module>>(),
+      layout_templates: layout_templates
+        .iter()
+        .map(|x| (x.clone().name, x.clone()))
+        .collect::<HashMap<String, LayoutTemplate>>(),
+      functions: functions
+        .iter()
+        .map(|x| (x.clone().name, x.clone()))
+        .collect::<HashMap<String, Function>>(),
     }
   }
 
@@ -58,14 +72,23 @@ impl Module {
 
   pub fn resolve(&mut self, reference_modules: &Vec<Module>) {
     for module_name in &self.unresolved_modules {
-      let found_module = reference_modules.iter().find(|x| x.name == module_name.clone());
+      let found_module = reference_modules
+        .iter()
+        .find(|x| x.name == module_name.clone());
       match found_module {
-        Some(module) => {self.modules.insert(module_name.clone(), module.clone());},
-        None => panic!("Couldn't find module '{}' required by '{}'", module_name, self.name)
+        Some(module) => {
+          self.modules.insert(module_name.clone(), module.clone());
+        }
+        None => panic!(
+          "Couldn't find module '{}' required by '{}'",
+          module_name, self.name
+        ),
       }
     }
 
-    let unresolved_modules = self.unresolved_modules.iter()
+    let unresolved_modules = self
+      .unresolved_modules
+      .iter()
       .filter(|x| !self.modules.contains_key(x.clone()))
       .map(|x| x.clone())
       .collect::<Vec<String>>();
@@ -75,7 +98,12 @@ impl Module {
     }
   }
 
-  pub fn execute(&self, function_name: String, arguments: Vec<(String, Value)>, parent_context: Option<Box<ExecutionContext>>) -> Result<Option<Value>, Exception> {
+  pub fn execute(
+    &self,
+    function_name: String,
+    arguments: Vec<(String, Value)>,
+    parent_context: Option<Box<ExecutionContext>>,
+  ) -> Result<Option<Value>, Exception> {
     let mut context = ExecutionContext {
       parent_execution_context: parent_context,
       stack: Vec::new(),
@@ -86,13 +114,18 @@ impl Module {
       current_module: self.name.clone(),
     };
 
-    let args = arguments.iter().map(|x| (x.0.clone(), x.1.clone())).collect::<HashMap<String, Value>>();
+    let args = arguments
+      .iter()
+      .map(|x| (x.0.clone(), x.1.clone()))
+      .collect::<HashMap<String, Value>>();
 
     let current_function = self.functions.get(&*function_name).unwrap();
 
     for param in &current_function.parameters {
       match args.get(param.as_str()) {
-        Some(value) => {context.variables.insert(param.clone(), value.clone());},
+        Some(value) => {
+          context.variables.insert(param.clone(), value.clone());
+        }
         None => {}
       }
     }

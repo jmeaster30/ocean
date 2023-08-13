@@ -206,7 +206,16 @@ impl ArgsParser {
 
     let opt_command = self.commands.get(&*args[0].clone());
     if opt_command.is_none() {
-      return Err(format!("Unknown command {} expected one of [{}].", args[0], self.commands.iter().map(|x| x.0.clone()).collect::<Vec<String>>().join(", ")));
+      return Err(format!(
+        "Unknown command {} expected one of [{}].",
+        args[0],
+        self
+          .commands
+          .iter()
+          .map(|x| x.0.clone())
+          .collect::<Vec<String>>()
+          .join(", ")
+      ));
     }
     let command = opt_command.unwrap();
 
@@ -220,11 +229,7 @@ impl ArgsParser {
     for arg_schema in &command.arguments {
       match arg_schema.position {
         Some(x) => {
-          let index = if x == usize::MAX {
-            total
-          } else {
-            x
-          };
+          let index = if x == usize::MAX { total } else { x };
           let mut value = arg_schema.default_value.clone();
           for (ci, cv) in &clargs {
             if *ci == index {
@@ -248,7 +253,7 @@ impl ArgsParser {
                   arg_schema.arg_name.clone(),
                   match arg_schema.default_value.clone() {
                     Some(default_value) => default_value,
-                    None => panic!("Shouldn't hit here :)")
+                    None => panic!("Shouldn't hit here :)"),
                   },
                 );
               } else {

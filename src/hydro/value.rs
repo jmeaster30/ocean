@@ -31,7 +31,9 @@ pub struct Boolean {
 }
 
 impl Boolean {
-  pub fn new(value: bool) -> Self { Self { value } }
+  pub fn new(value: bool) -> Self {
+    Self { value }
+  }
 }
 
 #[derive(Debug, Clone)]
@@ -40,7 +42,9 @@ pub struct Character {
 }
 
 impl Character {
-  pub fn new(value: char) -> Self { Self { value } }
+  pub fn new(value: char) -> Self {
+    Self { value }
+  }
 }
 
 #[derive(Debug, Clone)]
@@ -49,10 +53,10 @@ pub struct StringValue {
 }
 
 impl StringValue {
-  pub fn new(value: String) -> Self { Self { value } }
+  pub fn new(value: String) -> Self {
+    Self { value }
+  }
 }
-
-
 
 #[derive(Debug, Clone)]
 pub struct Integer {
@@ -61,7 +65,9 @@ pub struct Integer {
 }
 
 impl Integer {
-  pub fn new(value: u128, negative: bool) -> Self { Self { value, negative } }
+  pub fn new(value: u128, negative: bool) -> Self {
+    Self { value, negative }
+  }
 }
 
 #[derive(Debug, Clone)]
@@ -71,7 +77,9 @@ pub struct FunctionPointer {
 }
 
 impl FunctionPointer {
-  pub fn new(module: Option<String>, function: String) -> Self { Self { module, function } }
+  pub fn new(module: Option<String>, function: String) -> Self {
+    Self { module, function }
+  }
 }
 
 #[derive(Debug, Clone)]
@@ -86,7 +94,9 @@ pub struct VariableRef {
 }
 
 impl VariableRef {
-  pub fn new(name: String) -> Self { Self { name } }
+  pub fn new(name: String) -> Self {
+    Self { name }
+  }
 }
 
 #[derive(Debug, Clone)]
@@ -96,7 +106,9 @@ pub struct IndexRef {
 }
 
 impl IndexRef {
-  pub fn new(reference: Box<Value>, index: Box<Value>) -> Self { Self { reference, index } }
+  pub fn new(reference: Box<Value>, index: Box<Value>) -> Self {
+    Self { reference, index }
+  }
 }
 
 #[derive(Debug, Clone)]
@@ -106,7 +118,12 @@ pub struct Array {
 }
 
 impl Array {
-  pub fn new(length: Box<Value>) -> Self { Self { length, values: Vec::new() } }
+  pub fn new(length: Box<Value>) -> Self {
+    Self {
+      length,
+      values: Vec::new(),
+    }
+  }
 }
 
 #[derive(Debug, Clone)]
@@ -115,5 +132,7 @@ pub struct Layout {
 }
 
 impl Layout {
-  pub fn new(values: HashMap<String, Value>) -> Self { Self { values } }
+  pub fn new(values: HashMap<String, Value>) -> Self {
+    Self { values }
+  }
 }

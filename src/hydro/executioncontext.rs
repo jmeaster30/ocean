@@ -1,10 +1,10 @@
 use super::value::Value;
 
-use std::collections::HashMap;
-use std::ops::Deref;
-use ocean_macros::{make_add_operations, make_bit_operations, make_comparison_operations};
 use crate::hydro::exception::Exception;
 use crate::hydro::value::Reference;
+use ocean_macros::{make_add_operations, make_bit_operations, make_comparison_operations};
+use std::collections::HashMap;
+use std::ops::Deref;
 
 #[derive(Debug, Clone)]
 pub struct ExecutionContext {
@@ -31,7 +31,10 @@ impl ExecutionContext {
   }
 
   pub fn print_stacktrace_internal(&self) {
-    println!("\tModule: '{}' Function: '{}' at PC: {}", self.current_module, self.current_function, self.program_counter);
+    println!(
+      "\tModule: '{}' Function: '{}' at PC: {}",
+      self.current_module, self.current_function, self.program_counter
+    );
     match &self.parent_execution_context {
       Some(next_context) => next_context.print_stacktrace_internal(),
       None => {}
@@ -48,10 +51,19 @@ impl ExecutionContext {
   pub fn resolve(&self, value: Value) -> Result<Value, Exception> {
     match value {
       Value::Reference(base_reference) => match base_reference {
-        Reference::Variable(variable_reference) => match self.variables.get(variable_reference.name.clone().as_str()) {
-          Some(found_variable) => Ok(found_variable.clone()),
-          None => Err(Exception::new(self.clone(), format!("Could not find variable of name '{}'", variable_reference.name).as_str())),
-        },
+        Reference::Variable(variable_reference) => {
+          match self.variables.get(variable_reference.name.clone().as_str()) {
+            Some(found_variable) => Ok(found_variable.clone()),
+            None => Err(Exception::new(
+              self.clone(),
+              format!(
+                "Could not find variable of name '{}'",
+                variable_reference.name
+              )
+              .as_str(),
+            )),
+          }
+        }
         Reference::Index(index_reference) => {
           let resolved = self.resolve(index_reference.reference.deref().clone())?;
           match (index_reference.index.deref(), resolved) {
@@ -67,12 +79,18 @@ impl ExecutionContext {
             (Value::Unsigned128(x), Value::Array(array)) => Ok(array.values[*x as usize].clone()),
             (Value::String(x), Value::Layout(layout)) => match layout.values.get(x.as_str()) {
               Some(found_result) => Ok(found_result.clone()),
-              None => Err(Exception::new(self.clone(), format!("Could not find entry '{}' in layout.", x).as_str())),
-            }
-            _ => Err(Exception::new(self.clone(), "Value could not be indexed by the specified index")),
+              None => Err(Exception::new(
+                self.clone(),
+                format!("Could not find entry '{}' in layout.", x).as_str(),
+              )),
+            },
+            _ => Err(Exception::new(
+              self.clone(),
+              "Value could not be indexed by the specified index",
+            )),
           }
         }
-      }
+      },
       _ => Ok(value.clone()),
     }
   }
@@ -81,10 +99,20 @@ impl ExecutionContext {
     let context_copy = self.copy();
     match reference_value {
       Value::Reference(reference) => match reference {
-        Reference::Variable(variable_reference) => match self.variables.get_mut(variable_reference.name.clone().as_str()) {
+        Reference::Variable(variable_reference) => match self
+          .variables
+          .get_mut(variable_reference.name.clone().as_str())
+        {
           Some(mutable_value) => Ok(mutable_value),
-          None => Err(Exception::new(context_copy, format!("Could not find variable '{}'", variable_reference.name.clone()).as_str())),
-        }
+          None => Err(Exception::new(
+            context_copy,
+            format!(
+              "Could not find variable '{}'",
+              variable_reference.name.clone()
+            )
+            .as_str(),
+          )),
+        },
         Reference::Index(index_reference) => {
           let mutable_value = self.get_value_reference(index_reference.reference.deref())?;
           match (index_reference.index.deref().clone(), mutable_value) {
@@ -100,13 +128,26 @@ impl ExecutionContext {
             (Value::Unsigned128(x), Value::Array(array)) => Ok(&mut array.values[x as usize]),
             (Value::String(x), Value::Layout(layout)) => match layout.values.get_mut(x.as_str()) {
               Some(mutable_layout_member) => Ok(mutable_layout_member),
-              None => return Err(Exception::new(context_copy, format!("Could not find entry '{}' in layout.", x).as_str())),
+              None => {
+                return Err(Exception::new(
+                  context_copy,
+                  format!("Could not find entry '{}' in layout.", x).as_str(),
+                ))
+              }
+            },
+            _ => {
+              return Err(Exception::new(
+                context_copy,
+                "Value could not be indexed by the specified index",
+              ))
             }
-            _ => return Err(Exception::new(context_copy, "Value could not be indexed by the specified index")),
           }
         }
-      }
-      _ => Err(Exception::new(context_copy, "Cannot get mutable reference to non-reference value"))
+      },
+      _ => Err(Exception::new(
+        context_copy,
+        "Cannot get mutable reference to non-reference value",
+      )),
     }
   }
 
@@ -126,20 +167,38 @@ impl ExecutionContext {
           (Value::Unsigned64(x), Value::Array(array)) => array.values[x as usize] = value,
           (Value::Unsigned128(x), Value::Array(array)) => array.values[x as usize] = value,
           (Value::String(x), Value::Layout(layout)) => match layout.values.get(x.as_str()) {
-            Some(_) => {layout.values.insert(x, value);},
-            None => return Err(Exception::new(self.clone(), format!("Could not find entry '{}' in layout.", x).as_str())),
+            Some(_) => {
+              layout.values.insert(x, value);
+            }
+            None => {
+              return Err(Exception::new(
+                self.clone(),
+                format!("Could not find entry '{}' in layout.", x).as_str(),
+              ))
+            }
+          },
+          _ => {
+            return Err(Exception::new(
+              self.clone(),
+              "Value could not be indexed by the specified index",
+            ))
           }
-          _ => return Err(Exception::new(self.clone(), "Value could not be indexed by the specified index")),
         }
-      },
-      Reference::Variable(variable_reference) => {self.variables.insert(variable_reference.name.clone(), value.clone());},
+      }
+      Reference::Variable(variable_reference) => {
+        self
+          .variables
+          .insert(variable_reference.name.clone(), value.clone());
+      }
     }
     Ok(())
   }
 
   pub fn add(&self, a_value: Value, b_value: Value) -> Value {
     match (a_value, b_value) {
-      (Value::Character(a), Value::Character(b)) => Value::String(a.to_string() + b.to_string().as_str()),
+      (Value::Character(a), Value::Character(b)) => {
+        Value::String(a.to_string() + b.to_string().as_str())
+      }
       (Value::Character(a), Value::String(b)) => Value::String(a.to_string() + b.as_str()),
       (Value::String(a), Value::Character(b)) => Value::String(a + b.to_string().as_str()),
       (Value::String(a), Value::String(b)) => Value::String(a + b.as_str()), // there has to be a better way than '.as_str()'
@@ -243,7 +302,7 @@ impl ExecutionContext {
       Value::Boolean(a) => match b_value {
         Value::Boolean(b) => Value::Boolean(a && b),
         _ => panic!("Operator unimplemented for type"),
-      }
+      },
       _ => panic!("Operator unimplemented for type"),
     }
   }
@@ -253,7 +312,7 @@ impl ExecutionContext {
       Value::Boolean(a) => match b_value {
         Value::Boolean(b) => Value::Boolean(a || b),
         _ => panic!("Operator unimplemented for type"),
-      }
+      },
       _ => panic!("Operator unimplemented for type"),
     }
   }
@@ -263,7 +322,7 @@ impl ExecutionContext {
       Value::Boolean(a) => match b_value {
         Value::Boolean(b) => Value::Boolean(a != b),
         _ => panic!("Operator unimplemented for type"),
-      }
+      },
       _ => panic!("Operator unimplemented for type"),
     }
   }
@@ -295,7 +354,6 @@ impl ExecutionContext {
       (Value::String(a), Value::String(b)) => Value::Boolean(a != b),
       (a, b) => make_comparison_operations!(!=),
     }
-
   }
 
   pub fn lessthan(&self, a_value: Value, b_value: Value) -> Value {

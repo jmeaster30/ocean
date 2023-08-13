@@ -10,10 +10,10 @@ pub enum Instruction {
   Multiply(Multiply),
   Divide(Divide),
   Modulo(Modulo),
-  
+
   LeftShift(LeftShift),
   RightShift(RightShift),
-  
+
   BitwiseAnd(BitwiseAnd),
   BitwiseOr(BitwiseOr),
   BitwiseXor(BitwiseXor),
@@ -30,10 +30,10 @@ pub enum Instruction {
   GreaterThan(GreaterThan),
   LessThanEqual(LessThanEqual),
   GreaterThanEqual(GreaterThanEqual),
-  
+
   Jump(Jump),
   Branch(Branch),
-  
+
   Call(Call),
   Return(Return),
 
@@ -151,5 +151,5 @@ pub struct AllocArray {
 #[derive(Debug, Clone)]
 pub struct AllocLayout {
   pub module_name: Option<String>,
-  pub layout_template_name: String
+  pub layout_template_name: String,
 }

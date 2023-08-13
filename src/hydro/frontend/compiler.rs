@@ -1,15 +1,20 @@
-use std::{fs, io};
-use std::io::{Error, ErrorKind};
-use std::path::Path;
 use crate::hydro::frontend::parser::Parser;
 use crate::hydro::module::Module;
+use std::io::{Error, ErrorKind};
+use std::path::Path;
+use std::{fs, io};
 
 pub struct Hydro {}
 
 impl Hydro {
   pub fn compile(file_path: &str) -> io::Result<Module> {
     let path = Path::new(file_path);
-    println!("Compiling '{}' (absolute '{:?}' from '{:?}')", path.display(), fs::canonicalize(path), std::env::current_dir());
+    println!(
+      "Compiling '{}' (absolute '{:?}' from '{:?}')",
+      path.display(),
+      fs::canonicalize(path),
+      std::env::current_dir()
+    );
     let mut parser = Parser::new(path)?;
     let modules = parser.parse();
     // TODO this stinks
@@ -22,7 +27,7 @@ impl Hydro {
 
     match resolved.iter().find(|x| x.name == "main") {
       Some(module) => Ok(module.clone()),
-      None => Err(Error::new(ErrorKind::NotFound, "Main module not found :("))
+      None => Err(Error::new(ErrorKind::NotFound, "Main module not found :(")),
     }
   }
 }
