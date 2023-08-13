@@ -56,6 +56,25 @@ impl Module {
     self
   }
 
+  pub fn resolve(&mut self, reference_modules: &Vec<Module>) {
+    for module_name in &self.unresolved_modules {
+      let found_module = reference_modules.iter().find(|x| x.name == module_name.clone());
+      match found_module {
+        Some(module) => {self.modules.insert(module_name.clone(), module.clone());},
+        None => panic!("Couldn't find module '{}' required by '{}'", module_name, self.name)
+      }
+    }
+
+    let unresolved_modules = self.unresolved_modules.iter()
+      .filter(|x| !self.modules.contains_key(x.clone()))
+      .map(|x| x.clone())
+      .collect::<Vec<String>>();
+    self.unresolved_modules = unresolved_modules;
+    if self.unresolved_modules.len() != 0 {
+      println!("Unable to resolve dependencies of module '{}'", self.name);
+    }
+  }
+
   pub fn execute(&self, function_name: String, arguments: Vec<(String, Value)>, parent_context: Option<Box<ExecutionContext>>) -> Result<Option<Value>, Exception> {
     let mut context = ExecutionContext {
       parent_execution_context: parent_context,

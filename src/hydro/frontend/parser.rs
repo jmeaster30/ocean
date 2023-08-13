@@ -42,7 +42,6 @@ impl Parser {
   }
 
   fn parse_module(&mut self) -> Module {
-    println!("parse module");
     let Some(module_token) = self.token() else {
       panic!("Expected to have a token here :(");
     };
@@ -61,16 +60,11 @@ impl Parser {
     }
 
     let mut module = Module::build(identifier_token.lexeme.as_str());
-    println!("name: {}", identifier_token.lexeme);
 
     loop {
-      println!("statement loop");
       let Some(current_token) = self.token() else {
-        println!("EXIT stmt loop");
         break
       };
-
-      println!("{:?}", current_token);
 
       match current_token.token_type {
         TokenType::Using => {
@@ -86,20 +80,16 @@ impl Parser {
           module = module.function(func);
         },
         TokenType::Module => {
-          println!("stop found module string");
           break;
         },
         _ => panic!("Unexpected token in module statement. Expected 'using', 'layout', 'main', or 'function'")
       }
     }
 
-    println!("done module");
-
     module
   }
 
   fn parse_using(&mut self) -> String {
-    println!("using");
     let Some(using_token) = self.token() else {
       panic!("Expected to have a token here :(")
     };
@@ -139,11 +129,8 @@ impl Parser {
     }
 
     let mut function = Function::build(identifier_token.lexeme.as_str());
-    println!("function: {}", identifier_token.lexeme.as_str());
-
     // parse params
     loop {
-      println!("param");
       let Some(id_token) = self.token() else {
         panic!("Expected to have a token here :(")
       };
@@ -188,7 +175,6 @@ impl Parser {
   }
 
   fn parse_instruction(&mut self) -> Instruction {
-    println!("instruction");
     let Some(inst_token) = self.token() else {
       panic!("Expected to have a token here :(")
     };
@@ -487,7 +473,6 @@ impl Parser {
    }
 
   fn parse_layout(&mut self) -> LayoutTemplate {
-    println!("layout");
     let Some(layout_token) = self.token() else {
       panic!("Expected to have a token here :(")
     };

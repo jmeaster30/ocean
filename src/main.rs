@@ -5,10 +5,7 @@ use util::argsparser::{ArgsParser, Argument};
 use std::env;
 use std::path::Path;
 use crate::hydro::frontend::parser::Parser;
-use crate::hydro::function::Function;
-use crate::hydro::layouttemplate::LayoutTemplate;
-use crate::hydro::module::Module;
-use crate::hydro::value::{FunctionPointer, Reference, Value, VariableRef};
+use crate::hydro::value::Value;
 use crate::util::argsparser::Command;
 
 fn main() -> std::io::Result<()> {
@@ -41,60 +38,34 @@ fn main() -> std::io::Result<()> {
               .last()
               .default("main.h2o")
               .help("The main source file to compile")));
-
-    //   .arg(Argument::new("Command")
-    //   .first()
-    //   .possible_values(vec!["help", "build", "run", "version", "hydro"])
-    //   .default("run")
-    //   .help("Commands for the compiler"))
-    // .arg(Argument::new("Debug Lexer")
-    //   .named("-t", "--output-tokens")
-    //   .help("Outputs the tokens to a file called '{source_file}.tokens'"))
-    // .arg(Argument::new("Debug Parser")
-    //   .named("-a", "--output-ast")
-    //   .help("Outputs the ast to a file called '{source_file}.ast'"))
-    // .arg(Argument::new("Source File")
-    //   .last()
-    //   .default("main.sea")
-    //   .help("The main source file to compile"));
   let _parsed_args = arg_parser.parse(args[1..].to_vec());
 
   let mut parser = Parser::new(Path::new("./scratch/test.h2o"))?;
   let modules = parser.parse();
-  println!("{:?}", modules);
+  // TODO this stinks
+  let mut resolved = Vec::new();
+  for module in &modules {
+    let mut mod_copy = module.clone();
+    mod_copy.resolve(&modules);
+    resolved.push(mod_copy);
+  }
 
-  let module = Module::build("main")
-    .import(Module::build("sample")
-      .layout(LayoutTemplate::build("point")
-        .member("x", Value::Signed128(0))
-        .member("y", Value::Signed128(0)))
-      .function(Function::build("getFunnyNumber")
-        .push_value(Value::Unsigned16(420))
-        .return_()))
-    .function(Function::build("main")
-      .parameter("funnyNumber")
-      .push_value(Value::Reference(Reference::Variable(VariableRef::new("funnyCoordinate".to_string()))))
-      .alloc_layout(Some("sample"), "point")
-      .push_value(Value::String("x".to_string()))
-      .index()
-      .push_value(Value::Signed128(8008))
-      .store()
-      .load()
-      .push_value(Value::Reference(Reference::Variable(VariableRef::new("funnyNumber".to_string()))))
-      .load()
-      .push_value(Value::FunctionPointer(FunctionPointer::new(Some("sample".to_string()), "getFunnyNumber".to_string())))
-      .call()
-      .add()
-      .add()
-      .return_());
+  let main_module = resolved.iter().find(|x| x.name == "main");
 
-  let return_value = module.execute("main".to_string(), vec![
-    ("funnyNumber".to_string(), Value::Unsigned32(69))
-  ], None);
+  match main_module {
+    Some(module) => {
+      let return_value = module.execute("main".to_string(), vec![
+        ("funnyNumber".to_string(), Value::Unsigned32(69))
+      ], None);
 
-  match return_value {
-    Ok(result) => println!("{:#?}", result),
-    Err(e) => e.print_stacktrace(),
+      match return_value {
+        Ok(result) => println!("{:#?}", result),
+        Err(e) => e.print_stacktrace(),
+      }
+    }
+    None => {
+      println!("Could not find main module :(")
+    }
   }
 
   Ok(())
