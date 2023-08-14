@@ -42,6 +42,10 @@ pub enum Instruction {
   Index(Index),
   AllocArray(AllocArray),
   AllocLayout(AllocLayout),
+  Breakpoint(Breakpoint),
+
+  ProfileStart(ProfileStart),
+  ProfileStop(ProfileStop),
 }
 
 #[derive(Debug, Clone)]
@@ -153,3 +157,17 @@ pub struct AllocLayout {
   pub module_name: Option<String>,
   pub layout_template_name: String,
 }
+
+#[derive(Debug, Clone)]
+pub struct Breakpoint {}
+
+#[derive(Debug, Clone)]
+pub struct ProfileStart {
+  pub name: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct ProfileStop {
+  pub name: String,
+}
+
