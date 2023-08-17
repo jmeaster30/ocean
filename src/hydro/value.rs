@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Value {
   Boolean(bool),
   Character(char),
@@ -25,52 +25,7 @@ pub enum Value {
   Float,
 }
 
-#[derive(Debug, Clone)]
-pub struct Boolean {
-  pub value: bool,
-}
-
-impl Boolean {
-  pub fn new(value: bool) -> Self {
-    Self { value }
-  }
-}
-
-#[derive(Debug, Clone)]
-pub struct Character {
-  pub value: char,
-}
-
-impl Character {
-  pub fn new(value: char) -> Self {
-    Self { value }
-  }
-}
-
-#[derive(Debug, Clone)]
-pub struct StringValue {
-  pub value: String,
-}
-
-impl StringValue {
-  pub fn new(value: String) -> Self {
-    Self { value }
-  }
-}
-
-#[derive(Debug, Clone)]
-pub struct Integer {
-  pub value: u128,
-  pub negative: bool,
-}
-
-impl Integer {
-  pub fn new(value: u128, negative: bool) -> Self {
-    Self { value, negative }
-  }
-}
-
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct FunctionPointer {
   pub module: Option<String>,
   pub function: String,
@@ -82,13 +37,13 @@ impl FunctionPointer {
   }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Reference {
   Variable(VariableRef),
   Index(IndexRef),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct VariableRef {
   pub name: String,
 }
@@ -99,7 +54,7 @@ impl VariableRef {
   }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct IndexRef {
   pub reference: Box<Value>,
   pub index: Box<Value>,
@@ -111,7 +66,7 @@ impl IndexRef {
   }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Array {
   pub length: Box<Value>,
   pub values: Vec<Value>,
@@ -126,7 +81,7 @@ impl Array {
   }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Layout {
   pub values: HashMap<String, Value>,
 }

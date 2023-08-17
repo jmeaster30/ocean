@@ -6,7 +6,7 @@ use ocean_macros::{make_add_operations, make_bit_operations, make_comparison_ope
 use std::collections::HashMap;
 use std::ops::Deref;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ExecutionContext {
   pub parent_execution_context: Option<Box<ExecutionContext>>,
   pub stack: Vec<Value>,

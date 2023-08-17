@@ -1,6 +1,6 @@
 use crate::hydro::executioncontext::ExecutionContext;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Exception {
   pub context: ExecutionContext,
   pub message: String,

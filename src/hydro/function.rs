@@ -1,7 +1,7 @@
 use crate::hydro::instruction::{
   Add, AllocLayout, Call, Index, Instruction, Load, PopValue, PushValue, Return, Store,
 };
-use crate::hydro::value::Value;
+use crate::hydro::value::{Reference, Value, VariableRef};
 
 #[derive(Debug, Clone)]
 pub struct Function {
@@ -30,6 +30,11 @@ impl Function {
 
   pub fn inst(mut self, instruction: Instruction) -> Self {
     self.body.push(instruction);
+    self
+  }
+
+  pub fn var_ref(mut self, variable_name: &str) -> Self {
+    self.body.push(Instruction::PushValue(PushValue { value: Value::Reference(Reference::Variable(VariableRef::new(variable_name.to_string())))}));
     self
   }
 

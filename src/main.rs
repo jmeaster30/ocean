@@ -1,5 +1,7 @@
 pub mod hydro;
 pub mod util;
+#[cfg(test)]
+mod tests;
 
 use crate::hydro::debugcontext::DebugContext;
 use crate::hydro::frontend::compiler::Hydro;
