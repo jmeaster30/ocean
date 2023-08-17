@@ -6,6 +6,7 @@ use std::io::{stdin, stdout, Write};
 use std::time::{Duration, Instant};
 
 pub struct DebugContext {
+  pub step: Option<usize>,
   // Module > Function > Metric Name > List of Durations
   // This probably is not the best way to do this
   pub core_metrics: HashMap<String, HashMap<String, HashMap<String, Vec<Duration>>>>,
@@ -21,6 +22,7 @@ pub struct DebugContext {
 impl DebugContext {
   pub fn new() -> Self {
     Self {
+      step: None,
       core_metrics: HashMap::new(),
       custom_metrics: HashMap::new(),
       running_core_metrics: HashMap::new(),
@@ -47,15 +49,12 @@ impl DebugContext {
 
   pub fn console(
     &mut self,
-    _module: &Module,
-    _execution_context: Option<&mut ExecutionContext>,
-    program_counter: Option<usize>,
+    module: &Module,
+    execution_context: Option<&mut ExecutionContext>,
     final_return_value: Option<Value>,
   ) {
-    if program_counter.is_none() {
-      println!("{}Entering the Hydro Debugger!!{}", DebugContext::ansi_color_code("red"), DebugContext::ansi_color_code("reset"));
-      println!("{}Type 'help' to get a list of debugger commands :){}", DebugContext::ansi_color_code("red"), DebugContext::ansi_color_code("reset"));
-    }
+    println!("{}Entering the Hydro Debugger!!{}", DebugContext::ansi_color_code("red"), DebugContext::ansi_color_code("reset"));
+    println!("{}Type 'help' to get a list of debugger commands :){}", DebugContext::ansi_color_code("red"), DebugContext::ansi_color_code("reset"));
     if final_return_value.is_some() {
       println!("{}Program terminated without exceptions and with a final return value of:{}", DebugContext::ansi_color_code("green"), DebugContext::ansi_color_code("reset"));
       println!("{}{:#?}{}", DebugContext::ansi_color_code("magenta"), final_return_value, DebugContext::ansi_color_code("reset"));
@@ -106,10 +105,24 @@ impl DebugContext {
         }
         "continue" => break,
         "help" => {
-          println!("continue - Starts/continues execution");
           println!("breakpoint <module> <function> <program counter> - Set breakpoint");
+          println!("continue - Starts/continues execution");
+          println!("help - prints this output");
+          println!("instruction - prints the currently executing instruction");
           println!("metric <module> <function> <program counter> - Print metric");
           println!("run - Starts/continues execution");
+          println!("stacktrace - prints stacktrace");
+          println!("step <optional step size> - execute step size number of instructions and break. defaults to 1")
+        }
+        "instruction" => {
+          match &execution_context {
+            // context.current_function must be in module.functions here
+            Some(context) => {
+              println!("Module: '{}' Function: '{}' at PC: {}", context.current_module, context.current_function, context.program_counter);
+              println!("{:?}", module.functions.get(context.current_function.as_str()).unwrap().body[context.program_counter])
+            },
+            None => println!("There is no current execution context to have a program counter :("),
+          }
         }
         "metric" => {
           if parsed.len() != 4 {
@@ -122,12 +135,61 @@ impl DebugContext {
           }
         }
         "run" => break,
+        "stacktrace" => {
+          match &execution_context {
+            Some(context) => context.print_stacktrace(),
+            None => println!("There is no current execution context to have a stacktrace :("),
+          }
+        }
+        "step" => {
+          if parsed.len() != 1 && parsed.len() != 2 {
+            println!(
+              "Mismatch number of arguments for step. Expected 1 or 2 but got {}",
+              parsed.len()
+            );
+            continue;
+          }
+
+          if parsed.len() == 1 {
+            println!("Stepping by 1...");
+            self.step = Some(1);
+          } else {
+            let result_step_size = parsed[1].parse::<usize>();
+            if result_step_size.is_err() {
+              println!(
+                "Couldn't convert '{}' into a unsigned integer :(",
+                parsed[1]
+              );
+              continue;
+            } else {
+              let step_size = result_step_size.unwrap();
+              println!(
+                "Stepping by {}...",
+                step_size
+              );
+              self.step = Some(step_size);
+            }
+          }
+          break;
+        }
         _ => {
           println!("Unknown command '{}' :(", input_buffer);
         }
       }
     }
     print!("{}", DebugContext::ansi_color_code("reset"));
+  }
+
+  // return true if we should enter a debug console
+  pub fn update_step(&mut self) -> bool {
+    if self.step.is_some() && self.step.unwrap() != 0{
+      let value = self.step.unwrap() - 1;
+      self.step = Some(value);
+      if value == 0 {
+        return true;
+      }
+    }
+    false
   }
 
   pub fn set_break_point(

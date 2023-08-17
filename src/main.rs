@@ -71,7 +71,7 @@ fn main() -> std::io::Result<()> {
           // output some metrics or open debug console?
 
           match return_value {
-            Ok(result) => debug_context.console(&module, None, None, result),
+            Ok(result) => debug_context.console(&module, None, result),
             Err(e) => e.print_stacktrace(),
           }
         }

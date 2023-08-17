@@ -30,13 +30,13 @@ impl ExecutionContext {
     }
   }
 
-  pub fn print_stacktrace_internal(&self) {
+  pub fn print_stacktrace(&self) {
     println!(
       "\tModule: '{}' Function: '{}' at PC: {}",
       self.current_module, self.current_function, self.program_counter
     );
     match &self.parent_execution_context {
-      Some(next_context) => next_context.print_stacktrace_internal(),
+      Some(next_context) => next_context.print_stacktrace(),
       None => {}
     }
   }

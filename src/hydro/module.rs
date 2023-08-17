@@ -167,7 +167,11 @@ impl Module {
     match parent_context {
       Some(_) => {}
       None => {
-        debug_context.console(self, Some(&mut context), None, None);
+        debug_context.console(self, Some(&mut context), None);
+        // hacky way of letting the user step immediately when the program runs
+        if debug_context.step.clone().is_some() {
+          debug_context.step = Some(debug_context.step.clone().unwrap() + 1);
+        }
       }
     }
 
@@ -195,13 +199,13 @@ impl Module {
 
     while context.program_counter.clone() < current_function.body.len() {
       // check for break points
-      if debug_context.is_break_point(
+      let should_step_break = debug_context.update_step();
+      if should_step_break || debug_context.is_break_point(
         self.name.clone(),
         function_name.clone(),
         context.program_counter,
       ) {
-        let current_pc = Some(context.program_counter.clone());
-        debug_context.console(self, Some(&mut context), current_pc, None);
+        debug_context.console(self, Some(&mut context), None);
       }
 
       //check for profile points here
@@ -212,8 +216,7 @@ impl Module {
         Ok(should_continue) if !should_continue => break,
         Err(exception) => {
           exception.print_stacktrace();
-          let current_pc = Some(context.program_counter.clone());
-          debug_context.console(self, Some(&mut context), current_pc, None);
+          debug_context.console(self, Some(&mut context), None);
           debug_context.stop_core_metric(
             self.name.clone(),
             function_name.clone(),

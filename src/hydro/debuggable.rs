@@ -726,10 +726,11 @@ impl Debuggable for Call {
           arguments.push((param.clone(), param_value));
         }
 
-        let return_value = target_module.execute(
+        let return_value = target_module.debug(
           func_pointer.function,
           arguments,
           Some(Box::new(context.clone())),
+          debug_context
         );
         match return_value {
           Ok(optional_return) => match optional_return {

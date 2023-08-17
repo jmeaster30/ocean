@@ -16,6 +16,6 @@ impl Exception {
 
   pub fn print_stacktrace(&self) {
     println!("EXCEPTION: {}", self.message.clone());
-    self.context.print_stacktrace_internal();
+    self.context.print_stacktrace();
   }
 }
