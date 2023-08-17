@@ -1,3 +1,5 @@
+#![deny(warnings)]
+
 pub mod hydro;
 pub mod util;
 #[cfg(test)]

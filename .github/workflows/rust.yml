@@ -3,8 +3,19 @@ name: Rust
 on:
   push:
     branches: [ "main" ]
+    paths:
+      - ocean_macros/**
+      - src/**
+      - std/**
+      - examples/**
   pull_request:
     branches: [ "main" ]
+    paths:
+      - ocean_macros/**
+      - src/**
+      - std/**
+      - examples/**
+
 
 env:
   CARGO_TERM_COLOR: always
@@ -22,14 +33,15 @@ jobs:
       with:
         toolchain: stable
         override: true
+
+    - name: Install Tarpaulin
+      run: "cargo install cargo-tarpaulin"
         
     - name: Run cargo build
       run: cargo build --verbose
       
     - name: Run cargo-tarpaulin
-      uses: actions-rs/tarpaulin@v0.1
-      with:
-        args: '--no-fail-fast --engine llvm'
+      run: 'cargo tarpaulin --no-fail-fast --engine llvm --out Xml'
         
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v3
