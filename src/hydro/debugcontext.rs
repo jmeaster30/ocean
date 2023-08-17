@@ -103,26 +103,35 @@ impl DebugContext {
             }
           }
         }
-        "continue" => break,
+        "continue" => match execution_context {
+          Some(_) => break,
+          None => println!("Not in a continuable context :(")
+        },
+        "exit" => {
+          print!("{}", DebugContext::ansi_color_code("reset"));
+          panic!("Exiting from program run. (TODO: Make this something better than a panic)")
+        },
         "help" => {
           println!("breakpoint <module> <function> <program counter> - Set breakpoint");
           println!("continue - Starts/continues execution");
-          println!("help - prints this output");
-          println!("instruction - prints the currently executing instruction");
+          println!("exit - exits the program");
+          println!("help - Prints this output");
+          println!("instruction - Prints the currently executing instruction");
           println!("metric <module> <function> <program counter> - Print metric");
           println!("run - Starts/continues execution");
-          println!("stacktrace - prints stacktrace");
-          println!("step <optional step size> - execute step size number of instructions and break. defaults to 1")
+          println!("stack <length> - Prints <length> values from the top of the stack");
+          println!("stacktrace - Prints stacktrace");
+          println!("step <optional step size> - Execute step size number of instructions and break. defaults to 1");
+          println!("variable <variable name> - Print variable with name <variable name>");
+          println!("variables - Print all variables in current context");
         }
-        "instruction" => {
-          match &execution_context {
-            // context.current_function must be in module.functions here
-            Some(context) => {
-              println!("Module: '{}' Function: '{}' at PC: {}", context.current_module, context.current_function, context.program_counter);
-              println!("{:?}", module.functions.get(context.current_function.as_str()).unwrap().body[context.program_counter])
-            },
-            None => println!("There is no current execution context to have a program counter :("),
-          }
+        "instruction" => match &execution_context {
+          // context.current_function must be in module.functions here
+          Some(context) => {
+            println!("Module: '{}' Function: '{}' at PC: {}", context.current_module, context.current_function, context.program_counter);
+            println!("{:?}", module.functions.get(context.current_function.as_str()).unwrap().body[context.program_counter])
+          },
+          None => println!("There is no current execution context to have a program counter :("),
         }
         "metric" => {
           if parsed.len() != 4 {
@@ -134,12 +143,41 @@ impl DebugContext {
             self.print_summarized_core_metric(parsed[1].to_string(), parsed[2].to_string(), parsed[3].to_string());
           }
         }
-        "run" => break,
-        "stacktrace" => {
-          match &execution_context {
-            Some(context) => context.print_stacktrace(),
-            None => println!("There is no current execution context to have a stacktrace :("),
-          }
+        "run" => match execution_context {
+          Some(_) => break,
+          None => println!("Not in a runnable context :(")
+        },
+        "stack" => match &execution_context {
+          Some(context) => {
+            if parsed.len() != 2 {
+              println!(
+                "Mismatch number of arguments for stack. Expected 2 but got {}",
+                parsed.len()
+              );
+              continue;
+            }
+
+            let result_view_size = parsed[1].parse::<usize>();
+            if result_view_size.is_err() {
+              println!(
+                "Couldn't convert '{}' into a unsigned integer :(",
+                parsed[1]
+              );
+              continue;
+            } else {
+              let length = context.stack.len() - result_view_size.unwrap().min(context.stack.len());
+              let mut top_of_stack = context.stack.iter().skip(length.max(0)).map(|x| x.clone()).collect::<Vec<Value>>();
+              top_of_stack.reverse();
+              for (value, idx) in top_of_stack.iter().zip(0..top_of_stack.len()) {
+                println!("[{}] {:?}", idx, value);
+              }
+            }
+          },
+          None => println!("There is no current execution context to have a stack :("),
+        }
+        "stacktrace" => match &execution_context {
+          Some(context) => context.print_stacktrace(),
+          None => println!("There is no current execution context to have a stacktrace :("),
         }
         "step" => {
           if parsed.len() != 1 && parsed.len() != 2 {
@@ -171,6 +209,38 @@ impl DebugContext {
             }
           }
           break;
+        }
+        "variable" => match &execution_context {
+          Some(context) => {
+            if parsed.len() != 2 {
+              println!(
+                "Mismatch number of arguments for variable. Expected 2 but got {}",
+                parsed.len()
+              );
+            }
+
+            match context.variables.get(parsed[1]) {
+              Some(value) => println!("{} := {:?}", parsed[1], value),
+              None => println!("Variable '{}' is not defined in the current context :(", parsed[1])
+            }
+          }
+          None => println!("Not in a context that has variables :("),
+        }
+        "variables" => match &execution_context {
+          Some(context) => {
+            if parsed.len() != 1 {
+              println!(
+                "Mismatch number of arguments for variables. Expected 1 but got {}",
+                parsed.len()
+              );
+            }
+
+            // print that there are no variables if here
+            for (variable_name, variable_value) in &context.variables {
+              println!("{} := {:?}", variable_name, variable_value);
+            }
+          }
+          None => println!("Not in a context that has variables :("),
         }
         _ => {
           println!("Unknown command '{}' :(", input_buffer);
