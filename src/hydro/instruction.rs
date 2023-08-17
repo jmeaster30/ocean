@@ -42,10 +42,6 @@ pub enum Instruction {
   Index(Index),
   AllocArray(AllocArray),
   AllocLayout(AllocLayout),
-  Breakpoint(Breakpoint),
-
-  ProfileStart(ProfileStart),
-  ProfileStop(ProfileStop),
 }
 
 #[derive(Debug, Clone)]
@@ -170,4 +166,3 @@ pub struct ProfileStart {
 pub struct ProfileStop {
   pub name: String,
 }
-

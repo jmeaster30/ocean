@@ -1,3 +1,4 @@
+pub mod debugcontext;
 mod debuggable;
 pub mod exception;
 mod executable;

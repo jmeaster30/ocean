@@ -1,6 +1,7 @@
 pub mod hydro;
 pub mod util;
 
+use crate::hydro::debugcontext::DebugContext;
 use crate::hydro::frontend::compiler::Hydro;
 use crate::hydro::value::Value;
 use crate::util::argsparser::Command;
@@ -53,6 +54,24 @@ fn main() -> std::io::Result<()> {
 
           match return_value {
             Ok(result) => println!("{:#?}", result),
+            Err(e) => e.print_stacktrace(),
+          }
+        }
+        "hydro-debug" => {
+          let module = Hydro::compile(arguments.get("Source File").unwrap().as_str())?;
+          let mut debug_context = DebugContext::new();
+
+          let return_value = module.debug(
+            "main".to_string(),
+            vec![("funnyNumber".to_string(), Value::Unsigned32(69))],
+            None,
+            &mut debug_context,
+          );
+
+          // output some metrics or open debug console?
+
+          match return_value {
+            Ok(result) => debug_context.console(&module, None, None, result),
             Err(e) => e.print_stacktrace(),
           }
         }

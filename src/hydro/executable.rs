@@ -47,9 +47,6 @@ impl Instruction {
       Instruction::AllocArray(x) => x.execute(module, context),
       Instruction::AllocLayout(x) => x.execute(module, context),
       Instruction::Index(x) => x.execute(module, context),
-      Instruction::Breakpoint(_x) => { context.program_counter += 1; Ok(true) },
-      Instruction::ProfileStart(_x) => { context.program_counter += 1; Ok(true) },
-      Instruction::ProfileStop(_x) => { context.program_counter += 1; Ok(true) },
     }
   }
 }

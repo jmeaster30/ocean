@@ -1,3 +1,4 @@
+use crate::hydro::debugcontext::DebugContext;
 use std::collections::HashMap;
 
 use crate::hydro::exception::Exception;
@@ -142,6 +143,93 @@ impl Module {
       }
     }
 
-    return Ok(context.return_value.clone());
+    Ok(context.return_value.clone())
+  }
+
+  pub fn debug(
+    &self,
+    function_name: String,
+    arguments: Vec<(String, Value)>,
+    parent_context: Option<Box<ExecutionContext>>,
+    debug_context: &mut DebugContext,
+  ) -> Result<Option<Value>, Exception> {
+    let mut context = ExecutionContext {
+      parent_execution_context: parent_context.clone(),
+      stack: Vec::new(),
+      program_counter: 0,
+      variables: HashMap::new(),
+      return_value: None,
+      current_function: function_name.clone(),
+      current_module: self.name.clone(),
+    };
+
+    // every function that is called from the code will have a parent_context set. When the parent context is not there then we are in the main function before pc 0
+    match parent_context {
+      Some(_) => {}
+      None => {
+        debug_context.console(self, Some(&mut context), None, None);
+      }
+    }
+
+    debug_context.start_core_metric(
+      self.name.clone(),
+      function_name.clone(),
+      "total".to_string(),
+    );
+
+    let args = arguments
+      .iter()
+      .map(|x| (x.0.clone(), x.1.clone()))
+      .collect::<HashMap<String, Value>>();
+
+    let current_function = self.functions.get(&*function_name).unwrap();
+
+    for param in &current_function.parameters {
+      match args.get(param.as_str()) {
+        Some(value) => {
+          context.variables.insert(param.clone(), value.clone());
+        }
+        None => {}
+      }
+    }
+
+    while context.program_counter.clone() < current_function.body.len() {
+      // check for break points
+      if debug_context.is_break_point(
+        self.name.clone(),
+        function_name.clone(),
+        context.program_counter,
+      ) {
+        let current_pc = Some(context.program_counter.clone());
+        debug_context.console(self, Some(&mut context), current_pc, None);
+      }
+
+      //check for profile points here
+
+      let inst = current_function.body[context.program_counter.clone()].clone();
+      let cont = inst.debug(self, &mut context, debug_context);
+      match cont {
+        Ok(should_continue) if !should_continue => break,
+        Err(exception) => {
+          exception.print_stacktrace();
+          let current_pc = Some(context.program_counter.clone());
+          debug_context.console(self, Some(&mut context), current_pc, None);
+          debug_context.stop_core_metric(
+            self.name.clone(),
+            function_name.clone(),
+            "total".to_string(),
+          );
+          return Err(exception);
+        }
+        _ => {}
+      }
+    }
+
+    debug_context.stop_core_metric(
+      self.name.clone(),
+      function_name.clone(),
+      "total".to_string(),
+    );
+    Ok(context.return_value.clone())
   }
 }
