@@ -90,7 +90,7 @@ impl Module {
     let unresolved_modules = self
       .unresolved_modules
       .iter()
-      .filter(|x| !self.modules.contains_key(x.clone()))
+      .filter(|x| !self.modules.contains_key((*x).clone().as_str()))
       .map(|x| x.clone())
       .collect::<Vec<String>>();
     self.unresolved_modules = unresolved_modules;
