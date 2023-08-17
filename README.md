@@ -1,6 +1,12 @@
 # ocean
 A C-like programming language (get it like sea-like like an ocean lol)
 
+[![Rust](https://github.com/jmeaster30/ocean/actions/workflows/rust.yml/badge.svg)](https://github.com/jmeaster30/ocean/actions/workflows/rust.yml) [![codecov](https://codecov.io/gh/jmeaster30/ocean/graph/badge.svg?token=UNEPHLIY9H)](https://codecov.io/gh/jmeaster30/ocean)
+
+[![codecov](https://codecov.io/gh/jmeaster30/ocean/graphs/sunburst.svg?token=UNEPHLIY9H)](https://codecov.io/gh/jmeaster30/ocean)
+
+## Motivation
+
 This is a hobby language for myself so I can learn more about how compilers work and how to design programming languages.
 
 I am really interested in static analysis and optimizations so I will be building those kinds of features into this language. Also, when I use this language I want to feel like I am in control of the language without having to modify the compiler at all. Tooling is also super important to me so I would like to build a bunch of really nice tooling. 
