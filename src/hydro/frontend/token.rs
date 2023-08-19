@@ -1,4 +1,6 @@
-#[derive(Clone, Debug)]
+use crate::util::tokentrait::TokenTrait;
+
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum TokenType {
   Error,
   Comment,
@@ -62,6 +64,16 @@ pub struct Token {
   pub offset: (usize, usize),
   pub line: (usize, usize),
   pub column: (usize, usize),
+}
+
+impl TokenTrait<TokenType> for Token {
+  fn is_token_type(&self, value: TokenType) -> bool {
+    self.token_type == value
+  }
+
+  fn is_lexeme(&self, value: &str) -> bool {
+    self.lexeme == value
+  }
 }
 
 impl Token {

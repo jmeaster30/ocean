@@ -13,6 +13,7 @@ use regex::Regex;
 use std::fs::File;
 use std::io;
 use std::io::Read;
+use crate::util::tokentrait::TokenTrait;
 
 pub struct Parser {
   file_contents: Vec<char>,
@@ -47,22 +48,11 @@ impl Parser {
   }
 
   fn parse_module(&mut self) -> Module {
-    let Some(module_token) = self.token() else {
-      panic!("Expected to have a token here :(");
-    };
-    match module_token.token_type {
-      TokenType::Module => self.consume(),
-      _ => panic!("Expected to have a module token here :("),
-    }
+    let _ = self.expect_token_type(TokenType::Module);
+    self.consume();
 
-    let Some(identifier_token) = self.token() else {
-      panic!("Expected to have a token here :(");
-    };
-    match identifier_token.token_type {
-      TokenType::Identifier => self.consume(),
-      TokenType::Main => self.consume(),
-      _ => panic!("Expected to have an identifier token or main here :("),
-    }
+    let identifier_token = self.expect_one_of(vec![TokenType::Identifier, TokenType::Main]);
+    self.consume();
 
     let mut module = Module::build(identifier_token.lexeme.as_str());
 
@@ -97,66 +87,38 @@ impl Parser {
   }
 
   fn parse_using(&mut self) -> String {
-    let Some(using_token) = self.token() else {
-      panic!("Expected to have a token here :(")
-    };
-    match using_token.token_type {
-      TokenType::Using => self.consume(),
-      _ => panic!("Expected to have a using token here :("),
-    }
-
-    let Some(identifier_token) = self.token() else {
-      panic!("Expected to have a token here :(")
-    };
-    match identifier_token.token_type {
-      TokenType::Identifier => self.consume(),
-      _ => panic!("Expected to have an identifier token here :("),
-    }
-
+    let _ = self.expect_token_type(TokenType::Using);
+    self.consume();
+    let identifier_token = self.expect_token_type(TokenType::Identifier);
+    self.consume();
     identifier_token.lexeme
   }
 
   fn parse_function(&mut self) -> Function {
-    let Some(function_token) = self.token() else {
-      panic!("Expected to have a token here :(")
-    };
+    let function_token = self.expect_one_of(vec![TokenType::Function, TokenType::Main]);
     match function_token.token_type {
       TokenType::Function => self.consume(),
-      TokenType::Main => { /* DONT CONSUME HERE BECAUSE WE NEED TO GET THE MAIN TOKEN FOR THE IDENTIFIER */
-      }
-      _ => panic!("Expected to have a function token here :("),
+      TokenType::Main => { /* DONT CONSUME HERE */ }
+      _ => {},
     }
 
-    let Some(identifier_token) = self.token() else {
-      panic!("Expected to have a token here :(");
-    };
-    match identifier_token.token_type {
-      TokenType::Identifier => self.consume(),
-      TokenType::Main => self.consume(),
-      _ => panic!("Expected to have an identifier token or main here :("),
-    }
+    let identifier_token = self.expect_one_of(vec![TokenType::Identifier, TokenType::Main]);
+    self.consume();
 
     let mut function = Function::build(identifier_token.lexeme.as_str());
     // parse params
     loop {
-      let Some(id_token) = self.token() else {
-        panic!("Expected to have a token here :(")
-      };
+      let id_token = self.expect_one_of(vec![TokenType::Identifier, TokenType::Body]);
       match id_token.token_type {
         TokenType::Identifier => self.consume(),
         TokenType::Body => break,
-        _ => panic!("Expected to have a using token here :("),
+        _ => {},
       }
       function = function.parameter(id_token.lexeme.as_str());
     }
 
-    let Some(body_token) = self.token() else {
-      panic!("Expected to have a token here :(")
-    };
-    match body_token.token_type {
-      TokenType::Body => self.consume(),
-      _ => panic!("Expected to have a body token here :("),
-    }
+    let _ = self.expect_token_type(TokenType::Body);
+    self.consume();
 
     // parse insts
     loop {
@@ -211,38 +173,22 @@ impl Parser {
   }
 
   fn parse_instruction(&mut self) -> Instruction {
-    let Some(inst_token) = self.token() else {
-      panic!("Expected to have a token here :(")
-    };
+    let inst_token = self.expect_token();
+    self.consume();
 
     match inst_token.token_type {
       TokenType::Alloc => {
-        self.consume();
-
-        let Some(alloc_type_token) = self.token() else {
-          panic!("Expected to have a token here :(")
-        };
+        let alloc_type_token = self.expect_one_of(vec![TokenType::Layout, TokenType::Array]);
 
         match alloc_type_token.token_type {
           TokenType::Layout => {
             self.consume();
 
-            let Some(module_token) = self.token() else {
-              panic!("Expected to have a token here :(");
-            };
-            match module_token.token_type {
-              TokenType::Identifier => self.consume(),
-              TokenType::This => self.consume(),
-              _ => panic!("Expected to have an identifier token here :("),
-            }
+            let module_token = self.expect_one_of(vec![TokenType::Identifier, TokenType::This]);
+            self.consume();
 
-            let Some(layout_template_token) = self.token() else {
-              panic!("Expected to have a token here :(");
-            };
-            match layout_template_token.token_type {
-              TokenType::Identifier => self.consume(),
-              _ => panic!("Expected to have an identifier token here :("),
-            }
+            let layout_template_token = self.expect_token_type(TokenType::Identifier);
+            self.consume();
 
             Instruction::AllocLayout(AllocLayout {
               module_name: match module_token.token_type {
@@ -254,27 +200,21 @@ impl Parser {
             })
           }
           TokenType::Array => todo!(),
-          _ => panic!("Expected to have a type token here :("),
+          _ => panic!("Won't Hit"),
         }
       }
       TokenType::Push => {
-        self.consume();
-
-        let Some(type_token) = self.token() else {
-          panic!("Expected to have a token here :(")
-        };
+        let type_token = self.expect_token();
         match type_token.token_type {
           TokenType::Type => self.consume(),
           TokenType::VariableRef => { /*DONT CONSUME*/ }
           TokenType::IndexRef => { /*DONT CONSUME*/ }
           TokenType::FunctionPointer => { /*DONT CONSUME*/ }
           TokenType::Identifier => { /*DONT CONSUME*/ }
-          _ => panic!("Expected to have a type token here :( {:?}", type_token),
+          _ => {},
         }
 
-        let Some(value_token) = self.token() else {
-          panic!("Expected to have a token here :(")
-        };
+        let value_token = self.expect_token();
         Instruction::PushValue(PushValue {
           value: match value_token.token_type {
             TokenType::Number => {
@@ -295,22 +235,11 @@ impl Parser {
             TokenType::FunctionPointer => {
               self.consume();
 
-              let Some(module_token) = self.token() else {
-                panic!("Expected to have a token here :(");
-              };
-              match module_token.token_type {
-                TokenType::Identifier => self.consume(),
-                TokenType::This => self.consume(),
-                _ => panic!("Expected to have an identifier token here :("),
-              }
+              let module_token = self.expect_one_of(vec![TokenType::Identifier, TokenType::This]);
+              self.consume();
 
-              let Some(function_token) = self.token() else {
-                panic!("Expected to have a token here :(");
-              };
-              match function_token.token_type {
-                TokenType::Identifier => self.consume(),
-                _ => panic!("Expected to have an identifier token here :("),
-              }
+              let function_token = self.expect_token_type(TokenType::Identifier);
+              self.consume();
 
               Value::FunctionPointer(FunctionPointer {
                 module: match module_token.token_type {
@@ -329,190 +258,75 @@ impl Parser {
           },
         })
       }
-      TokenType::Pop => {
-        self.consume();
-        Instruction::PopValue(PopValue {})
-      }
-      TokenType::Add => {
-        self.consume();
-        Instruction::Add(Add {})
-      }
-      TokenType::Subtract => {
-        self.consume();
-        Instruction::Subtract(Subtract {})
-      }
-      TokenType::Multiply => {
-        self.consume();
-        Instruction::Multiply(Multiply {})
-      }
-      TokenType::Divide => {
-        self.consume();
-        Instruction::Divide(Divide {})
-      }
-      TokenType::Modulo => {
-        self.consume();
-        Instruction::Modulo(Modulo {})
-      }
-      TokenType::LeftShift => {
-        self.consume();
-        Instruction::LeftShift(LeftShift {})
-      }
-      TokenType::RightShift => {
-        self.consume();
-        Instruction::RightShift(RightShift {})
-      }
-      TokenType::BitwiseAnd => {
-        self.consume();
-        Instruction::BitwiseAnd(BitwiseAnd {})
-      }
-      TokenType::BitwiseOr => {
-        self.consume();
-        Instruction::BitwiseOr(BitwiseOr {})
-      }
-      TokenType::BitwiseXor => {
-        self.consume();
-        Instruction::BitwiseXor(BitwiseXor {})
-      }
-      TokenType::BitwiseNot => {
-        self.consume();
-        Instruction::BitwiseNot(BitwiseNot {})
-      }
-      TokenType::And => {
-        self.consume();
-        Instruction::And(And {})
-      }
-      TokenType::Or => {
-        self.consume();
-        Instruction::Or(Or {})
-      }
-      TokenType::Xor => {
-        self.consume();
-        Instruction::Xor(Xor {})
-      }
-      TokenType::Not => {
-        self.consume();
-        Instruction::Not(Not {})
-      }
-      TokenType::Equal => {
-        self.consume();
-        Instruction::Equal(Equal {})
-      }
-      TokenType::NotEqual => {
-        self.consume();
-        Instruction::NotEqual(NotEqual {})
-      }
-      TokenType::LessThan => {
-        self.consume();
-        Instruction::LessThan(LessThan {})
-      }
-      TokenType::GreaterThan => {
-        self.consume();
-        Instruction::GreaterThan(GreaterThan {})
-      }
-      TokenType::LessThanEqual => {
-        self.consume();
-        Instruction::LessThanEqual(LessThanEqual {})
-      }
-      TokenType::GreaterThanEqual => {
-        self.consume();
-        Instruction::GreaterThanEqual(GreaterThanEqual {})
-      }
+      TokenType::Pop => Instruction::PopValue(PopValue {}),
+      TokenType::Add => Instruction::Add(Add {}),
+      TokenType::Subtract => Instruction::Subtract(Subtract {}),
+      TokenType::Multiply => Instruction::Multiply(Multiply {}),
+      TokenType::Divide => Instruction::Divide(Divide {}),
+      TokenType::Modulo => Instruction::Modulo(Modulo {}),
+      TokenType::LeftShift => Instruction::LeftShift(LeftShift {}),
+      TokenType::RightShift => Instruction::RightShift(RightShift {}),
+      TokenType::BitwiseAnd => Instruction::BitwiseAnd(BitwiseAnd {}),
+      TokenType::BitwiseOr => Instruction::BitwiseOr(BitwiseOr {}),
+      TokenType::BitwiseXor => Instruction::BitwiseXor(BitwiseXor {}),
+      TokenType::BitwiseNot => Instruction::BitwiseNot(BitwiseNot {}),
+      TokenType::And => Instruction::And(And {}),
+      TokenType::Or => Instruction::Or(Or {}),
+      TokenType::Xor => Instruction::Xor(Xor {}),
+      TokenType::Not => Instruction::Not(Not {}),
+      TokenType::Equal => Instruction::Equal(Equal {}),
+      TokenType::NotEqual => Instruction::NotEqual(NotEqual {}),
+      TokenType::LessThan => Instruction::LessThan(LessThan {}),
+      TokenType::GreaterThan => Instruction::GreaterThan(GreaterThan {}),
+      TokenType::LessThanEqual => Instruction::LessThanEqual(LessThanEqual {}),
+      TokenType::GreaterThanEqual => Instruction::GreaterThanEqual(GreaterThanEqual {}),
       TokenType::Jump => {
+        let number_token = self.expect_token_type(TokenType::Number);
         self.consume();
-
-        let Some(number_token) = self.token() else {
-          panic!("Expected to have a token here :(")
-        };
-        match number_token.token_type {
-          TokenType::Number => self.consume(),
-          _ => panic!("Expected to have a type token here :("),
-        }
 
         Instruction::Jump(Jump {
           index: number_token.lexeme.parse::<usize>().unwrap(),
         })
       }
       TokenType::Branch => {
+        let true_token = self.expect_token_type(TokenType::Number);
         self.consume();
 
-        let Some(true_token) = self.token() else {
-          panic!("Expected to have a token here :(")
-        };
-        match true_token.token_type {
-          TokenType::Number => self.consume(),
-          _ => panic!("Expected to have a number token here :("),
-        }
-
-        let Some(false_token) = self.token() else {
-          panic!("Expected to have a token here :(")
-        };
-        match false_token.token_type {
-          TokenType::Number => self.consume(),
-          _ => panic!("Expected to have a number token here :("),
-        }
+        let false_token = self.expect_token_type(TokenType::Number);
+        self.consume();
 
         Instruction::Branch(Branch {
           true_index: true_token.lexeme.parse::<usize>().unwrap(),
           false_index: false_token.lexeme.parse::<usize>().unwrap(),
         })
       }
-      TokenType::Call => {
-        self.consume();
-        Instruction::Call(Call {})
-      }
-      TokenType::Return => {
-        self.consume();
-        Instruction::Return(Return {})
-      }
-      TokenType::Load => {
-        self.consume();
-        Instruction::Load(Load {})
-      }
-      TokenType::Store => {
-        self.consume();
-        Instruction::Store(Store {})
-      }
-      TokenType::Index => {
-        self.consume();
-        Instruction::Index(Index {})
-      }
+      TokenType::Call => Instruction::Call(Call {}),
+      TokenType::Return => Instruction::Return(Return {}),
+      TokenType::Load => Instruction::Load(Load {}),
+      TokenType::Store => Instruction::Store(Store {}),
+      TokenType::Index => Instruction::Index(Index {}),
       _ => panic!("Unexpected token. Expected an instruction :("),
     }
   }
 
   fn parse_reference(&mut self) -> Reference {
-    let Some(ref_token) = self.token() else {
-       panic!("Expected to have a token here :(")
-     };
+    let ref_token = self.expect_token();
+    self.consume();
 
     match ref_token.token_type {
       TokenType::VariableRef => {
+        let id_token = self.expect_token_type(TokenType::Identifier);
         self.consume();
-
-        let Some(id_token) = self.token() else {
-           panic!("Expected to have a token here :(")
-         };
-        match id_token.token_type {
-          TokenType::Identifier => self.consume(),
-          _ => panic!("Expected to have an identifier token here :("),
-        }
 
         Reference::Variable(VariableRef {
           name: id_token.lexeme,
         })
       }
       TokenType::IndexRef => {
-        self.consume();
-
         let reference = self.parse_reference();
 
-        let Some(id_token) = self.token() else {
-           panic!("Expected to have a token here :(")
-         };
-        match id_token.token_type {
-          TokenType::Identifier => self.consume(),
-          _ => panic!("Expected to have an identifier token here :("),
-        }
+        let id_token = self.expect_token_type(TokenType::Identifier);
+        self.consume();
 
         Reference::Index(IndexRef {
           reference: Box::new(Value::Reference(reference)),
@@ -524,41 +338,25 @@ impl Parser {
   }
 
   fn parse_layout(&mut self) -> LayoutTemplate {
-    let Some(layout_token) = self.token() else {
-      panic!("Expected to have a token here :(")
-    };
-    match layout_token.token_type {
-      TokenType::Layout => self.consume(),
-      _ => panic!("Expected to have a layout token here :("),
-    }
+    let _ = self.expect_token_type(TokenType::Layout);
+    self.consume();
 
-    let Some(identifier_token) = self.token() else {
-      panic!("Expected to have a token here :(");
-    };
-    match identifier_token.token_type {
-      TokenType::Identifier => self.consume(),
-      _ => panic!("Expected to have an identifier token here :("),
-    }
+    let identifier_token = self.expect_token_type(TokenType::Identifier);
+    self.consume();
 
     let mut layout_template = LayoutTemplate::build(identifier_token.lexeme.as_str());
 
     loop {
-      let Some(type_token) = self.token() else {
-        panic!("Expected to have a token here :(")
-      };
+      let type_token = self.expect_token();
       match type_token.token_type {
         TokenType::Type => self.consume(),
         TokenType::Module | TokenType::Function | TokenType::Layout | TokenType::Using => break,
         _ => panic!("Expected to have a type token here :("),
       }
 
-      let Some(identifier_token) = self.token() else {
-        panic!("Expected to have a token here :(")
-      };
-      match identifier_token.token_type {
-        TokenType::Identifier => self.consume(),
-        _ => panic!("Expected to have an identifier token here :("),
-      }
+      let identifier_token = self.expect_token_type(TokenType::Identifier);
+      self.consume();
+
       layout_template = layout_template.member(
         identifier_token.lexeme.as_str(),
         Parser::create_default_value_from_type_string(type_token.lexeme),
@@ -773,6 +571,35 @@ impl Parser {
 
         self.current_token.clone()
       }
+    }
+  }
+
+  fn expect_token(&mut self) -> Token {
+    match self.token() {
+      Some(token) => token,
+      None => panic!("Expected a token here!"),
+    }
+  }
+
+  fn expect_token_type(&mut self, token_type: TokenType) -> Token {
+    match self.token() {
+      Some(token) => if token.is_token_type(token_type) {
+        token
+      } else {
+        panic!("Expected token type {:?} but got {:?}", token_type, token.token_type);
+      },
+      None => panic!("Expected some token here :("),
+    }
+  }
+
+  fn expect_one_of(&mut self, token_types: Vec<TokenType>) -> Token {
+    match self.token() {
+      Some(token) => if token_types.contains(&token.token_type) {
+        token
+      } else {
+        panic!("Expected one of {:?} but got {:?}", token_types, token.token_type);
+      },
+      None => panic!("Expected some token here :("),
     }
   }
 

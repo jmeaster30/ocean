@@ -21,12 +21,12 @@ checksum = "2dffe52ecf27772e601905b7522cb4ef790d2cc203488bbd0e2fe85fcb74566d"
 name = "ocean"
 version = "0.1.0"
 dependencies = [
- "ocean_macros",
+ "ocean_helpers",
  "regex",
 ]
 
 [[package]]
-name = "ocean_macros"
+name = "ocean_helpers"
 version = "0.1.0"
 dependencies = [
  "proc-macro2",

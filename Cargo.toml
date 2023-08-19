@@ -7,5 +7,5 @@ exclude = ["./ocean-language-support/*"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ocean_macros = { path = "ocean_macros" }
+ocean_helpers = { path = "ocean_helpers" }
 regex = "1.9.3"
