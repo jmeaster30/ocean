@@ -9,7 +9,7 @@
    5. [Function Bytes Layout](#function-bytes-layout)
    6. [Single Byte Instruction Layout](#single-byte-instruction-layout)
    7. [Multi Byte Instruction Layout](#multi-byte-instruction-layout)
-      1. [Push](#push-)
+      1. [Push](#push)
 
 ## Bytecode Binary File Spec
 
@@ -27,7 +27,7 @@ Everything is in big endian format so if we need to read the bytes  `68 79 64 72
 
 |                          | Byte Offset | Byte Length | Data Type | Notes                                   |
 |--------------------------|-------------|-------------|-----------|-----------------------------------------|
-| Module Marker            | 0           | 1           | byte      | Single byte `(hex of m)` or `m` in UTF8 |
+| Module Marker            | 0           | 1           | byte      | Single byte `(hex of M)` or `M` in UTF8 |
 | Module Name Length (mnl) | 1           | 2           | u16       |                                         |
 | Module Name              | 3           | mnl         | string    | UTF8 encoding of the module's name      | 
 | Usings Offset            | 3 + mnl     | 4           | u32       |                                         |
@@ -50,6 +50,7 @@ Everything is in big endian format so if we need to read the bytes  `68 79 64 72
 |               | Byte Offset | Byte Length | Data Type | Notes                                   |
 |---------------|-------------|-------------|-----------|-----------------------------------------|
 | Layout Marker | 0           | 1           | byte      | Single byte `(hex of l)` or `l` in UTF8 |
+
 
 ### Function Bytes Layout
 
@@ -81,7 +82,7 @@ Everything is in big endian format so if we need to read the bytes  `68 79 64 72
 | Or               |     | `o`           |
 | Xor              |     | `x`           |
 | Not              |     | `n`           |
-| Equal            |     | `e`           |
+| Equal            |     | `=`           |
 | NotEqual         |     | `!`           |
 | LessThan         |     | `<`           |
 | GreaterThan      |     | `>`           |
@@ -91,7 +92,7 @@ Everything is in big endian format so if we need to read the bytes  `68 79 64 72
 | Return           |     | `r`           |
 | Load             |     | `g`           |
 | Store            |     | `s`           |
-| Index            |     | `i`           |
+| ArrayIndex       |     | `i`           |
 
 ### Multi-Byte Instruction Layout
 
@@ -124,3 +125,10 @@ Everything is in big endian format so if we need to read the bytes  `68 79 64 72
 |                    | Byte Offset | Byte Length | Data Type | Notes                                   |
 |--------------------|-------------|-------------|-----------|-----------------------------------------|
 | Instruction Marker | 0           | 1           | byte      | Single byte `(hex of {)` or `{` in UTF8 |
+
+#### LayoutIndex
+
+|                    | Byte Offset | Byte Length | Data Type | Notes                                   |
+|--------------------|-------------|-------------|-----------|-----------------------------------------|
+| Instruction Marker | 0           | 1           | byte      | Single byte `(hex of m)` or `m` in UTF8 |
+

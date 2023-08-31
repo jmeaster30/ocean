@@ -39,7 +39,8 @@ pub enum Instruction {
 
   Load(Load),
   Store(Store),
-  Index(Index),
+  ArrayIndex(ArrayIndex),
+  LayoutIndex(LayoutIndex),
   AllocArray(AllocArray),
   AllocLayout(AllocLayout),
 }
@@ -139,7 +140,13 @@ pub struct Load {}
 pub struct Store {}
 
 #[derive(Debug, Clone)]
-pub struct Index {}
+pub struct ArrayIndex {}
+
+#[derive(Debug, Clone)]
+pub struct LayoutIndex {
+  pub member: String,
+}
+
 
 #[derive(Debug, Clone)]
 pub struct AllocArray {

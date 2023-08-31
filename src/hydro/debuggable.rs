@@ -52,7 +52,8 @@ impl Instruction {
       Instruction::Return(x) => x.debug(module, context, debug_context),
       Instruction::Load(x) => x.debug(module, context, debug_context),
       Instruction::Store(x) => x.debug(module, context, debug_context),
-      Instruction::Index(x) => x.debug(module, context, debug_context),
+      Instruction::ArrayIndex(x) => x.debug(module, context, debug_context),
+      Instruction::LayoutIndex(x) => x.debug(module, context, debug_context),
       Instruction::AllocArray(x) => x.debug(module, context, debug_context),
       Instruction::AllocLayout(x) => x.debug(module, context, debug_context),
     }
@@ -839,14 +840,37 @@ impl Debuggable for Store {
   }
 }
 
-impl Debuggable for Index {
+impl Debuggable for ArrayIndex {
   fn debug(
     &self,
     module: &Module,
     context: &mut ExecutionContext,
     debug_context: &mut DebugContext,
   ) -> Result<bool, Exception> {
-    let metric_name = "index".to_string();
+    let metric_name = "array_index".to_string();
+    debug_context.start_core_metric(
+      context.current_module.clone(),
+      context.current_function.clone(),
+      metric_name.clone(),
+    );
+    let result = self.execute(module, context);
+    debug_context.stop_core_metric(
+      context.current_module.clone(),
+      context.current_function.clone(),
+      metric_name,
+    );
+    return result;
+  }
+}
+
+impl Debuggable for LayoutIndex {
+  fn debug(
+    &self,
+    module: &Module,
+    context: &mut ExecutionContext,
+    debug_context: &mut DebugContext,
+  ) -> Result<bool, Exception> {
+    let metric_name = "layout_index".to_string();
     debug_context.start_core_metric(
       context.current_module.clone(),
       context.current_function.clone(),

@@ -64,7 +64,7 @@ impl ExecutionContext {
             )),
           }
         }
-        Reference::Index(index_reference) => {
+        Reference::ArrayIndex(index_reference) => {
           let resolved = self.resolve(index_reference.reference.deref().clone())?;
           match (index_reference.index.deref(), resolved) {
             (Value::Signed8(x), Value::Array(array)) => Ok(array.values[*x as usize].clone()),
@@ -77,7 +77,16 @@ impl ExecutionContext {
             (Value::Unsigned32(x), Value::Array(array)) => Ok(array.values[*x as usize].clone()),
             (Value::Unsigned64(x), Value::Array(array)) => Ok(array.values[*x as usize].clone()),
             (Value::Unsigned128(x), Value::Array(array)) => Ok(array.values[*x as usize].clone()),
-            (Value::String(x), Value::Layout(layout)) => match layout.values.get(x.as_str()) {
+            _ => Err(Exception::new(
+              self.clone(),
+              "Value could not be indexed by the specified index",
+            )),
+          }
+        }
+        Reference::LayoutIndex(layout_reference) => {
+          let resolved = self.resolve(layout_reference.reference.deref().clone())?;
+          match (layout_reference.index, resolved) {
+            (x, Value::Layout(layout)) => match layout.values.get(x.as_str()) {
               Some(found_result) => Ok(found_result.clone()),
               None => Err(Exception::new(
                 self.clone(),
@@ -113,7 +122,7 @@ impl ExecutionContext {
             .as_str(),
           )),
         },
-        Reference::Index(index_reference) => {
+        Reference::ArrayIndex(index_reference) => {
           let mutable_value = self.get_value_reference(index_reference.reference.deref())?;
           match (index_reference.index.deref().clone(), mutable_value) {
             (Value::Signed8(x), Value::Array(array)) => Ok(&mut array.values[x as usize]),
@@ -126,7 +135,18 @@ impl ExecutionContext {
             (Value::Unsigned32(x), Value::Array(array)) => Ok(&mut array.values[x as usize]),
             (Value::Unsigned64(x), Value::Array(array)) => Ok(&mut array.values[x as usize]),
             (Value::Unsigned128(x), Value::Array(array)) => Ok(&mut array.values[x as usize]),
-            (Value::String(x), Value::Layout(layout)) => match layout.values.get_mut(x.as_str()) {
+            _ => {
+              return Err(Exception::new(
+                context_copy,
+                "Value could not be indexed by the specified index",
+              ))
+            }
+          }
+        }
+        Reference::LayoutIndex(layout_index_ref) => {
+          let mutable_value = self.get_value_reference(layout_index_ref.reference.deref())?;
+          match (layout_index_ref.index.clone(), mutable_value) {
+            (x, Value::Layout(layout)) => match layout.values.get_mut(x.as_str()) {
               Some(mutable_layout_member) => Ok(mutable_layout_member),
               None => {
                 return Err(Exception::new(
@@ -153,7 +173,7 @@ impl ExecutionContext {
 
   pub fn modify(&mut self, reference: &Reference, value: Value) -> Result<(), Exception> {
     match reference {
-      Reference::Index(index_reference) => {
+      Reference::ArrayIndex(index_reference) => {
         let value_reference = self.get_value_reference(index_reference.reference.deref())?;
         match (index_reference.index.deref().clone(), value_reference) {
           (Value::Signed8(x), Value::Array(array)) => array.values[x as usize] = value,
@@ -166,7 +186,18 @@ impl ExecutionContext {
           (Value::Unsigned32(x), Value::Array(array)) => array.values[x as usize] = value,
           (Value::Unsigned64(x), Value::Array(array)) => array.values[x as usize] = value,
           (Value::Unsigned128(x), Value::Array(array)) => array.values[x as usize] = value,
-          (Value::String(x), Value::Layout(layout)) => match layout.values.get(x.as_str()) {
+          _ => {
+            return Err(Exception::new(
+              self.clone(),
+              "Value could not be indexed by the specified index",
+            ))
+          }
+        }
+      }
+      Reference::LayoutIndex(layout_reference) => {
+        let value_reference = self.get_value_reference(layout_reference.reference.deref())?;
+        match (layout_reference.index.clone(), value_reference) {
+          (x, Value::Layout(layout)) => match layout.values.get(x.as_str()) {
             Some(_) => {
               layout.values.insert(x, value);
             }
@@ -196,12 +227,6 @@ impl ExecutionContext {
 
   pub fn add(&self, a_value: Value, b_value: Value) -> Value {
     match (a_value, b_value) {
-      (Value::Character(a), Value::Character(b)) => {
-        Value::String(a.to_string() + b.to_string().as_str())
-      }
-      (Value::Character(a), Value::String(b)) => Value::String(a.to_string() + b.as_str()),
-      (Value::String(a), Value::Character(b)) => Value::String(a + b.to_string().as_str()),
-      (Value::String(a), Value::String(b)) => Value::String(a + b.as_str()), // there has to be a better way than '.as_str()'
       (a, b) => make_add_operations!(+),
     }
   }
@@ -337,10 +362,6 @@ impl ExecutionContext {
   pub fn equal(&self, a_value: Value, b_value: Value) -> Value {
     match (a_value, b_value) {
       (Value::Boolean(a), Value::Boolean(b)) => Value::Boolean(a == b),
-      (Value::Character(a), Value::Character(b)) => Value::Boolean(a == b),
-      (Value::Character(a), Value::String(b)) => Value::Boolean(a.to_string() == b),
-      (Value::String(a), Value::Character(b)) => Value::Boolean(a == b.to_string()),
-      (Value::String(a), Value::String(b)) => Value::Boolean(a == b),
       (a, b) => make_comparison_operations!(==),
     }
   }
@@ -348,10 +369,6 @@ impl ExecutionContext {
   pub fn notequal(&self, a_value: Value, b_value: Value) -> Value {
     match (a_value, b_value) {
       (Value::Boolean(a), Value::Boolean(b)) => Value::Boolean(a != b),
-      (Value::Character(a), Value::Character(b)) => Value::Boolean(a != b),
-      (Value::Character(a), Value::String(b)) => Value::Boolean(a.to_string() != b),
-      (Value::String(a), Value::Character(b)) => Value::Boolean(a != b.to_string()),
-      (Value::String(a), Value::String(b)) => Value::Boolean(a != b),
       (a, b) => make_comparison_operations!(!=),
     }
   }
@@ -359,10 +376,6 @@ impl ExecutionContext {
   pub fn lessthan(&self, a_value: Value, b_value: Value) -> Value {
     match (a_value, b_value) {
       (Value::Boolean(a), Value::Boolean(b)) => Value::Boolean(a < b),
-      (Value::Character(a), Value::Character(b)) => Value::Boolean(a < b),
-      (Value::Character(a), Value::String(b)) => Value::Boolean(a.to_string() < b),
-      (Value::String(a), Value::Character(b)) => Value::Boolean(a < b.to_string()),
-      (Value::String(a), Value::String(b)) => Value::Boolean(a < b),
       (a, b) => make_comparison_operations!(<),
     }
   }
@@ -370,10 +383,6 @@ impl ExecutionContext {
   pub fn greaterthan(&self, a_value: Value, b_value: Value) -> Value {
     match (a_value, b_value) {
       (Value::Boolean(a), Value::Boolean(b)) => Value::Boolean(a > b),
-      (Value::Character(a), Value::Character(b)) => Value::Boolean(a > b),
-      (Value::Character(a), Value::String(b)) => Value::Boolean(a.to_string() > b),
-      (Value::String(a), Value::Character(b)) => Value::Boolean(a > b.to_string()),
-      (Value::String(a), Value::String(b)) => Value::Boolean(a > b),
       (a, b) => make_comparison_operations!(>),
     }
   }
@@ -381,10 +390,6 @@ impl ExecutionContext {
   pub fn lessthanequal(&self, a_value: Value, b_value: Value) -> Value {
     match (a_value, b_value) {
       (Value::Boolean(a), Value::Boolean(b)) => Value::Boolean(a <= b),
-      (Value::Character(a), Value::Character(b)) => Value::Boolean(a <= b),
-      (Value::Character(a), Value::String(b)) => Value::Boolean(a.to_string() <= b),
-      (Value::String(a), Value::Character(b)) => Value::Boolean(a <= b.to_string()),
-      (Value::String(a), Value::String(b)) => Value::Boolean(a <= b),
       (a, b) => make_comparison_operations!(<=),
     }
   }
@@ -392,10 +397,6 @@ impl ExecutionContext {
   pub fn greaterthanequal(&self, a_value: Value, b_value: Value) -> Value {
     match (a_value, b_value) {
       (Value::Boolean(a), Value::Boolean(b)) => Value::Boolean(a >= b),
-      (Value::Character(a), Value::Character(b)) => Value::Boolean(a >= b),
-      (Value::Character(a), Value::String(b)) => Value::Boolean(a.to_string() >= b),
-      (Value::String(a), Value::Character(b)) => Value::Boolean(a >= b.to_string()),
-      (Value::String(a), Value::String(b)) => Value::Boolean(a >= b),
       (a, b) => make_comparison_operations!(>=),
     }
   }

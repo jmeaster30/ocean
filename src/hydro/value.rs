@@ -3,8 +3,6 @@ use std::collections::HashMap;
 #[derive(Debug, Clone, PartialEq)]
 pub enum Value {
   Boolean(bool),
-  Character(char),
-  String(String),
   Array(Array),
   Layout(Layout),
   FunctionPointer(FunctionPointer),
@@ -40,7 +38,8 @@ impl FunctionPointer {
 #[derive(Debug, Clone, PartialEq)]
 pub enum Reference {
   Variable(VariableRef),
-  Index(IndexRef),
+  ArrayIndex(ArrayIndexRef),
+  LayoutIndex(LayoutIndexRef),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -55,13 +54,25 @@ impl VariableRef {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct IndexRef {
+pub struct ArrayIndexRef {
   pub reference: Box<Value>,
   pub index: Box<Value>,
 }
 
-impl IndexRef {
+impl ArrayIndexRef {
   pub fn new(reference: Box<Value>, index: Box<Value>) -> Self {
+    Self { reference, index }
+  }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct LayoutIndexRef {
+  pub reference: Box<Value>,
+  pub index: String,
+}
+
+impl LayoutIndexRef {
+  pub fn new(reference: Box<Value>, index: String) -> Self {
     Self { reference, index }
   }
 }
@@ -77,6 +88,12 @@ impl Array {
     Self {
       length,
       values: Vec::new(),
+    }
+  }
+
+  pub fn create(length: Box<Value>, values: Vec<Value>) -> Self {
+    Self {
+      length, values,
     }
   }
 }

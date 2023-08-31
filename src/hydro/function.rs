@@ -1,5 +1,5 @@
 use crate::hydro::instruction::{
-  Add, AllocLayout, Call, Index, Instruction, Load, PopValue, PushValue, Return, Store,
+  Add, AllocLayout, Call, ArrayIndex, Instruction, Load, PopValue, PushValue, Return, Store,
 };
 use crate::hydro::value::{Reference, Value, VariableRef};
 
@@ -70,7 +70,7 @@ impl Function {
   }
 
   pub fn index(mut self) -> Self {
-    self.body.push(Instruction::Index(Index {}));
+    self.body.push(Instruction::ArrayIndex(ArrayIndex {}));
     self
   }
 

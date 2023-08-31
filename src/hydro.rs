@@ -9,3 +9,5 @@ mod instruction;
 pub mod layouttemplate;
 pub mod module;
 pub mod value;
+mod analysisgraph;
+mod binaryable;

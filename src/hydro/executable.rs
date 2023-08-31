@@ -2,7 +2,7 @@ use super::{executioncontext::ExecutionContext, instruction::*, value::Value};
 use crate::hydro::exception::Exception;
 
 use crate::hydro::module::Module;
-use crate::hydro::value::{IndexRef, Reference};
+use crate::hydro::value::{ArrayIndexRef, LayoutIndexRef, Reference};
 
 pub trait Executable {
   fn execute(&self, module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception>;
@@ -46,7 +46,8 @@ impl Instruction {
       Instruction::Store(x) => x.execute(module, context),
       Instruction::AllocArray(x) => x.execute(module, context),
       Instruction::AllocLayout(x) => x.execute(module, context),
-      Instruction::Index(x) => x.execute(module, context),
+      Instruction::ArrayIndex(x) => x.execute(module, context),
+      Instruction::LayoutIndex(x) => x.execute(module, context),
     }
   }
 }
@@ -652,7 +653,7 @@ impl Executable for Store {
   }
 }
 
-impl Executable for Index {
+impl Executable for ArrayIndex {
   fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 2 {
       return Err(Exception::new(
@@ -665,10 +666,32 @@ impl Executable for Index {
     let reference = context.stack.pop().unwrap();
     context
       .stack
-      .push(Value::Reference(Reference::Index(IndexRef::new(
+      .push(Value::Reference(Reference::ArrayIndex(ArrayIndexRef::new(
         Box::new(reference),
         Box::new(index),
       ))));
+
+    context.program_counter += 1;
+    Ok(true)
+  }
+}
+
+impl Executable for LayoutIndex {
+  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
+    if context.stack.len() < 1 {
+      return Err(Exception::new(
+        context.clone(),
+        "Unexpected number of stack values. Expected 1 and got 0.",
+      ));
+    }
+
+    let reference = context.stack.pop().unwrap();
+    context
+        .stack
+        .push(Value::Reference(Reference::LayoutIndex(LayoutIndexRef::new(
+          Box::new(reference),
+          self.member.clone(),
+        ))));
 
     context.program_counter += 1;
     Ok(true)
