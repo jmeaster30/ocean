@@ -686,12 +686,9 @@ impl Executable for LayoutIndex {
     }
 
     let reference = context.stack.pop().unwrap();
-    context
-        .stack
-        .push(Value::Reference(Reference::LayoutIndex(LayoutIndexRef::new(
-          Box::new(reference),
-          self.member.clone(),
-        ))));
+    context.stack.push(Value::Reference(Reference::LayoutIndex(
+      LayoutIndexRef::new(Box::new(reference), self.member.clone()),
+    )));
 
     context.program_counter += 1;
     Ok(true)

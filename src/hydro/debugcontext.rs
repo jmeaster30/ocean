@@ -53,11 +53,28 @@ impl DebugContext {
     execution_context: Option<&mut ExecutionContext>,
     final_return_value: Option<Value>,
   ) {
-    println!("{}Entering the Hydro Debugger!!{}", DebugContext::ansi_color_code("red"), DebugContext::ansi_color_code("reset"));
-    println!("{}Type 'help' to get a list of debugger commands :){}", DebugContext::ansi_color_code("red"), DebugContext::ansi_color_code("reset"));
+    println!(
+      "{}Entering the Hydro Debugger!!{}",
+      DebugContext::ansi_color_code("red"),
+      DebugContext::ansi_color_code("reset")
+    );
+    println!(
+      "{}Type 'help' to get a list of debugger commands :){}",
+      DebugContext::ansi_color_code("red"),
+      DebugContext::ansi_color_code("reset")
+    );
     if final_return_value.is_some() {
-      println!("{}Program terminated without exceptions and with a final return value of:{}", DebugContext::ansi_color_code("green"), DebugContext::ansi_color_code("reset"));
-      println!("{}{:#?}{}", DebugContext::ansi_color_code("magenta"), final_return_value, DebugContext::ansi_color_code("reset"));
+      println!(
+        "{}Program terminated without exceptions and with a final return value of:{}",
+        DebugContext::ansi_color_code("green"),
+        DebugContext::ansi_color_code("reset")
+      );
+      println!(
+        "{}{:#?}{}",
+        DebugContext::ansi_color_code("magenta"),
+        final_return_value,
+        DebugContext::ansi_color_code("reset")
+      );
     }
     loop {
       print!("{}> ", DebugContext::ansi_color_code("cyan"));
@@ -105,12 +122,12 @@ impl DebugContext {
         }
         "continue" => match execution_context {
           Some(_) => break,
-          None => println!("Not in a continuable context :(")
+          None => println!("Not in a continuable context :("),
         },
         "exit" => {
           print!("{}", DebugContext::ansi_color_code("reset"));
           panic!("Exiting from program run. (TODO: Make this something better than a panic)")
-        },
+        }
         "help" => {
           println!("breakpoint <module> <function> <program counter> - Set breakpoint");
           println!("continue - Starts/continues execution");
@@ -128,11 +145,21 @@ impl DebugContext {
         "instruction" => match &execution_context {
           // context.current_function must be in module.functions here
           Some(context) => {
-            println!("Module: '{}' Function: '{}' at PC: {}", context.current_module, context.current_function, context.program_counter);
-            println!("{:?}", module.functions.get(context.current_function.as_str()).unwrap().body[context.program_counter])
-          },
+            println!(
+              "Module: '{}' Function: '{}' at PC: {}",
+              context.current_module, context.current_function, context.program_counter
+            );
+            println!(
+              "{:?}",
+              module
+                .functions
+                .get(context.current_function.as_str())
+                .unwrap()
+                .body[context.program_counter]
+            )
+          }
           None => println!("There is no current execution context to have a program counter :("),
-        }
+        },
         "metric" => {
           if parsed.len() != 4 {
             println!(
@@ -140,12 +167,16 @@ impl DebugContext {
               parsed.len()
             );
           } else {
-            self.print_summarized_core_metric(parsed[1].to_string(), parsed[2].to_string(), parsed[3].to_string());
+            self.print_summarized_core_metric(
+              parsed[1].to_string(),
+              parsed[2].to_string(),
+              parsed[3].to_string(),
+            );
           }
         }
         "run" => match execution_context {
           Some(_) => break,
-          None => println!("Not in a runnable context :(")
+          None => println!("Not in a runnable context :("),
         },
         "stack" => match &execution_context {
           Some(context) => {
@@ -166,19 +197,24 @@ impl DebugContext {
               continue;
             } else {
               let length = context.stack.len() - result_view_size.unwrap().min(context.stack.len());
-              let mut top_of_stack = context.stack.iter().skip(length.max(0)).map(|x| x.clone()).collect::<Vec<Value>>();
+              let mut top_of_stack = context
+                .stack
+                .iter()
+                .skip(length.max(0))
+                .map(|x| x.clone())
+                .collect::<Vec<Value>>();
               top_of_stack.reverse();
               for (value, idx) in top_of_stack.iter().zip(0..top_of_stack.len()) {
                 println!("[{}] {:?}", idx, value);
               }
             }
-          },
+          }
           None => println!("There is no current execution context to have a stack :("),
-        }
+        },
         "stacktrace" => match &execution_context {
           Some(context) => context.print_stacktrace(),
           None => println!("There is no current execution context to have a stacktrace :("),
-        }
+        },
         "step" => {
           if parsed.len() != 1 && parsed.len() != 2 {
             println!(
@@ -201,10 +237,7 @@ impl DebugContext {
               continue;
             } else {
               let step_size = result_step_size.unwrap();
-              println!(
-                "Stepping by {}...",
-                step_size
-              );
+              println!("Stepping by {}...", step_size);
               self.step = Some(step_size);
             }
           }
@@ -221,11 +254,14 @@ impl DebugContext {
 
             match context.variables.get(parsed[1]) {
               Some(value) => println!("{} := {:?}", parsed[1], value),
-              None => println!("Variable '{}' is not defined in the current context :(", parsed[1])
+              None => println!(
+                "Variable '{}' is not defined in the current context :(",
+                parsed[1]
+              ),
             }
           }
           None => println!("Not in a context that has variables :("),
-        }
+        },
         "variables" => match &execution_context {
           Some(context) => {
             if parsed.len() != 1 {
@@ -241,7 +277,7 @@ impl DebugContext {
             }
           }
           None => println!("Not in a context that has variables :("),
-        }
+        },
         _ => {
           println!("Unknown command '{}' :(", input_buffer);
         }
@@ -252,7 +288,7 @@ impl DebugContext {
 
   // return true if we should enter a debug console
   pub fn update_step(&mut self) -> bool {
-    if self.step.is_some() && self.step.unwrap() != 0{
+    if self.step.is_some() && self.step.unwrap() != 0 {
       let value = self.step.unwrap() - 1;
       self.step = Some(value);
       if value == 0 {

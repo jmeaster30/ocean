@@ -147,7 +147,6 @@ pub struct LayoutIndex {
   pub member: String,
 }
 
-
 #[derive(Debug, Clone)]
 pub struct AllocArray {
   // TODO There should be a better interface for this instruction.

@@ -731,7 +731,7 @@ impl Debuggable for Call {
           func_pointer.function,
           arguments,
           Some(Box::new(context.clone())),
-          debug_context
+          debug_context,
         );
         match return_value {
           Ok(optional_return) => match optional_return {

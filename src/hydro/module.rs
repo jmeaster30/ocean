@@ -200,11 +200,13 @@ impl Module {
     while context.program_counter.clone() < current_function.body.len() {
       // check for break points
       let should_step_break = debug_context.update_step();
-      if should_step_break || debug_context.is_break_point(
-        self.name.clone(),
-        function_name.clone(),
-        context.program_counter,
-      ) {
+      if should_step_break
+        || debug_context.is_break_point(
+          self.name.clone(),
+          function_name.clone(),
+          context.program_counter,
+        )
+      {
         debug_context.console(self, Some(&mut context), None);
       }
 

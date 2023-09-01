@@ -92,9 +92,7 @@ impl Array {
   }
 
   pub fn create(length: Box<Value>, values: Vec<Value>) -> Self {
-    Self {
-      length, values,
-    }
+    Self { length, values }
   }
 }
 

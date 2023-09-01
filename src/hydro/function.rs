@@ -1,5 +1,5 @@
 use crate::hydro::instruction::{
-  Add, AllocLayout, Call, ArrayIndex, Instruction, Load, PopValue, PushValue, Return, Store,
+  Add, AllocLayout, ArrayIndex, Call, Instruction, Load, PopValue, PushValue, Return, Store,
 };
 use crate::hydro::value::{Reference, Value, VariableRef};
 
@@ -34,7 +34,11 @@ impl Function {
   }
 
   pub fn var_ref(mut self, variable_name: &str) -> Self {
-    self.body.push(Instruction::PushValue(PushValue { value: Value::Reference(Reference::Variable(VariableRef::new(variable_name.to_string())))}));
+    self.body.push(Instruction::PushValue(PushValue {
+      value: Value::Reference(Reference::Variable(VariableRef::new(
+        variable_name.to_string(),
+      ))),
+    }));
     self
   }
 

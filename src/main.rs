@@ -1,17 +1,17 @@
 //#![deny(warnings)]
 
 pub mod hydro;
-pub mod util;
 #[cfg(test)]
 mod tests;
+pub mod util;
 
 use crate::hydro::debugcontext::DebugContext;
 use crate::hydro::frontend::compiler::HydroTranslateType;
 use crate::hydro::value::Value;
+use crate::hydro::Hydro;
 use crate::util::argsparser::Command;
 use std::env;
 use util::argsparser::{ArgsParser, Argument};
-use crate::hydro::Hydro;
 
 fn main() -> std::io::Result<()> {
   let args: Vec<String> = env::args().collect();
@@ -49,61 +49,62 @@ fn main() -> std::io::Result<()> {
           .help("The main source file to compile")));
 
   match arg_parser.parse(args[1..].to_vec()) {
-    Ok(arguments) => {
-      println!("{:?}", arguments);
-      match arguments.get("command") {
-        Some(command) => match command.as_str() {
-          "help" => {
-            arg_parser.print_help();
-          }
-          "version" => {
-            arg_parser.print_version_info();
-          }
-          "hydro-build" => {
-            let compiled_module = Hydro::compile(arguments.get("Source File").unwrap().as_str())?;
-            Hydro::output(match arguments.get("Output Format").unwrap().as_str() {
+    Ok(arguments) => match arguments.get("command") {
+      Some(command) => match command.as_str() {
+        "help" => {
+          arg_parser.print_help();
+        }
+        "version" => {
+          arg_parser.print_version_info();
+        }
+        "hydro-build" => {
+          let compiled_module = Hydro::compile(arguments.get("Source File").unwrap().as_str())?;
+          Hydro::output(
+            match arguments.get("Output Format").unwrap().as_str() {
               "binary" => HydroTranslateType::Binary,
               _ => HydroTranslateType::Binary,
-            }, &compiled_module, arguments.get("Output File").unwrap().clone())?;
-          }
-          "hydro-run" => {
-            let module = Hydro::compile(arguments.get("Source File").unwrap().as_str())?;
-
-            let return_value = module.execute(
-              "main".to_string(),
-              vec![("funnyNumber".to_string(), Value::Unsigned32(69))],
-              None,
-            );
-
-            match return_value {
-              Ok(result) => println!("{:#?}", result),
-              Err(e) => e.print_stacktrace(),
-            }
-          }
-          "hydro-debug" => {
-            let module = Hydro::compile(arguments.get("Source File").unwrap().as_str())?;
-            let mut debug_context = DebugContext::new();
-
-            let return_value = module.debug(
-              "main".to_string(),
-              vec![("funnyNumber".to_string(), Value::Unsigned32(69))],
-              None,
-              &mut debug_context,
-            );
-
-            // output some metrics or open debug console?
-
-            match return_value {
-              Ok(result) => debug_context.console(&module, None, result),
-              Err(e) => e.print_stacktrace(),
-            }
-          }
-          _ => todo!("Unimplemented command :("),
-        },
-        None => {
-          println!("Expected a command but didn't get one :(");
-          arg_parser.print_usage();
+            },
+            &compiled_module,
+            arguments.get("Output File").unwrap().clone(),
+          )?;
         }
+        "hydro-run" => {
+          let module = Hydro::compile(arguments.get("Source File").unwrap().as_str())?;
+
+          let return_value = module.execute(
+            "main".to_string(),
+            vec![("funnyNumber".to_string(), Value::Unsigned32(69))],
+            None,
+          );
+
+          match return_value {
+            Ok(result) => println!("{:#?}", result),
+            Err(e) => e.print_stacktrace(),
+          }
+        }
+        "hydro-debug" => {
+          let module = Hydro::compile(arguments.get("Source File").unwrap().as_str())?;
+          let mut debug_context = DebugContext::new();
+
+          let return_value = module.debug(
+            "main".to_string(),
+            vec![("funnyNumber".to_string(), Value::Unsigned32(69))],
+            None,
+            &mut debug_context,
+          );
+
+          // output some metrics or open debug console?
+
+          match return_value {
+            Ok(result) => debug_context.console(&module, None, result),
+            Err(e) => e.print_stacktrace(),
+          }
+        }
+        _ => todo!("Unimplemented command :("),
+      },
+      None => {
+        println!("Expected a command but didn't get one :(");
+        arg_parser.print_usage();
       }
     },
     Err(err) => {

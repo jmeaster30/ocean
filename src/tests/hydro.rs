@@ -1,2 +1,2 @@
-mod module_execute_tests;
 mod frontend;
+mod module_execute_tests;

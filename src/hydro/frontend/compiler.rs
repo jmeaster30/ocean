@@ -1,11 +1,11 @@
+use crate::hydro::frontend::binaryable::Binaryable;
 use crate::hydro::frontend::parser::Parser;
 use crate::hydro::module::Module;
+use crate::hydro::Hydro;
+use std::fs::File;
 use std::io::{Error, ErrorKind, Write};
 use std::path::Path;
 use std::{fs, io};
-use std::fs::File;
-use crate::hydro::frontend::binaryable::Binaryable;
-use crate::hydro::Hydro;
 
 pub enum HydroTranslateType {
   Binary,
@@ -36,14 +36,18 @@ impl Hydro {
     }
   }
 
-  pub fn output(translate_type: HydroTranslateType, module: &Module, path: String) -> Result<(), Error> {
+  pub fn output(
+    translate_type: HydroTranslateType,
+    module: &Module,
+    path: String,
+  ) -> Result<(), Error> {
     let bytes = match translate_type {
       HydroTranslateType::Binary => {
         let mut mod_output = module.output(9);
         let mut output = vec![b'h', b'y', b'd', b'r', b'o', 0, 0, 0, 0];
         output.append(&mut mod_output);
         output
-      },
+      }
     };
     let mut file = File::create(Path::new(path.as_str()))?;
     file.write(bytes.as_slice())?;
