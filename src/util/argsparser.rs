@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 use std::collections::HashMap;
 
-#[derive(PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Argument {
   arg_name: String,
   arg_help: String,
@@ -227,6 +227,7 @@ impl ArgsParser {
     let mut args_map = HashMap::new();
     args_map.insert("command".to_string(), command.command_name.clone());
     for arg_schema in &command.arguments {
+      println!("{:?}", arg_schema);
       match arg_schema.position {
         Some(x) => {
           let index = if x == usize::MAX { total } else { x };
@@ -273,7 +274,49 @@ impl ArgsParser {
             }
           }
         }
-        _ => {}
+        _ => {
+          let mut index = None;
+          for (ci, cv) in &clargs {
+            println!("{:?} == {:?} | {:?}", cv, arg_schema.short_tag, arg_schema.long_tag);
+            if *cv == arg_schema.short_tag || *cv == arg_schema.long_tag {
+              index = Some(*ci);
+            }
+          }
+
+          println!("{:?}", index);
+
+          if arg_schema.takes_value {
+            match index {
+              Some(index) => {
+                if index < clargs.len() - 1 {
+                  args_map.insert(arg_schema.arg_name.clone(), clargs[index + 1].1.clone());
+                  clargs.remove(index);
+                } else {
+                  args_map.insert(arg_schema.arg_name.clone(), "".to_string());
+                }
+                if index < clargs.len() {
+                  clargs.remove(index);
+                }
+              }
+              None => match &arg_schema.default_value {
+                Some(v) => {args_map.insert(arg_schema.arg_name.clone(), v.clone());}
+                None => {}
+              }
+            }
+          } else {
+            match index {
+              Some(index) => {
+                args_map.insert(arg_schema.arg_name.clone(), "true".to_string());
+                if index < clargs.len() {
+                  clargs.remove(index);
+                }
+              }
+              None => {
+                args_map.insert(arg_schema.arg_name.clone(), "false".to_string());
+              }
+            }
+          }
+        }
       }
     }
     Ok(args_map)

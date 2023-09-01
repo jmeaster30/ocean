@@ -1,10 +1,15 @@
 use crate::hydro::frontend::parser::Parser;
 use crate::hydro::module::Module;
-use std::io::{Error, ErrorKind};
+use std::io::{Error, ErrorKind, Write};
 use std::path::Path;
 use std::{fs, io};
+use std::fs::File;
+use crate::hydro::frontend::binaryable::Binaryable;
+use crate::hydro::Hydro;
 
-pub struct Hydro {}
+pub enum HydroTranslateType {
+  Binary,
+}
 
 impl Hydro {
   pub fn compile(file_path: &str) -> io::Result<Module> {
@@ -29,5 +34,19 @@ impl Hydro {
       Some(module) => Ok(module.clone()),
       None => Err(Error::new(ErrorKind::NotFound, "Main module not found :(")),
     }
+  }
+
+  pub fn output(translate_type: HydroTranslateType, module: &Module, path: String) -> Result<(), Error> {
+    let bytes = match translate_type {
+      HydroTranslateType::Binary => {
+        let mut mod_output = module.output(9);
+        let mut output = vec![b'h', b'y', b'd', b'r', b'o', 0, 0, 0, 0];
+        output.append(&mut mod_output);
+        output
+      },
+    };
+    let mut file = File::create(Path::new(path.as_str()))?;
+    file.write(bytes.as_slice())?;
+    Ok(())
   }
 }

@@ -20,8 +20,8 @@ Everything is in big endian format so if we need to read the bytes  `68 79 64 72
 |                | Byte Offset | Byte Length | Data Type | Notes                                    |
 |----------------|-------------|-------------|-----------|------------------------------------------|
 | Magic Number   | 0           | 5           | string    | `68 79 64 72 6F` or `hydro` in UTF8      |
-| Num of Modules | 5           | 2           | u16       |                                          |
-| Modules Array  | 7           | varies      | Module[]  | Length is determined by 'Num of Modules' |
+| Num of Modules | 5           | 4           | u32       |                                          |
+| Modules Array  | 9           | varies      | Module[]  | Length is determined by 'Num of Modules' |
 
 ### Module Bytes Layout
 
@@ -41,22 +41,31 @@ Everything is in big endian format so if we need to read the bytes  `68 79 64 72
 
 |                         | Byte Offset | Byte Length | Data Type | Notes                                       |
 |-------------------------|-------------|-------------|-----------|---------------------------------------------|
-| Using Marker            | 0           | 1           | byte      | Single byte `(hex of u)` or `u` in UTF8     |
+| Using Marker            | 0           | 1           | byte      | Single byte `(hex of U)` or `U` in UTF8     |
 | Using Name Length (unl) | 1           | 2           | u16       |                                             |
 | Using Name              | 3           | unl         | string    | UTF8 encoding of the referenced module name |
 
 ### Layout Bytes Layout
 
-|               | Byte Offset | Byte Length | Data Type | Notes                                   |
-|---------------|-------------|-------------|-----------|-----------------------------------------|
-| Layout Marker | 0           | 1           | byte      | Single byte `(hex of l)` or `l` in UTF8 |
+|                          | Byte Offset | Byte Length | Data Type | Notes                                       |
+|--------------------------|-------------|-------------|-----------|---------------------------------------------|
+| Layout Marker            | 0           | 1           | byte      | Single byte `(hex of L)` or `L` in UTF8     |
+| Layout Name Length (lnl) | 1           | 2           | u16       |                                             |
+| Layout Name              | 3           | lnl         | string    | UTF8 encoding of the layout template's name |
+| Member Number            | 3 + lnl     | 2           | u16       ||
 
 
 ### Function Bytes Layout
 
-|                 | Byte Offset | Byte Length | Data Type | Notes                                   |
-|-----------------|-------------|-------------|-----------|-----------------------------------------|
-| Function Marker | 0           | 1           | byte      | Single byte `(hex of f)` or `f` in UTF8 |
+|                                          | Byte Offset | Byte Length | Data Type     | Notes                                   |
+|------------------------------------------|-------------|-------------|---------------|-----------------------------------------|
+| Function Marker                          | 0           | 1           | byte          | Single byte `(hex of F)` or `F` in UTF8 |
+| Function Name Length (fnl)               | 1           | 2           | u16           |                                         |
+| Function Name                            | 3           | fnl         | string        | UTF8 encoding of the function's name    |
+| Parameter Number                         | 3 + fnl     | 1           | u8            |                                         |
+| (Parameter Name Length + Parameter Name) | varies      | varies      | (u16, string) |                                         |
+| Instruction Length                       | varies      | 4           | u32           |                                         | 
+| Instruction Array                        | varies      | varies      | Instruction[] |                                         |
 
 ### Single-Byte Instruction Layout
 

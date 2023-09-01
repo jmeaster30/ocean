@@ -10,4 +10,5 @@ pub mod layouttemplate;
 pub mod module;
 pub mod value;
 mod analysisgraph;
-mod binaryable;
+
+pub struct Hydro {}

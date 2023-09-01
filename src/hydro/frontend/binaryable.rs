@@ -1,28 +1,84 @@
+use crate::hydro::function::Function;
 use crate::hydro::instruction::*;
 use crate::hydro::layouttemplate::LayoutTemplate;
 use crate::hydro::module::Module;
 
 pub trait Binaryable {
-    fn output(&self) -> Vec<u8>;
+    fn output(&self, start_offset: usize) -> Vec<u8>;
     fn input(index: &mut usize, input_bytes: &Vec<u8>) -> Self;
+
+    fn output_usize(value: usize) -> Vec<u8> {
+        let mut results = Vec::new();
+        results.push(((value >> 24) & 255) as u8);
+        results.push(((value >> 16) & 255) as u8);
+        results.push(((value >> 8) & 255) as u8);
+        results.push((value & 255) as u8);
+        results
+    }
 }
 
 impl Binaryable for Module {
-    fn output(&self) -> Vec<u8> {
+    fn output(&self, start_offset: usize) -> Vec<u8> {
         let mut results = Vec::new();
 
+        for (_, module) in &self.modules {
+            let mut module_output = module.output(results.len());
+            results.append(&mut module_output);
+        }
+
+        let module_start_offset = start_offset + results.len();
         results.push(b'M');
 
         let module_name_length = self.name.len();
         if module_name_length >= 65536 {
             panic!("Module name too big :(");
         }
-        results.push(((module_name_length >> 8) & 256) as u8);
+        results.push(((module_name_length >> 8) & 255) as u8);
         results.push((module_name_length & 255) as u8);
         results.append(&mut self.name.clone().into_bytes());
 
+        let using_offset = 25 + module_name_length + module_start_offset;
+        let mut using_bytes = Vec::new();
+        for (module_name, _) in &self.modules {
+            using_bytes.push(b'U');
+            let using_module_name_length = module_name.clone().len();
+            if using_module_name_length >= 65536 {
+                panic!("Module name too big :(");
+            }
+            using_bytes.push(((using_module_name_length >> 8) & 255) as u8);
+            using_bytes.push((using_module_name_length & 255) as u8);
+            using_bytes.append(&mut module_name.clone().into_bytes());
+        }
 
+        let layout_offset = using_offset + using_bytes.len();
+        let mut layout_bytes = Vec::new();
+        for (_, layout_template) in &self.layout_templates {
+            let mut bs = layout_template.output(layout_offset);
+            layout_bytes.append(&mut bs);
+        }
 
+        let function_offset = layout_offset + layout_bytes.len();
+        let mut function_bytes = Vec::new();
+        for (_, function) in &self.functions {
+            let mut bs = function.output(function_offset);
+            function_bytes.append(&mut bs);
+        }
+
+        let mut uob = Function::output_usize(using_offset);
+        let mut ulb = Function::output_usize(self.modules.len());
+        let mut lob = Function::output_usize(layout_offset);
+        let mut llb = Function::output_usize(self.layout_templates.len());
+        let mut fob = Function::output_usize(function_offset);
+        let mut flb = Function::output_usize(self.functions.len());
+        results.append(&mut uob);
+        results.append(&mut ulb);
+        results.append(&mut lob);
+        results.append(&mut llb);
+        results.append(&mut fob);
+        results.append(&mut flb);
+        results.append(&mut using_bytes);
+        results.append(&mut layout_bytes);
+        results.append(&mut function_bytes);
         results
     }
 
@@ -32,8 +88,18 @@ impl Binaryable for Module {
 }
 
 impl Binaryable for LayoutTemplate {
-    fn output(&self) -> Vec<u8> {
+    fn output(&self, start_offset: usize) -> Vec<u8> {
+        vec![b'L']
+    }
+
+    fn input(index: &mut usize, input_bytes: &Vec<u8>) -> Self {
         todo!()
+    }
+}
+
+impl Binaryable for Function {
+    fn output(&self, start_offset: usize) -> Vec<u8> {
+        vec![b'F']
     }
 
     fn input(index: &mut usize, input_bytes: &Vec<u8>) -> Self {
@@ -42,41 +108,41 @@ impl Binaryable for LayoutTemplate {
 }
 
 impl Binaryable for Instruction {
-    fn output(&self) -> Vec<u8> {
+    fn output(&self, start_offset: usize) -> Vec<u8> {
         match self {
-            Instruction::PushValue(x) => x.output(),
-            Instruction::PopValue(x) => x.output(),
-            Instruction::Add(x) => x.output(),
-            Instruction::Subtract(x) => x.output(),
-            Instruction::Multiply(x) => x.output(),
-            Instruction::Divide(x) => x.output(),
-            Instruction::Modulo(x) => x.output(),
-            Instruction::LeftShift(x) => x.output(),
-            Instruction::RightShift(x) => x.output(),
-            Instruction::BitwiseAnd(x) => x.output(),
-            Instruction::BitwiseOr(x) => x.output(),
-            Instruction::BitwiseXor(x) => x.output(),
-            Instruction::BitwiseNot(x) => x.output(),
-            Instruction::And(x) => x.output(),
-            Instruction::Or(x) => x.output(),
-            Instruction::Xor(x) => x.output(),
-            Instruction::Not(x) => x.output(),
-            Instruction::Equal(x) => x.output(),
-            Instruction::NotEqual(x) => x.output(),
-            Instruction::LessThan(x) => x.output(),
-            Instruction::GreaterThan(x) => x.output(),
-            Instruction::LessThanEqual(x) => x.output(),
-            Instruction::GreaterThanEqual(x) => x.output(),
-            Instruction::Jump(x) => x.output(),
-            Instruction::Branch(x) => x.output(),
-            Instruction::Call(x) => x.output(),
-            Instruction::Return(x) => x.output(),
-            Instruction::Load(x) => x.output(),
-            Instruction::Store(x) => x.output(),
-            Instruction::ArrayIndex(x) => x.output(),
-            Instruction::LayoutIndex(x) => x.output(),
-            Instruction::AllocArray(x) => x.output(),
-            Instruction::AllocLayout(x) => x.output(),
+            Instruction::PushValue(x) => x.output(start_offset),
+            Instruction::PopValue(x) => x.output(start_offset),
+            Instruction::Add(x) => x.output(start_offset),
+            Instruction::Subtract(x) => x.output(start_offset),
+            Instruction::Multiply(x) => x.output(start_offset),
+            Instruction::Divide(x) => x.output(start_offset),
+            Instruction::Modulo(x) => x.output(start_offset),
+            Instruction::LeftShift(x) => x.output(start_offset),
+            Instruction::RightShift(x) => x.output(start_offset),
+            Instruction::BitwiseAnd(x) => x.output(start_offset),
+            Instruction::BitwiseOr(x) => x.output(start_offset),
+            Instruction::BitwiseXor(x) => x.output(start_offset),
+            Instruction::BitwiseNot(x) => x.output(start_offset),
+            Instruction::And(x) => x.output(start_offset),
+            Instruction::Or(x) => x.output(start_offset),
+            Instruction::Xor(x) => x.output(start_offset),
+            Instruction::Not(x) => x.output(start_offset),
+            Instruction::Equal(x) => x.output(start_offset),
+            Instruction::NotEqual(x) => x.output(start_offset),
+            Instruction::LessThan(x) => x.output(start_offset),
+            Instruction::GreaterThan(x) => x.output(start_offset),
+            Instruction::LessThanEqual(x) => x.output(start_offset),
+            Instruction::GreaterThanEqual(x) => x.output(start_offset),
+            Instruction::Jump(x) => x.output(start_offset),
+            Instruction::Branch(x) => x.output(start_offset),
+            Instruction::Call(x) => x.output(start_offset),
+            Instruction::Return(x) => x.output(start_offset),
+            Instruction::Load(x) => x.output(start_offset),
+            Instruction::Store(x) => x.output(start_offset),
+            Instruction::ArrayIndex(x) => x.output(start_offset),
+            Instruction::LayoutIndex(x) => x.output(start_offset),
+            Instruction::AllocArray(x) => x.output(start_offset),
+            Instruction::AllocLayout(x) => x.output(start_offset),
             _ => panic!("Binaryable not implemented for supplied type")
         }
     }
@@ -122,7 +188,7 @@ impl Binaryable for Instruction {
 }
 
 impl Binaryable for PushValue {
-    fn output(&self) -> Vec<u8> {
+    fn output(&self, start_offset: usize) -> Vec<u8> {
         todo!()
     }
 
@@ -132,7 +198,7 @@ impl Binaryable for PushValue {
 }
 
 impl Binaryable for PopValue {
-    fn output(&self) -> Vec<u8> {
+    fn output(&self, start_offset: usize) -> Vec<u8> {
         vec![b'.']
     }
 
@@ -142,7 +208,7 @@ impl Binaryable for PopValue {
 }
 
 impl Binaryable for Add {
-    fn output(&self) -> Vec<u8> {
+    fn output(&self, start_offset: usize) -> Vec<u8> {
         vec![b'+']
     }
 
@@ -152,7 +218,7 @@ impl Binaryable for Add {
 }
 
 impl Binaryable for Subtract {
-    fn output(&self) -> Vec<u8> {
+    fn output(&self, start_offset: usize) -> Vec<u8> {
         vec![b'-']
     }
 
@@ -162,7 +228,7 @@ impl Binaryable for Subtract {
 }
 
 impl Binaryable for Multiply {
-    fn output(&self) -> Vec<u8> {
+    fn output(&self, start_offset: usize) -> Vec<u8> {
         vec![b'*']
     }
 
@@ -172,7 +238,7 @@ impl Binaryable for Multiply {
 }
 
 impl Binaryable for Divide {
-    fn output(&self) -> Vec<u8> {
+    fn output(&self, start_offset: usize) -> Vec<u8> {
         vec![b'/']
     }
 
@@ -182,7 +248,7 @@ impl Binaryable for Divide {
 }
 
 impl Binaryable for Modulo {
-    fn output(&self) -> Vec<u8> {
+    fn output(&self, start_offset: usize) -> Vec<u8> {
         vec![b'%']
     }
 
@@ -192,7 +258,7 @@ impl Binaryable for Modulo {
 }
 
 impl Binaryable for LeftShift {
-    fn output(&self) -> Vec<u8> {
+    fn output(&self, start_offset: usize) -> Vec<u8> {
         vec![b'L']
     }
 
@@ -202,7 +268,7 @@ impl Binaryable for LeftShift {
 }
 
 impl Binaryable for RightShift {
-    fn output(&self) -> Vec<u8> {
+    fn output(&self, start_offset: usize) -> Vec<u8> {
         vec![b'R']
     }
 
@@ -212,7 +278,7 @@ impl Binaryable for RightShift {
 }
 
 impl Binaryable for BitwiseAnd {
-    fn output(&self) -> Vec<u8> {
+    fn output(&self, start_offset: usize) -> Vec<u8> {
         vec![b'&']
     }
 
@@ -222,7 +288,7 @@ impl Binaryable for BitwiseAnd {
 }
 
 impl Binaryable for BitwiseOr {
-    fn output(&self) -> Vec<u8> {
+    fn output(&self, start_offset: usize) -> Vec<u8> {
         vec![b'|']
     }
 
@@ -232,7 +298,7 @@ impl Binaryable for BitwiseOr {
 }
 
 impl Binaryable for BitwiseXor {
-    fn output(&self) -> Vec<u8> {
+    fn output(&self, start_offset: usize) -> Vec<u8> {
         vec![b'^']
     }
 
@@ -242,7 +308,7 @@ impl Binaryable for BitwiseXor {
 }
 
 impl Binaryable for BitwiseNot {
-    fn output(&self) -> Vec<u8> {
+    fn output(&self, start_offset: usize) -> Vec<u8> {
         vec![b'~']
     }
 
@@ -252,7 +318,7 @@ impl Binaryable for BitwiseNot {
 }
 
 impl Binaryable for And {
-    fn output(&self) -> Vec<u8> {
+    fn output(&self, start_offset: usize) -> Vec<u8> {
         vec![b'a']
     }
 
@@ -262,7 +328,7 @@ impl Binaryable for And {
 }
 
 impl Binaryable for Or {
-    fn output(&self) -> Vec<u8> {
+    fn output(&self, start_offset: usize) -> Vec<u8> {
         vec![b'o']
     }
 
@@ -272,7 +338,7 @@ impl Binaryable for Or {
 }
 
 impl Binaryable for Xor {
-    fn output(&self) -> Vec<u8> {
+    fn output(&self, start_offset: usize) -> Vec<u8> {
         vec![b'x']
     }
 
@@ -282,7 +348,7 @@ impl Binaryable for Xor {
 }
 
 impl Binaryable for Not {
-    fn output(&self) -> Vec<u8> {
+    fn output(&self, start_offset: usize) -> Vec<u8> {
         vec![b'n']
     }
 
@@ -292,7 +358,7 @@ impl Binaryable for Not {
 }
 
 impl Binaryable for Equal {
-    fn output(&self) -> Vec<u8> {
+    fn output(&self, start_offset: usize) -> Vec<u8> {
         vec![b'=']
     }
 
@@ -302,7 +368,7 @@ impl Binaryable for Equal {
 }
 
 impl Binaryable for NotEqual {
-    fn output(&self) -> Vec<u8> {
+    fn output(&self, start_offset: usize) -> Vec<u8> {
         vec![b'!']
     }
 
@@ -312,7 +378,7 @@ impl Binaryable for NotEqual {
 }
 
 impl Binaryable for LessThan {
-    fn output(&self) -> Vec<u8> {
+    fn output(&self, start_offset: usize) -> Vec<u8> {
         vec![b'<']
     }
 
@@ -322,7 +388,7 @@ impl Binaryable for LessThan {
 }
 
 impl Binaryable for GreaterThan {
-    fn output(&self) -> Vec<u8> {
+    fn output(&self, start_offset: usize) -> Vec<u8> {
         vec![b'>']
     }
 
@@ -332,7 +398,7 @@ impl Binaryable for GreaterThan {
 }
 
 impl Binaryable for LessThanEqual {
-    fn output(&self) -> Vec<u8> {
+    fn output(&self, start_offset: usize) -> Vec<u8> {
         vec![b'(']
     }
 
@@ -342,7 +408,7 @@ impl Binaryable for LessThanEqual {
 }
 
 impl Binaryable for GreaterThanEqual {
-    fn output(&self) -> Vec<u8> {
+    fn output(&self, start_offset: usize) -> Vec<u8> {
         vec![b')']
     }
 
@@ -352,7 +418,7 @@ impl Binaryable for GreaterThanEqual {
 }
 
 impl Binaryable for Jump {
-    fn output(&self) -> Vec<u8> {
+    fn output(&self, start_offset: usize) -> Vec<u8> {
         Vec::new()
     }
 
@@ -362,7 +428,7 @@ impl Binaryable for Jump {
 }
 
 impl Binaryable for Branch {
-    fn output(&self) -> Vec<u8> {
+    fn output(&self, start_offset: usize) -> Vec<u8> {
         Vec::new()
     }
 
@@ -372,7 +438,7 @@ impl Binaryable for Branch {
 }
 
 impl Binaryable for Call {
-    fn output(&self) -> Vec<u8> {
+    fn output(&self, start_offset: usize) -> Vec<u8> {
         vec![b'c']
     }
 
@@ -382,7 +448,7 @@ impl Binaryable for Call {
 }
 
 impl Binaryable for Return {
-    fn output(&self) -> Vec<u8> {
+    fn output(&self, start_offset: usize) -> Vec<u8> {
         vec![b'r']
     }
 
@@ -392,7 +458,7 @@ impl Binaryable for Return {
 }
 
 impl Binaryable for Load {
-    fn output(&self) -> Vec<u8> {
+    fn output(&self, start_offset: usize) -> Vec<u8> {
         vec![b'g']
     }
 
@@ -402,7 +468,7 @@ impl Binaryable for Load {
 }
 
 impl Binaryable for Store {
-    fn output(&self) -> Vec<u8> {
+    fn output(&self, start_offset: usize) -> Vec<u8> {
         vec![b's']
     }
 
@@ -412,7 +478,7 @@ impl Binaryable for Store {
 }
 
 impl Binaryable for ArrayIndex {
-    fn output(&self) -> Vec<u8> {
+    fn output(&self, start_offset: usize) -> Vec<u8> {
         vec![b'i']
     }
 
@@ -422,8 +488,8 @@ impl Binaryable for ArrayIndex {
 }
 
 impl Binaryable for LayoutIndex {
-    fn output(&self) -> Vec<u8> {
-        todo!()
+    fn output(&self, start_offset: usize) -> Vec<u8> {
+        vec![b'l']
     }
 
     fn input(index: &mut usize, input_bytes: &Vec<u8>) -> Self {
@@ -432,7 +498,7 @@ impl Binaryable for LayoutIndex {
 }
 
 impl Binaryable for AllocArray {
-    fn output(&self) -> Vec<u8> {
+    fn output(&self, start_offset: usize) -> Vec<u8> {
         todo!()
     }
 
@@ -442,7 +508,7 @@ impl Binaryable for AllocArray {
 }
 
 impl Binaryable for AllocLayout {
-    fn output(&self) -> Vec<u8> {
+    fn output(&self, start_offset: usize) -> Vec<u8> {
         todo!()
     }
 
