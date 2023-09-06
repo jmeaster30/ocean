@@ -1,4 +1,3 @@
-mod analysisgraph;
 pub mod debugcontext;
 mod debuggable;
 pub mod exception;
@@ -10,5 +9,6 @@ mod instruction;
 pub mod layouttemplate;
 pub mod module;
 pub mod value;
+pub mod analyzer;
 
 pub struct Hydro {}
