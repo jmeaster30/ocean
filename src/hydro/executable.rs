@@ -44,8 +44,7 @@ impl Instruction {
       Instruction::Return(x) => x.execute(module, context),
       Instruction::Load(x) => x.execute(module, context),
       Instruction::Store(x) => x.execute(module, context),
-      Instruction::AllocArray(x) => x.execute(module, context),
-      Instruction::AllocLayout(x) => x.execute(module, context),
+      Instruction::Allocate(x) => x.execute(module, context),
       Instruction::ArrayIndex(x) => x.execute(module, context),
       Instruction::LayoutIndex(x) => x.execute(module, context),
     }
@@ -695,13 +694,7 @@ impl Executable for LayoutIndex {
   }
 }
 
-impl Executable for AllocArray {
-  fn execute(&self, _module: &Module, _context: &mut ExecutionContext) -> Result<bool, Exception> {
-    todo!();
-  }
-}
-
-impl Executable for AllocLayout {
+impl Executable for Allocate {
   fn execute(&self, module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 1 {
       return Err(Exception::new(
@@ -710,53 +703,10 @@ impl Executable for AllocLayout {
       ));
     }
 
-    let layout_template = match self.module_name.clone() {
-      Some(template_module_name) => match module.modules.get(template_module_name.as_str()) {
-        Some(template_module) => match template_module
-          .layout_templates
-          .get(self.layout_template_name.as_str())
-        {
-          Some(template) => template,
-          None => {
-            return Err(Exception::new(
-              context.clone(),
-              format!(
-                "Layout '{}' not found in module '{}'",
-                self.layout_template_name, template_module_name
-              )
-              .as_str(),
-            ))
-          }
-        },
-        None => {
-          return Err(Exception::new(
-            context.clone(),
-            format!("Module '{}' not found.", template_module_name).as_str(),
-          ))
-        }
-      },
-      None => match module
-        .layout_templates
-        .get(self.layout_template_name.as_str())
-      {
-        Some(template) => template,
-        None => {
-          return Err(Exception::new(
-            context.clone(),
-            format!(
-              "Layout '{}' not found in module '{}'",
-              self.layout_template_name, module.name
-            )
-            .as_str(),
-          ))
-        }
-      },
-    };
-
-    let allocated = layout_template.create_value();
+    let allocated = module.resolve_type(self.allocated_type.clone(), context)?.default();
     let value_reference = context.stack.pop().unwrap();
     match &value_reference {
-      Value::Reference(reference) => context.modify(reference, allocated)?,
+      Value::Reference(reference) => context.init(reference, allocated)?,
       _ => {
         return Err(Exception::new(
           context.clone(),

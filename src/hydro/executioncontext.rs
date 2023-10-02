@@ -171,6 +171,29 @@ impl ExecutionContext {
     }
   }
 
+  pub fn init(&mut self, reference: &Reference, value: Value) -> Result<(), Exception> {
+    match reference {
+      Reference::ArrayIndex(_) => Err(Exception::new(
+        self.clone(),
+        "Initializing memory with non-variable reference doesn't make sense",
+      )),
+      Reference::LayoutIndex(_) => Err(Exception::new(
+        self.clone(),
+        "Initializing memory with non-variable reference doesn't make sense",
+      )),
+      Reference::Variable(variable_reference) => match self.variables.get(&variable_reference.name.clone()) {
+        Some(_) => Err(Exception::new(
+          self.clone(),
+          format!("Variable '{}' already exists :(", variable_reference.name.clone()).as_str(),
+        )),
+        None => {
+          self.variables.insert(variable_reference.name.clone(), value.clone());
+          Ok(())
+        }
+      }
+    }
+  }
+
   pub fn modify(&mut self, reference: &Reference, value: Value) -> Result<(), Exception> {
     match reference {
       Reference::ArrayIndex(index_reference) => {
@@ -216,10 +239,14 @@ impl ExecutionContext {
           }
         }
       }
-      Reference::Variable(variable_reference) => {
-        self
-          .variables
-          .insert(variable_reference.name.clone(), value.clone());
+      Reference::Variable(variable_reference) => match self.variables.get(&variable_reference.name.clone()) {
+        Some(_) => {
+          self.variables.insert(variable_reference.name.clone(), value.clone());
+        }
+        None => return Err(Exception::new(
+          self.clone(),
+          format!("Variable '{}' does not exist :(", variable_reference.name.clone()).as_str(),
+        ))
       }
     }
     Ok(())

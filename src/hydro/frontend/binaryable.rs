@@ -141,8 +141,7 @@ impl Binaryable for Instruction {
       Instruction::Store(x) => x.output(start_offset),
       Instruction::ArrayIndex(x) => x.output(start_offset),
       Instruction::LayoutIndex(x) => x.output(start_offset),
-      Instruction::AllocArray(x) => x.output(start_offset),
-      Instruction::AllocLayout(x) => x.output(start_offset),
+      Instruction::Allocate(x) => x.output(start_offset),
       _ => panic!("Binaryable not implemented for supplied type"),
     }
   }
@@ -180,8 +179,7 @@ impl Binaryable for Instruction {
       b's' => Instruction::Store(Store::input(index, input_bytes)),
       b'i' => Instruction::ArrayIndex(ArrayIndex::input(index, input_bytes)),
       b'm' => Instruction::LayoutIndex(LayoutIndex::input(index, input_bytes)),
-      b'[' => Instruction::AllocArray(AllocArray::input(index, input_bytes)),
-      b'{' => Instruction::AllocLayout(AllocLayout::input(index, input_bytes)),
+      b'[' => Instruction::Allocate(Allocate::input(index, input_bytes)),
       _ => panic!("Binaryable not implemented for supplied type"),
     }
   }
@@ -497,17 +495,7 @@ impl Binaryable for LayoutIndex {
   }
 }
 
-impl Binaryable for AllocArray {
-  fn output(&self, start_offset: usize) -> Vec<u8> {
-    todo!()
-  }
-
-  fn input(index: &mut usize, input_bytes: &Vec<u8>) -> Self {
-    todo!()
-  }
-}
-
-impl Binaryable for AllocLayout {
+impl Binaryable for Allocate {
   fn output(&self, start_offset: usize) -> Vec<u8> {
     todo!()
   }

@@ -1,3 +1,4 @@
+use crate::hydro::value::Type;
 use super::value::Value;
 
 #[derive(Debug, Clone)]
@@ -41,8 +42,7 @@ pub enum Instruction {
   Store(Store),
   ArrayIndex(ArrayIndex),
   LayoutIndex(LayoutIndex),
-  AllocArray(AllocArray),
-  AllocLayout(AllocLayout),
+  Allocate(Allocate),
 }
 
 #[derive(Debug, Clone)]
@@ -148,16 +148,8 @@ pub struct LayoutIndex {
 }
 
 #[derive(Debug, Clone)]
-pub struct AllocArray {
-  // TODO There should be a better interface for this instruction.
-  pub length: usize,
-  pub default_value: Value,
-}
-
-#[derive(Debug, Clone)]
-pub struct AllocLayout {
-  pub module_name: Option<String>,
-  pub layout_template_name: String,
+pub struct Allocate {
+  pub allocated_type: Type,
 }
 
 #[derive(Debug, Clone)]

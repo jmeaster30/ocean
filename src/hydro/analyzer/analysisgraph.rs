@@ -1,8 +1,16 @@
 use std::collections::HashMap;
-use crate::hydro::analyzer::possiblevalue::PossibleValue;
+
+pub struct AnalysisInstructionPointer {
+    pub module: String,
+    pub function: String,
+    pub instruction_number: u32,
+}
 
 pub struct AnalysisNode {
-    stack: Vec<PossibleValue>
+    instruction: AnalysisInstructionPointer,
+    previous_instructions: Vec<AnalysisInstructionPointer>,
+    dependent_instructions: Vec<AnalysisInstructionPointer>,
+    stack_size: i32,
 }
 
 pub struct AnalysisGraph {

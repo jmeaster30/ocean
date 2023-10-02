@@ -54,8 +54,7 @@ impl Instruction {
       Instruction::Store(x) => x.debug(module, context, debug_context),
       Instruction::ArrayIndex(x) => x.debug(module, context, debug_context),
       Instruction::LayoutIndex(x) => x.debug(module, context, debug_context),
-      Instruction::AllocArray(x) => x.debug(module, context, debug_context),
-      Instruction::AllocLayout(x) => x.debug(module, context, debug_context),
+      Instruction::Allocate(x) => x.debug(module, context, debug_context),
     }
   }
 }
@@ -886,37 +885,14 @@ impl Debuggable for LayoutIndex {
   }
 }
 
-impl Debuggable for AllocArray {
+impl Debuggable for Allocate {
   fn debug(
     &self,
     module: &Module,
     context: &mut ExecutionContext,
     debug_context: &mut DebugContext,
   ) -> Result<bool, Exception> {
-    let metric_name = "allocarray".to_string();
-    debug_context.start_core_metric(
-      context.current_module.clone(),
-      context.current_function.clone(),
-      metric_name.clone(),
-    );
-    let result = self.execute(module, context);
-    debug_context.stop_core_metric(
-      context.current_module.clone(),
-      context.current_function.clone(),
-      metric_name,
-    );
-    return result;
-  }
-}
-
-impl Debuggable for AllocLayout {
-  fn debug(
-    &self,
-    module: &Module,
-    context: &mut ExecutionContext,
-    debug_context: &mut DebugContext,
-  ) -> Result<bool, Exception> {
-    let metric_name = "alloclayout".to_string();
+    let metric_name = "allocate".to_string();
     debug_context.start_core_metric(
       context.current_module.clone(),
       context.current_function.clone(),

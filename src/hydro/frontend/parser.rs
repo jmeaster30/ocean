@@ -1,14 +1,14 @@
 use crate::hydro::frontend::token::{Token, TokenType};
 use crate::hydro::function::Function;
 use crate::hydro::instruction::{
-  Add, AllocLayout, And, ArrayIndex, BitwiseAnd, BitwiseNot, BitwiseOr, BitwiseXor, Branch, Call,
+  Add, Allocate, And, ArrayIndex, BitwiseAnd, BitwiseNot, BitwiseOr, BitwiseXor, Branch, Call,
   Divide, Equal, GreaterThan, GreaterThanEqual, Instruction, Jump, LayoutIndex, LeftShift,
   LessThan, LessThanEqual, Load, Modulo, Multiply, Not, NotEqual, Or, PopValue, PushValue, Return,
   RightShift, Store, Subtract, Xor,
 };
 use crate::hydro::layouttemplate::LayoutTemplate;
 use crate::hydro::module::Module;
-use crate::hydro::value::{Array, FunctionPointer, LayoutIndexRef, Reference, Value, VariableRef};
+use crate::hydro::value::{Array, FunctionPointer, LayoutIndexRef, Reference, Type, Value, VariableRef};
 use crate::util::tokentrait::TokenTrait;
 use regex::Regex;
 use std::fs::File;
@@ -175,36 +175,53 @@ impl Parser {
     function
   }
 
+  fn parse_type(&mut self) -> Type {
+    // <type> -> type
+    // <id> <id> -> layout
+    // <number> <Type>
+    let start_token = self.expect_one_of(vec![TokenType::Type, TokenType::Identifier, TokenType::This, TokenType::Number]);
+    self.consume();
+
+    match start_token.token_type {
+      TokenType::Type => match start_token.lexeme.as_str() {
+        "bool" => Type::Boolean,
+        "u8" => Type::Unsigned8,
+        "u16" => Type::Unsigned16,
+        "u32" => Type::Unsigned32,
+        "u64" => Type::Unsigned64,
+        "u128" => Type::Unsigned128,
+        "s8" => Type::Signed8,
+        "s16" => Type::Signed16,
+        "s32" => Type::Signed32,
+        "s64" => Type::Signed64,
+        "s128" => Type::Signed128,
+        _ => panic!("Unexpected type string"),
+      },
+      TokenType::Identifier | TokenType::This => {
+        let layout_token = self.expect_token_type(TokenType::Identifier);
+        self.consume();
+        Type::Layout(start_token.lexeme, layout_token.lexeme, None)
+      }
+      TokenType::Number => {
+        let length = start_token.lexeme.parse::<u64>().unwrap();
+        let subtype = self.parse_type();
+
+        Type::Array(length, Box::new(subtype))
+      }
+      _ => panic!("Unexpected token type")
+    }
+  }
+
   fn parse_instruction(&mut self) -> Instruction {
     let inst_token = self.expect_token();
     self.consume();
 
     match inst_token.token_type {
       TokenType::Alloc => {
-        let alloc_type_token = self.expect_one_of(vec![TokenType::Layout, TokenType::Array]);
-
-        match alloc_type_token.token_type {
-          TokenType::Layout => {
-            self.consume();
-
-            let module_token = self.expect_one_of(vec![TokenType::Identifier, TokenType::This]);
-            self.consume();
-
-            let layout_template_token = self.expect_token_type(TokenType::Identifier);
-            self.consume();
-
-            Instruction::AllocLayout(AllocLayout {
-              module_name: match module_token.token_type {
-                TokenType::Identifier => Some(module_token.lexeme),
-                TokenType::This => None,
-                _ => panic!("Shouldn't be hit"),
-              },
-              layout_template_name: layout_template_token.lexeme,
-            })
-          }
-          TokenType::Array => todo!(),
-          _ => panic!("Won't Hit"),
-        }
+        let allocated_type = self.parse_type();
+        Instruction::Allocate(Allocate {
+          allocated_type,
+        })
       }
       TokenType::Push => {
         let type_token = self.expect_token();
@@ -379,7 +396,7 @@ impl Parser {
   fn create_default_value_from_type_string(type_lexeme: String) -> Value {
     match type_lexeme.as_str() {
       "bool" => Value::Boolean(false),
-      "string" => Value::Array(Array::new(Box::new(Value::Unsigned64(0)))),
+      "string" => Value::Array(Array::new(Box::new(Value::Unsigned8(0)))),
       "u8" => Value::Unsigned8(0),
       "u16" => Value::Unsigned16(0),
       "u32" => Value::Unsigned32(0),

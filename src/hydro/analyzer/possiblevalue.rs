@@ -1,4 +1,4 @@
-use crate::hydro::value::Value;
+use crate::hydro::value::{Type, Value};
 
 #[derive(Debug)]
 pub struct PossibleValue {
@@ -154,8 +154,32 @@ impl PossibleValue {
 
     pub fn complement(value: Self) -> Self {
         Self {
-            ranges: Vec::new()
+            ranges: Self::complement_internal(value.ranges),
         }
+    }
+
+    fn complement_internal(ranges: Vec<(bool, Value, Value, bool)>) -> Vec<(bool, Value, Value, bool)> {
+        let mut result = Vec::new();
+        let mut sorted_ranges = ranges.clone();
+        sorted_ranges.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
+
+        for i in 0..(sorted_ranges.len() + 1) {
+            if i == 0 {
+                let range = &sorted_ranges[i];
+                let left = Type::min(range.1.type_of());
+                result.push((true, left, range.1.clone(), !range.0));
+            } else if i < sorted_ranges.len() {
+                let range = &sorted_ranges[i];
+                let previous = &sorted_ranges[i - 1];
+                result.push((!previous.3, previous.2.clone(), range.1.clone(), !range.0));
+            } else {
+                let prev = &sorted_ranges[i - 1];
+                let right = Type::max(prev.2.type_of());
+                result.push((!prev.3, prev.2.clone(), right, true));
+            }
+        }
+
+        Self::union_internal(result)
     }
 
     pub fn contains(&self, value: Value) -> bool {

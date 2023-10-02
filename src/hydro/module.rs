@@ -5,7 +5,7 @@ use crate::hydro::exception::Exception;
 use crate::hydro::executioncontext::ExecutionContext;
 use crate::hydro::function::Function;
 use crate::hydro::layouttemplate::LayoutTemplate;
-use crate::hydro::value::Value;
+use crate::hydro::value::{Type, Value};
 
 #[derive(Debug, Clone)]
 pub struct Module {
@@ -96,6 +96,76 @@ impl Module {
     self.unresolved_modules = unresolved_modules;
     if self.unresolved_modules.len() != 0 {
       println!("Unable to resolve dependencies of module '{}'", self.name);
+    }
+  }
+
+  pub fn resolve_type(&self, type_to_resolve: Type, context: &ExecutionContext) -> Result<Type, Exception> {
+    match type_to_resolve {
+      Type::Float => Ok(type_to_resolve),
+      Type::Boolean => Ok(type_to_resolve),
+      Type::Unsigned8 => Ok(type_to_resolve),
+      Type::Unsigned16 => Ok(type_to_resolve),
+      Type::Unsigned32 => Ok(type_to_resolve),
+      Type::Unsigned64 => Ok(type_to_resolve),
+      Type::Unsigned128 => Ok(type_to_resolve),
+      Type::Signed8 => Ok(type_to_resolve),
+      Type::Signed16 => Ok(type_to_resolve),
+      Type::Signed32 => Ok(type_to_resolve),
+      Type::Signed64 => Ok(type_to_resolve),
+      Type::Signed128 => Ok(type_to_resolve),
+      Type::FunctionPointer(args, returns) => Ok(Type::FunctionPointer(args, returns)),
+      Type::Reference(subtype) => {
+        let resolved_subtype = self.resolve_type(*subtype, context)?;
+        Ok(Type::Reference(Box::new(resolved_subtype)))
+      },
+      Type::Array(length, subtype) => {
+        let resolved_subtype = self.resolve_type(*subtype, context)?;
+        Ok(Type::Array(length, Box::new(resolved_subtype)))
+      }
+      Type::Layout(module_name, layout_name, Some(subtype_map)) =>
+        Ok(Type::Layout(module_name, layout_name, Some(subtype_map))),
+      Type::Layout(module_name, layout_name, None) => match module_name.clone().as_str() {
+        "this" => match self
+          .layout_templates
+          .get(layout_name.as_str())
+        {
+          Some(template) => Ok(template.to_type(module_name)),
+          None => {
+            return Err(Exception::new(
+              context.clone(),
+              format!(
+                "Layout '{}' not found in module '{}'",
+                layout_name, module_name
+              )
+                .as_str(),
+            ))
+          }
+        },
+        module_name => match self.modules.get(module_name) {
+          Some(template_module) => match template_module
+            .layout_templates
+            .get(layout_name.as_str())
+          {
+            Some(template) => Ok(template.to_type(module_name.to_string())),
+            None => {
+              return Err(Exception::new(
+                context.clone(),
+                format!(
+                  "Layout '{}' not found in module '{}'",
+                  layout_name, module_name
+                )
+                  .as_str(),
+              ))
+            }
+          },
+          None => {
+            return Err(Exception::new(
+              context.clone(),
+              format!("Module '{}' not found.", module_name).as_str(),
+            ))
+          }
+        },
+      }
     }
   }
 

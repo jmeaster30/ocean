@@ -1,5 +1,5 @@
 use crate::hydro::instruction::{
-  Add, AllocLayout, ArrayIndex, Call, Instruction, Load, PopValue, PushValue, Return, Store,
+  Add, ArrayIndex, Call, Instruction, Load, PopValue, PushValue, Return, Store,
 };
 use crate::hydro::value::{Reference, Value, VariableRef};
 
@@ -75,17 +75,6 @@ impl Function {
 
   pub fn index(mut self) -> Self {
     self.body.push(Instruction::ArrayIndex(ArrayIndex {}));
-    self
-  }
-
-  pub fn alloc_layout(mut self, module_name_option: Option<&str>, layout_name: &str) -> Self {
-    self.body.push(Instruction::AllocLayout(AllocLayout {
-      module_name: match module_name_option {
-        Some(module_name) => Some(module_name.to_string()),
-        None => None,
-      },
-      layout_template_name: layout_name.to_string(),
-    }));
     self
   }
 
