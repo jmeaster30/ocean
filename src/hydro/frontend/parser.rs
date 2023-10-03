@@ -175,7 +175,7 @@ impl Parser {
     function
   }
 
-  fn parse_type(&mut self) -> Type {
+  pub fn parse_type(&mut self) -> Type {
     // <type> -> type
     // <id> <id> -> layout
     // <number> <Type>
@@ -239,7 +239,10 @@ impl Parser {
           value: match value_token.token_type {
             TokenType::Number => {
               self.consume();
-              Parser::create_value_from_type_string(type_token.lexeme, value_token.lexeme.clone())
+              match Parser::create_value_from_type_string(type_token.lexeme, value_token.lexeme.clone()) {
+                Ok(value) => value,
+                Err(message) => panic!("{}", message)
+              }
             }
             TokenType::True => {
               self.consume();
@@ -411,13 +414,13 @@ impl Parser {
     }
   }
 
-  fn create_value_from_type_string(type_lexeme: String, value_lexeme: String) -> Value {
+  pub fn create_value_from_type_string(type_lexeme: String, value_lexeme: String) -> Result<Value, String> {
     match type_lexeme.as_str() {
-      "bool" => Value::Boolean(match value_lexeme.to_lowercase().as_str() {
-        "true" => true,
-        "false" => false,
-        _ => panic!("Unexpected value for boolean type"),
-      }),
+      "bool" => match value_lexeme.to_lowercase().as_str() {
+        "true" => Ok(Value::Boolean(true)),
+        "false" => Ok(Value::Boolean(false)),
+        _ => Err("Unexpected value for boolean type".to_string()),
+      },
       "string" => {
         let bytes = value_lexeme
           .clone()
@@ -425,22 +428,52 @@ impl Parser {
           .iter()
           .map(|x| Value::Unsigned8(*x))
           .collect::<Vec<Value>>();
-        Value::Array(Array::create(
+        Ok(Value::Array(Array::create(
           Box::new(Value::Unsigned64(value_lexeme.len() as u64)),
           bytes,
-        ))
+        )))
       }
-      "u8" => Value::Unsigned8(value_lexeme.parse::<u8>().unwrap()),
-      "u16" => Value::Unsigned16(value_lexeme.parse::<u16>().unwrap()),
-      "u32" => Value::Unsigned32(value_lexeme.parse::<u32>().unwrap()),
-      "u64" => Value::Unsigned64(value_lexeme.parse::<u64>().unwrap()),
-      "u128" => Value::Unsigned128(value_lexeme.parse::<u128>().unwrap()),
-      "s8" => Value::Signed8(value_lexeme.parse::<i8>().unwrap()),
-      "s16" => Value::Signed16(value_lexeme.parse::<i16>().unwrap()),
-      "s32" => Value::Signed32(value_lexeme.parse::<i32>().unwrap()),
-      "s64" => Value::Signed64(value_lexeme.parse::<i64>().unwrap()),
-      "s128" => Value::Signed128(value_lexeme.parse::<i128>().unwrap()),
-      _ => panic!("Unexpected type string"),
+      "u8" => match value_lexeme.parse::<u8>() {
+        Ok(value) => Ok(Value::Unsigned8(value)),
+        Err(_) => Err(format!("Couldn't parse '{}' into a u8", value_lexeme))
+      }
+      "u16" => match value_lexeme.parse::<u16>() {
+        Ok(value) => Ok(Value::Unsigned16(value)),
+        Err(_) => Err(format!("Couldn't parse '{}' into a u16", value_lexeme))
+      }
+      "u32" => match value_lexeme.parse::<u32>() {
+        Ok(value) => Ok(Value::Unsigned32(value)),
+        Err(_) => Err(format!("Couldn't parse '{}' into a u32", value_lexeme))
+      }
+      "u64" => match value_lexeme.parse::<u64>() {
+        Ok(value) => Ok(Value::Unsigned64(value)),
+        Err(_) => Err(format!("Couldn't parse '{}' into a u64", value_lexeme))
+      }
+      "u128" => match value_lexeme.parse::<u128>() {
+        Ok(value) => Ok(Value::Unsigned128(value)),
+        Err(_) => Err(format!("Couldn't parse '{}' into a u128", value_lexeme))
+      }
+      "s8" => match value_lexeme.parse::<i8>() {
+        Ok(value) => Ok(Value::Signed8(value)),
+        Err(_) => Err(format!("Couldn't parse '{}' into a s8", value_lexeme))
+      }
+      "s16" => match value_lexeme.parse::<i16>() {
+        Ok(value) => Ok(Value::Signed16(value)),
+        Err(_) => Err(format!("Couldn't parse '{}' into a s16", value_lexeme))
+      }
+      "s32" => match value_lexeme.parse::<i32>() {
+        Ok(value) => Ok(Value::Signed32(value)),
+        Err(_) => Err(format!("Couldn't parse '{}' into a s32", value_lexeme))
+      }
+      "s64" => match value_lexeme.parse::<i64>() {
+        Ok(value) => Ok(Value::Signed64(value)),
+        Err(_) => Err(format!("Couldn't parse '{}' into a s64", value_lexeme))
+      }
+      "s128" => match value_lexeme.parse::<i128>() {
+        Ok(value) => Ok(Value::Signed128(value)),
+        Err(_) => Err(format!("Couldn't parse '{}' into a s128", value_lexeme))
+      }
+      _ => Err("Unexpected type string".to_string()),
     }
   }
 

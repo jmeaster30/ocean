@@ -4,6 +4,7 @@ use crate::hydro::value::Value;
 use std::collections::HashMap;
 use std::io::{stdin, stdout, Write};
 use std::time::{Duration, Instant};
+use crate::hydro::frontend::parser::Parser;
 
 pub struct DebugContext {
   pub step: Option<usize>,
@@ -179,7 +180,27 @@ impl DebugContext {
             Some(value) => println!("Popped value: {:?}", value),
             None => println!("Stack was empty. Nothing popped"),
           },
-          None => println!("Not in a runnable context so there is no stack :(")
+          None => println!("Not in a context that has a stack :(")
+        }
+        "push" => match execution_context {
+          Some(context) => {
+            if parsed.len() != 3 {
+              println!(
+                "Mismatch number of arguments for push. Expected 3 but got {}",
+                parsed.len()
+              );
+              continue;
+            }
+
+            match Parser::create_value_from_type_string(parsed[1].to_string(), parsed[2].to_string()) {
+              Ok(value) => context.stack.push(value),
+              Err(message) => println!(
+                "Error while parsing value: {}",
+                message
+              )
+            }
+          }
+          None => println!("Not in a context that has a stack :(")
         }
         "run" => match &execution_context {
           Some(_) => break,
