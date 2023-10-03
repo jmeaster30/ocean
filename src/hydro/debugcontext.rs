@@ -50,7 +50,7 @@ impl DebugContext {
   pub fn console(
     &mut self,
     module: &Module,
-    execution_context: Option<&mut ExecutionContext>,
+    execution_context: &mut Option<&mut ExecutionContext>,
     final_return_value: Option<Value>,
   ) {
     println!(
@@ -120,7 +120,7 @@ impl DebugContext {
             }
           }
         }
-        "continue" => match execution_context {
+        "continue" => match &execution_context {
           Some(_) => break,
           None => println!("Not in a continuable context :("),
         },
@@ -174,7 +174,14 @@ impl DebugContext {
             );
           }
         }
-        "run" => match execution_context {
+        "pop" => match execution_context {
+          Some(context) => match context.stack.pop() {
+            Some(value) => println!("Popped value: {:?}", value),
+            None => println!("Stack was empty. Nothing popped"),
+          },
+          None => println!("Not in a runnable context so there is no stack :(")
+        }
+        "run" => match &execution_context {
           Some(_) => break,
           None => println!("Not in a runnable context :("),
         },
