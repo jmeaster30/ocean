@@ -1,20 +1,15 @@
 use crate::hydro::executioncontext::ExecutionContext;
+use crate::hydro::frontend::parser::Parser;
 use crate::hydro::module::Module;
 use crate::hydro::value::Value;
+use crate::util::metrictracker::{MetricResults, MetricTracker};
 use std::collections::HashMap;
 use std::io::{stdin, stdout, Write};
-use std::time::{Duration, Instant};
-use crate::hydro::frontend::parser::Parser;
 
 pub struct DebugContext {
   pub step: Option<usize>,
-  // Module > Function > Metric Name > List of Durations
-  // This probably is not the best way to do this
-  pub core_metrics: HashMap<String, HashMap<String, HashMap<String, Vec<Duration>>>>,
-  pub custom_metrics: HashMap<String, HashMap<String, HashMap<String, Vec<Duration>>>>,
-  // Module > Function > Metric Name > Stack of Instants
-  pub running_core_metrics: HashMap<String, HashMap<String, HashMap<String, Vec<Instant>>>>,
-  pub running_custom_metrics: HashMap<String, HashMap<String, HashMap<String, Vec<Instant>>>>,
+
+  pub metric_tracker: MetricTracker,
 
   pub break_points: HashMap<String, HashMap<String, Vec<usize>>>,
   pub profile_ranges: HashMap<String, HashMap<String, Vec<(String, usize, usize)>>>,
@@ -24,10 +19,7 @@ impl DebugContext {
   pub fn new() -> Self {
     Self {
       step: None,
-      core_metrics: HashMap::new(),
-      custom_metrics: HashMap::new(),
-      running_core_metrics: HashMap::new(),
-      running_custom_metrics: HashMap::new(),
+      metric_tracker: MetricTracker::new(),
       break_points: HashMap::new(),
       profile_ranges: HashMap::new(),
     }
@@ -54,6 +46,7 @@ impl DebugContext {
     execution_context: &mut Option<&mut ExecutionContext>,
     final_return_value: Option<Value>,
   ) {
+    // TODO pause timers
     println!(
       "{}Entering the Hydro Debugger!!{}",
       DebugContext::ansi_color_code("red"),
@@ -127,7 +120,7 @@ impl DebugContext {
         },
         "exit" => {
           print!("{}", DebugContext::ansi_color_code("reset"));
-          panic!("Exiting from program run. (TODO: Make this something better than a panic)")
+          panic!("Exiting from program run."); // TODO make this better than a panic
         }
         "help" => {
           println!("breakpoint <module> <function> <program counter> - Set breakpoint");
@@ -175,13 +168,16 @@ impl DebugContext {
             );
           }
         }
+        "metrics" => {
+          self.print_all_summarized_metrics();
+        }
         "pop" => match execution_context {
           Some(context) => match context.stack.pop() {
             Some(value) => println!("Popped value: {:?}", value),
             None => println!("Stack was empty. Nothing popped"),
           },
-          None => println!("Not in a context that has a stack :(")
-        }
+          None => println!("Not in a context that has a stack :("),
+        },
         "push" => match execution_context {
           Some(context) => {
             if parsed.len() != 3 {
@@ -192,16 +188,16 @@ impl DebugContext {
               continue;
             }
 
-            match Parser::create_value_from_type_string(parsed[1].to_string(), parsed[2].to_string()) {
+            match Parser::create_value_from_type_string(
+              parsed[1].to_string(),
+              parsed[2].to_string(),
+            ) {
               Ok(value) => context.stack.push(value),
-              Err(message) => println!(
-                "Error while parsing value: {}",
-                message
-              )
+              Err(message) => println!("Error while parsing value: {}", message),
             }
           }
-          None => println!("Not in a context that has a stack :(")
-        }
+          None => println!("Not in a context that has a stack :("),
+        },
         "run" => match &execution_context {
           Some(_) => break,
           None => println!("Not in a runnable context :("),
@@ -366,144 +362,40 @@ impl DebugContext {
     }
   }
 
+  pub fn print_all_summarized_metrics(&self) {
+    for (metric_name, metrics) in &self.metric_tracker.finished_metrics {
+      Self::print_metric(MetricResults::new(metric_name.clone(), &metrics));
+    }
+  }
+
+  fn print_metric(result: MetricResults) {
+    println!("Metric: {}", result.name);
+    println!("  Total Time: {}ms", result.total_time.as_millis());
+    println!("  Total Count: {}", result.total_count);
+    println!("  Min: {}ms", result.min.as_millis());
+    println!("  Q1: {}ms", result.quartile1.as_millis());
+    println!("  Median: {}ms", result.median.as_millis());
+    println!("  Q3: {}ms", result.quartile3.as_millis());
+    println!("  Max: {}ms", result.max.as_millis());
+    println!("  Mean: {}ms", result.mean.as_millis());
+    println!(
+      "  Standard Deviation: {}ms",
+      result.standard_deviation.as_millis()
+    );
+  }
+
   pub fn print_summarized_core_metric(
     &self,
     module_name: String,
     function_name: String,
     metric_name: String,
   ) {
-    match self.core_metrics.get(module_name.as_str()) {
-      Some(module_metrics) => match module_metrics.get(function_name.as_str()) {
-        Some(function_metrics) => match function_metrics.get(metric_name.as_str()) {
-          Some(metric) => {
-            let mut min = None;
-            let mut max = None;
-            let mut sum = Duration::from_nanos(0);
-            let total = metric.len();
-            for value in metric {
-              if min.is_none() || value < min.unwrap() {
-                min = Some(value);
-              }
-              if max.is_none() || value > max.unwrap() {
-                max = Some(value);
-              }
-              sum += *value;
-            }
-
-            let average = sum.as_millis() / total as u128;
-            println!("{} -> {} -> {}", module_name, function_name, metric_name);
-            println!("  Total Time: {}ms", sum.as_millis());
-            println!("  # of Instances: {}", total);
-            println!(
-              "  Min: {}ms",
-              match min {
-                Some(m) => m.as_millis().to_string(),
-                None => "-- ".to_string(),
-              }
-            );
-            println!("  Avg: {}ms", average);
-            println!(
-              "  Max: {}ms",
-              match max {
-                Some(m) => m.as_millis().to_string(),
-                None => "-- ".to_string(),
-              }
-            );
-          }
-          None => println!(
-            "No metrics tracked for {} -> {} -> {}",
-            module_name, function_name, metric_name
-          ),
-        },
-        None => println!(
-          "No metrics tracked for {} -> {}",
-          module_name, function_name
-        ),
-      },
-      None => println!("No metrics tracked for {}", module_name),
-    }
-  }
-
-  pub fn start_core_metric(
-    &mut self,
-    module_name: String,
-    function_name: String,
-    metric_name: String,
-  ) {
-    match self.running_core_metrics.get_mut(module_name.as_str()) {
-      Some(running_function_metrics) => {
-        match running_function_metrics.get_mut(function_name.as_str()) {
-          Some(running_metrics) => match running_metrics.get_mut(metric_name.as_str()) {
-            Some(metrics) => metrics.push(Instant::now()),
-            None => {
-              running_metrics.insert(metric_name.clone(), vec![Instant::now()]);
-            }
-          },
-          None => {
-            let mut metrics = HashMap::new();
-            metrics.insert(metric_name.clone(), vec![Instant::now()]);
-            running_function_metrics.insert(function_name.clone(), metrics);
-          }
-        }
-      }
-      None => {
-        let mut metrics = HashMap::new();
-        metrics.insert(metric_name.clone(), vec![Instant::now()]);
-        let mut function_metrics = HashMap::new();
-        function_metrics.insert(function_name.clone(), metrics);
-        self
-          .running_core_metrics
-          .insert(module_name.clone(), function_metrics);
-      }
-    }
-  }
-
-  pub fn stop_core_metric(
-    &mut self,
-    module_name: String,
-    function_name: String,
-    metric_name: String,
-  ) {
-    let running_metric = match self.running_core_metrics.get_mut(module_name.as_str()) {
-      Some(running_function_metrics) => {
-        match running_function_metrics.get_mut(function_name.as_str()) {
-          Some(running_base_metrics) => match running_base_metrics.get_mut(metric_name.as_str()) {
-            Some(running_metrics) => running_metrics.pop(),
-            None => None,
-          },
-          None => None,
-        }
-      }
-      None => None,
-    };
-
-    if running_metric.is_none() {
-      return;
-    }
-
-    let elapsed_time = running_metric.unwrap().elapsed();
-
-    match self.core_metrics.get_mut(module_name.as_str()) {
-      Some(core_function_metrics) => match core_function_metrics.get_mut(function_name.as_str()) {
-        Some(core_base_metrics) => match core_base_metrics.get_mut(metric_name.as_str()) {
-          Some(metric_list) => metric_list.push(elapsed_time),
-          None => {
-            core_base_metrics.insert(metric_name, vec![elapsed_time]);
-          }
-        },
-        None => {
-          let mut metrics = HashMap::new();
-          metrics.insert(metric_name, vec![elapsed_time]);
-          core_function_metrics.insert(function_name, metrics);
-        }
-      },
-      None => {
-        let mut metrics = HashMap::new();
-        metrics.insert(metric_name, vec![elapsed_time]);
-        let mut function_metrics = HashMap::new();
-        function_metrics.insert(function_name, metrics);
-        self.core_metrics.insert(module_name, function_metrics);
-      }
+    match self
+      .metric_tracker
+      .get_results(format!("{}.{}.{}", module_name, function_name, metric_name))
+    {
+      Some(results) => Self::print_metric(results),
+      None => {}
     }
   }
 
@@ -513,32 +405,7 @@ impl DebugContext {
     function_name: String,
     metric_name: String,
   ) {
-    match self.running_core_metrics.get_mut(module_name.as_str()) {
-      Some(running_function_metrics) => {
-        match running_function_metrics.get_mut(function_name.as_str()) {
-          Some(running_metrics) => match running_metrics.get_mut(metric_name.as_str()) {
-            Some(metrics) => metrics.push(Instant::now()),
-            None => {
-              running_metrics.insert(metric_name.clone(), vec![Instant::now()]);
-            }
-          },
-          None => {
-            let mut metrics = HashMap::new();
-            metrics.insert(metric_name.clone(), vec![Instant::now()]);
-            running_function_metrics.insert(function_name.clone(), metrics);
-          }
-        }
-      }
-      None => {
-        let mut metrics = HashMap::new();
-        metrics.insert(metric_name.clone(), vec![Instant::now()]);
-        let mut function_metrics = HashMap::new();
-        function_metrics.insert(function_name.clone(), metrics);
-        self
-          .running_core_metrics
-          .insert(module_name.clone(), function_metrics);
-      }
-    }
+    self.metric_tracker.start(format!("{}.{}.{}", module_name, function_name, metric_name));
   }
 
   pub fn stop_custom_metric(
@@ -547,46 +414,6 @@ impl DebugContext {
     function_name: String,
     metric_name: String,
   ) {
-    let running_metric = match self.running_core_metrics.get_mut(module_name.as_str()) {
-      Some(running_function_metrics) => {
-        match running_function_metrics.get_mut(function_name.as_str()) {
-          Some(running_base_metrics) => match running_base_metrics.get_mut(metric_name.as_str()) {
-            Some(running_metrics) => running_metrics.pop(),
-            None => None,
-          },
-          None => None,
-        }
-      }
-      None => None,
-    };
-
-    if running_metric.is_none() {
-      return;
-    }
-
-    let elapsed_time = running_metric.unwrap().elapsed();
-
-    match self.core_metrics.get_mut(module_name.as_str()) {
-      Some(core_function_metrics) => match core_function_metrics.get_mut(function_name.as_str()) {
-        Some(core_base_metrics) => match core_base_metrics.get_mut(metric_name.as_str()) {
-          Some(metric_list) => metric_list.push(elapsed_time),
-          None => {
-            core_base_metrics.insert(metric_name, vec![elapsed_time]);
-          }
-        },
-        None => {
-          let mut metrics = HashMap::new();
-          metrics.insert(metric_name, vec![elapsed_time]);
-          core_function_metrics.insert(function_name, metrics);
-        }
-      },
-      None => {
-        let mut metrics = HashMap::new();
-        metrics.insert(metric_name, vec![elapsed_time]);
-        let mut function_metrics = HashMap::new();
-        function_metrics.insert(function_name, metrics);
-        self.core_metrics.insert(module_name, function_metrics);
-      }
-    }
+    self.metric_tracker.stop(format!("{}.{}.{}", module_name, function_name, metric_name));
   }
 }

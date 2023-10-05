@@ -99,7 +99,11 @@ impl Module {
     }
   }
 
-  pub fn resolve_type(&self, type_to_resolve: Type, context: &ExecutionContext) -> Result<Type, Exception> {
+  pub fn resolve_type(
+    &self,
+    type_to_resolve: Type,
+    context: &ExecutionContext,
+  ) -> Result<Type, Exception> {
     match type_to_resolve {
       Type::Float => Ok(type_to_resolve),
       Type::Boolean => Ok(type_to_resolve),
@@ -117,18 +121,16 @@ impl Module {
       Type::Reference(subtype) => {
         let resolved_subtype = self.resolve_type(*subtype, context)?;
         Ok(Type::Reference(Box::new(resolved_subtype)))
-      },
+      }
       Type::Array(length, subtype) => {
         let resolved_subtype = self.resolve_type(*subtype, context)?;
         Ok(Type::Array(length, Box::new(resolved_subtype)))
       }
-      Type::Layout(module_name, layout_name, Some(subtype_map)) =>
-        Ok(Type::Layout(module_name, layout_name, Some(subtype_map))),
+      Type::Layout(module_name, layout_name, Some(subtype_map)) => {
+        Ok(Type::Layout(module_name, layout_name, Some(subtype_map)))
+      }
       Type::Layout(module_name, layout_name, None) => match module_name.clone().as_str() {
-        "this" => match self
-          .layout_templates
-          .get(layout_name.as_str())
-        {
+        "this" => match self.layout_templates.get(layout_name.as_str()) {
           Some(template) => Ok(template.to_type(module_name)),
           None => {
             return Err(Exception::new(
@@ -137,14 +139,12 @@ impl Module {
                 "Layout '{}' not found in module '{}'",
                 layout_name, module_name
               )
-                .as_str(),
+              .as_str(),
             ))
           }
         },
         module_name => match self.modules.get(module_name) {
-          Some(template_module) => match template_module
-            .layout_templates
-            .get(layout_name.as_str())
+          Some(template_module) => match template_module.layout_templates.get(layout_name.as_str())
           {
             Some(template) => Ok(template.to_type(module_name.to_string())),
             None => {
@@ -154,7 +154,7 @@ impl Module {
                   "Layout '{}' not found in module '{}'",
                   layout_name, module_name
                 )
-                  .as_str(),
+                .as_str(),
               ))
             }
           },
@@ -165,7 +165,7 @@ impl Module {
             ))
           }
         },
-      }
+      },
     }
   }
 
@@ -245,11 +245,12 @@ impl Module {
       }
     }
 
-    debug_context.start_core_metric(
+    debug_context.metric_tracker.start(format!(
+      "{}.{}.{}",
       self.name.clone(),
       function_name.clone(),
       "total".to_string(),
-    );
+    ));
 
     let args = arguments
       .iter()
@@ -289,22 +290,24 @@ impl Module {
         Err(exception) => {
           exception.print_stacktrace();
           debug_context.console(self, &mut Some(&mut context), None);
-          debug_context.stop_core_metric(
+          debug_context.metric_tracker.stop(format!(
+            "{}.{}.{}",
             self.name.clone(),
             function_name.clone(),
             "total".to_string(),
-          );
+          ));
           return Err(exception);
         }
         _ => {}
       }
     }
 
-    debug_context.stop_core_metric(
+    debug_context.metric_tracker.stop(format!(
+      "{}.{}.{}",
       self.name.clone(),
       function_name.clone(),
       "total".to_string(),
-    );
+    ));
     Ok(context.return_value.clone())
   }
 }

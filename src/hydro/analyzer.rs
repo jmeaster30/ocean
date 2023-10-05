@@ -1,4 +1,4 @@
-mod analysisgraph;
-pub mod possiblevalue;
-pub mod analyze;
 mod analysiscontext;
+mod analysisgraph;
+pub mod analyze;
+pub mod possiblevalue;

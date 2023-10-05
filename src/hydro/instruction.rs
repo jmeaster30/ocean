@@ -1,5 +1,5 @@
-use crate::hydro::value::Type;
 use super::value::Value;
+use crate::hydro::value::Type;
 
 #[derive(Debug, Clone)]
 pub enum Instruction {

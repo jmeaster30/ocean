@@ -25,7 +25,11 @@ impl LayoutTemplate {
   }
 
   pub fn create_value(&self, module_name: String) -> Value {
-    Value::Layout(Layout::new(module_name, self.name.clone(), self.members.clone()))
+    Value::Layout(Layout::new(
+      module_name,
+      self.name.clone(),
+      self.members.clone(),
+    ))
   }
 
   pub fn to_type(&self, module_name: String) -> Type {

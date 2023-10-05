@@ -67,17 +67,19 @@ impl Debuggable for PushValue {
     debug_context: &mut DebugContext,
   ) -> Result<bool, Exception> {
     let metric_name = "push".to_string();
-    debug_context.start_core_metric(
+    debug_context.metric_tracker.start(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
       metric_name.clone(),
-    );
+    ));
     let result = self.execute(module, context);
-    debug_context.stop_core_metric(
+    debug_context.metric_tracker.stop(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
-      metric_name,
-    );
+      metric_name.clone(),
+    ));
     return result;
   }
 }
@@ -90,17 +92,19 @@ impl Debuggable for PopValue {
     debug_context: &mut DebugContext,
   ) -> Result<bool, Exception> {
     let metric_name = "pop".to_string();
-    debug_context.start_core_metric(
+    debug_context.metric_tracker.start(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
       metric_name.clone(),
-    );
+    ));
     let result = self.execute(module, context);
-    debug_context.stop_core_metric(
+    debug_context.metric_tracker.stop(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
-      metric_name,
-    );
+      metric_name.clone(),
+    ));
     return result;
   }
 }
@@ -113,17 +117,19 @@ impl Debuggable for Add {
     debug_context: &mut DebugContext,
   ) -> Result<bool, Exception> {
     let metric_name = "add".to_string();
-    debug_context.start_core_metric(
+    debug_context.metric_tracker.start(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
       metric_name.clone(),
-    );
+    ));
     let result = self.execute(module, context);
-    debug_context.stop_core_metric(
+    debug_context.metric_tracker.stop(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
-      metric_name,
-    );
+      metric_name.clone(),
+    ));
     return result;
   }
 }
@@ -136,17 +142,19 @@ impl Debuggable for Subtract {
     debug_context: &mut DebugContext,
   ) -> Result<bool, Exception> {
     let metric_name = "subtract".to_string();
-    debug_context.start_core_metric(
+    debug_context.metric_tracker.start(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
       metric_name.clone(),
-    );
+    ));
     let result = self.execute(module, context);
-    debug_context.stop_core_metric(
+    debug_context.metric_tracker.stop(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
-      metric_name,
-    );
+      metric_name.clone(),
+    ));
     return result;
   }
 }
@@ -159,17 +167,19 @@ impl Debuggable for Multiply {
     debug_context: &mut DebugContext,
   ) -> Result<bool, Exception> {
     let metric_name = "multiply".to_string();
-    debug_context.start_core_metric(
+    debug_context.metric_tracker.start(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
       metric_name.clone(),
-    );
+    ));
     let result = self.execute(module, context);
-    debug_context.stop_core_metric(
+    debug_context.metric_tracker.stop(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
-      metric_name,
-    );
+      metric_name.clone(),
+    ));
     return result;
   }
 }
@@ -182,17 +192,19 @@ impl Debuggable for Divide {
     debug_context: &mut DebugContext,
   ) -> Result<bool, Exception> {
     let metric_name = "divide".to_string();
-    debug_context.start_core_metric(
+    debug_context.metric_tracker.start(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
       metric_name.clone(),
-    );
+    ));
     let result = self.execute(module, context);
-    debug_context.stop_core_metric(
+    debug_context.metric_tracker.stop(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
-      metric_name,
-    );
+      metric_name.clone(),
+    ));
     return result;
   }
 }
@@ -205,17 +217,19 @@ impl Debuggable for Modulo {
     debug_context: &mut DebugContext,
   ) -> Result<bool, Exception> {
     let metric_name = "modulo".to_string();
-    debug_context.start_core_metric(
+    debug_context.metric_tracker.start(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
       metric_name.clone(),
-    );
+    ));
     let result = self.execute(module, context);
-    debug_context.stop_core_metric(
+    debug_context.metric_tracker.stop(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
-      metric_name,
-    );
+      metric_name.clone(),
+    ));
     return result;
   }
 }
@@ -228,17 +242,19 @@ impl Debuggable for LeftShift {
     debug_context: &mut DebugContext,
   ) -> Result<bool, Exception> {
     let metric_name = "shiftleft".to_string();
-    debug_context.start_core_metric(
+    debug_context.metric_tracker.start(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
       metric_name.clone(),
-    );
+    ));
     let result = self.execute(module, context);
-    debug_context.stop_core_metric(
+    debug_context.metric_tracker.stop(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
-      metric_name,
-    );
+      metric_name.clone(),
+    ));
     return result;
   }
 }
@@ -251,17 +267,19 @@ impl Debuggable for RightShift {
     debug_context: &mut DebugContext,
   ) -> Result<bool, Exception> {
     let metric_name = "shiftright".to_string();
-    debug_context.start_core_metric(
+    debug_context.metric_tracker.start(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
       metric_name.clone(),
-    );
+    ));
     let result = self.execute(module, context);
-    debug_context.stop_core_metric(
+    debug_context.metric_tracker.stop(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
-      metric_name,
-    );
+      metric_name.clone(),
+    ));
     return result;
   }
 }
@@ -274,17 +292,19 @@ impl Debuggable for BitwiseAnd {
     debug_context: &mut DebugContext,
   ) -> Result<bool, Exception> {
     let metric_name = "bitand".to_string();
-    debug_context.start_core_metric(
+    debug_context.metric_tracker.start(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
       metric_name.clone(),
-    );
+    ));
     let result = self.execute(module, context);
-    debug_context.stop_core_metric(
+    debug_context.metric_tracker.stop(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
-      metric_name,
-    );
+      metric_name.clone(),
+    ));
     return result;
   }
 }
@@ -297,17 +317,19 @@ impl Debuggable for BitwiseOr {
     debug_context: &mut DebugContext,
   ) -> Result<bool, Exception> {
     let metric_name = "bitor".to_string();
-    debug_context.start_core_metric(
+    debug_context.metric_tracker.start(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
       metric_name.clone(),
-    );
+    ));
     let result = self.execute(module, context);
-    debug_context.stop_core_metric(
+    debug_context.metric_tracker.stop(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
-      metric_name,
-    );
+      metric_name.clone(),
+    ));
     return result;
   }
 }
@@ -320,17 +342,19 @@ impl Debuggable for BitwiseXor {
     debug_context: &mut DebugContext,
   ) -> Result<bool, Exception> {
     let metric_name = "bitxor".to_string();
-    debug_context.start_core_metric(
+    debug_context.metric_tracker.start(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
       metric_name.clone(),
-    );
+    ));
     let result = self.execute(module, context);
-    debug_context.stop_core_metric(
+    debug_context.metric_tracker.stop(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
-      metric_name,
-    );
+      metric_name.clone(),
+    ));
     return result;
   }
 }
@@ -343,17 +367,19 @@ impl Debuggable for BitwiseNot {
     debug_context: &mut DebugContext,
   ) -> Result<bool, Exception> {
     let metric_name = "bitnot".to_string();
-    debug_context.start_core_metric(
+    debug_context.metric_tracker.start(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
       metric_name.clone(),
-    );
+    ));
     let result = self.execute(module, context);
-    debug_context.stop_core_metric(
+    debug_context.metric_tracker.stop(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
-      metric_name,
-    );
+      metric_name.clone(),
+    ));
     return result;
   }
 }
@@ -366,17 +392,19 @@ impl Debuggable for And {
     debug_context: &mut DebugContext,
   ) -> Result<bool, Exception> {
     let metric_name = "and".to_string();
-    debug_context.start_core_metric(
+    debug_context.metric_tracker.start(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
       metric_name.clone(),
-    );
+    ));
     let result = self.execute(module, context);
-    debug_context.stop_core_metric(
+    debug_context.metric_tracker.stop(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
-      metric_name,
-    );
+      metric_name.clone(),
+    ));
     return result;
   }
 }
@@ -389,17 +417,19 @@ impl Debuggable for Or {
     debug_context: &mut DebugContext,
   ) -> Result<bool, Exception> {
     let metric_name = "or".to_string();
-    debug_context.start_core_metric(
+    debug_context.metric_tracker.start(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
       metric_name.clone(),
-    );
+    ));
     let result = self.execute(module, context);
-    debug_context.stop_core_metric(
+    debug_context.metric_tracker.stop(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
-      metric_name,
-    );
+      metric_name.clone(),
+    ));
     return result;
   }
 }
@@ -412,17 +442,19 @@ impl Debuggable for Xor {
     debug_context: &mut DebugContext,
   ) -> Result<bool, Exception> {
     let metric_name = "xor".to_string();
-    debug_context.start_core_metric(
+    debug_context.metric_tracker.start(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
       metric_name.clone(),
-    );
+    ));
     let result = self.execute(module, context);
-    debug_context.stop_core_metric(
+    debug_context.metric_tracker.stop(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
-      metric_name,
-    );
+      metric_name.clone(),
+    ));
     return result;
   }
 }
@@ -434,17 +466,19 @@ impl Debuggable for Not {
     debug_context: &mut DebugContext,
   ) -> Result<bool, Exception> {
     let metric_name = "not".to_string();
-    debug_context.start_core_metric(
+    debug_context.metric_tracker.start(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
       metric_name.clone(),
-    );
+    ));
     let result = self.execute(module, context);
-    debug_context.stop_core_metric(
+    debug_context.metric_tracker.stop(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
-      metric_name,
-    );
+      metric_name.clone(),
+    ));
     return result;
   }
 }
@@ -456,17 +490,19 @@ impl Debuggable for Equal {
     debug_context: &mut DebugContext,
   ) -> Result<bool, Exception> {
     let metric_name = "equal".to_string();
-    debug_context.start_core_metric(
+    debug_context.metric_tracker.start(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
       metric_name.clone(),
-    );
+    ));
     let result = self.execute(module, context);
-    debug_context.stop_core_metric(
+    debug_context.metric_tracker.stop(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
-      metric_name,
-    );
+      metric_name.clone(),
+    ));
     return result;
   }
 }
@@ -479,17 +515,19 @@ impl Debuggable for NotEqual {
     debug_context: &mut DebugContext,
   ) -> Result<bool, Exception> {
     let metric_name = "notequal".to_string();
-    debug_context.start_core_metric(
+    debug_context.metric_tracker.start(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
       metric_name.clone(),
-    );
+    ));
     let result = self.execute(module, context);
-    debug_context.stop_core_metric(
+    debug_context.metric_tracker.stop(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
-      metric_name,
-    );
+      metric_name.clone(),
+    ));
     return result;
   }
 }
@@ -502,17 +540,19 @@ impl Debuggable for LessThan {
     debug_context: &mut DebugContext,
   ) -> Result<bool, Exception> {
     let metric_name = "lessthan".to_string();
-    debug_context.start_core_metric(
+    debug_context.metric_tracker.start(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
       metric_name.clone(),
-    );
+    ));
     let result = self.execute(module, context);
-    debug_context.stop_core_metric(
+    debug_context.metric_tracker.stop(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
-      metric_name,
-    );
+      metric_name.clone(),
+    ));
     return result;
   }
 }
@@ -525,17 +565,19 @@ impl Debuggable for GreaterThan {
     debug_context: &mut DebugContext,
   ) -> Result<bool, Exception> {
     let metric_name = "greaterthan".to_string();
-    debug_context.start_core_metric(
+    debug_context.metric_tracker.start(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
       metric_name.clone(),
-    );
+    ));
     let result = self.execute(module, context);
-    debug_context.stop_core_metric(
+    debug_context.metric_tracker.stop(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
-      metric_name,
-    );
+      metric_name.clone(),
+    ));
     return result;
   }
 }
@@ -548,17 +590,19 @@ impl Debuggable for LessThanEqual {
     debug_context: &mut DebugContext,
   ) -> Result<bool, Exception> {
     let metric_name = "lessthanequal".to_string();
-    debug_context.start_core_metric(
+    debug_context.metric_tracker.start(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
       metric_name.clone(),
-    );
+    ));
     let result = self.execute(module, context);
-    debug_context.stop_core_metric(
+    debug_context.metric_tracker.stop(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
-      metric_name,
-    );
+      metric_name.clone(),
+    ));
     return result;
   }
 }
@@ -571,17 +615,19 @@ impl Debuggable for GreaterThanEqual {
     debug_context: &mut DebugContext,
   ) -> Result<bool, Exception> {
     let metric_name = "greaterthanequal".to_string();
-    debug_context.start_core_metric(
+    debug_context.metric_tracker.start(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
       metric_name.clone(),
-    );
+    ));
     let result = self.execute(module, context);
-    debug_context.stop_core_metric(
+    debug_context.metric_tracker.stop(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
-      metric_name,
-    );
+      metric_name.clone(),
+    ));
     return result;
   }
 }
@@ -594,17 +640,19 @@ impl Debuggable for Jump {
     debug_context: &mut DebugContext,
   ) -> Result<bool, Exception> {
     let metric_name = "jump".to_string();
-    debug_context.start_core_metric(
+    debug_context.metric_tracker.start(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
       metric_name.clone(),
-    );
+    ));
     let result = self.execute(module, context);
-    debug_context.stop_core_metric(
+    debug_context.metric_tracker.stop(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
-      metric_name,
-    );
+      metric_name.clone(),
+    ));
     return result;
   }
 }
@@ -617,17 +665,19 @@ impl Debuggable for Branch {
     debug_context: &mut DebugContext,
   ) -> Result<bool, Exception> {
     let metric_name = "branch".to_string();
-    debug_context.start_core_metric(
+    debug_context.metric_tracker.start(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
       metric_name.clone(),
-    );
+    ));
     let result = self.execute(module, context);
-    debug_context.stop_core_metric(
+    debug_context.metric_tracker.stop(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
-      metric_name,
-    );
+      metric_name.clone(),
+    ));
     return result;
   }
 }
@@ -640,18 +690,20 @@ impl Debuggable for Call {
     debug_context: &mut DebugContext,
   ) -> Result<bool, Exception> {
     let metric_name = "call".to_string();
-    debug_context.start_core_metric(
+    debug_context.metric_tracker.start(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
       metric_name.clone(),
-    );
+    ));
 
     if context.stack.len() < 1 {
-      debug_context.stop_core_metric(
+      debug_context.metric_tracker.stop(format!(
+        "{}.{}.{}",
         context.current_module.clone(),
         context.current_function.clone(),
-        metric_name,
-      );
+        metric_name.clone(),
+      ));
       return Err(Exception::new(
         context.clone(),
         "Unexpected number of stack values. Expected 1 and got none.",
@@ -666,11 +718,12 @@ impl Debuggable for Call {
           Some(module_name) => match module.modules.get(&module_name) {
             Some(modu) => modu,
             None => {
-              debug_context.stop_core_metric(
+              debug_context.metric_tracker.stop(format!(
+                "{}.{}.{}",
                 context.current_module.clone(),
                 context.current_function.clone(),
-                metric_name,
-              );
+                metric_name.clone(),
+              ));
               return Err(Exception::new(
                 context.clone(),
                 format!("Could not find module '{}'", module_name).as_str(),
@@ -687,11 +740,12 @@ impl Debuggable for Call {
         {
           Some(func) => func,
           None => {
-            debug_context.stop_core_metric(
+            debug_context.metric_tracker.stop(format!(
+              "{}.{}.{}",
               context.current_module.clone(),
               context.current_function.clone(),
-              metric_name,
-            );
+              metric_name.clone(),
+            ));
             return Err(Exception::new(
               context.clone(),
               format!(
@@ -705,11 +759,12 @@ impl Debuggable for Call {
         };
 
         if context.stack.len() < target_function.parameters.len() {
-          debug_context.stop_core_metric(
+          debug_context.metric_tracker.stop(format!(
+            "{}.{}.{}",
             context.current_module.clone(),
             context.current_function.clone(),
-            metric_name,
-          );
+            metric_name.clone(),
+          ));
           return Err(Exception::new(
             context.clone(),
             format!(
@@ -738,21 +793,23 @@ impl Debuggable for Call {
             None => {}
           },
           Err(e) => {
-            debug_context.stop_core_metric(
+            debug_context.metric_tracker.stop(format!(
+              "{}.{}.{}",
               context.current_module.clone(),
               context.current_function.clone(),
-              metric_name,
-            );
+              metric_name.clone(),
+            ));
             return Err(e);
           }
         }
       }
       _ => {
-        debug_context.stop_core_metric(
+        debug_context.metric_tracker.stop(format!(
+          "{}.{}.{}",
           context.current_module.clone(),
           context.current_function.clone(),
-          metric_name,
-        );
+          metric_name.clone(),
+        ));
         return Err(Exception::new(
           context.clone(),
           "Non-invokable value was attempted to be invoked",
@@ -761,11 +818,12 @@ impl Debuggable for Call {
     }
 
     context.program_counter += 1;
-    debug_context.stop_core_metric(
+    debug_context.metric_tracker.stop(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
-      metric_name,
-    );
+      metric_name.clone(),
+    ));
     Ok(true)
   }
 }
@@ -778,17 +836,19 @@ impl Debuggable for Return {
     debug_context: &mut DebugContext,
   ) -> Result<bool, Exception> {
     let metric_name = "return".to_string();
-    debug_context.start_core_metric(
+    debug_context.metric_tracker.start(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
       metric_name.clone(),
-    );
+    ));
     let result = self.execute(module, context);
-    debug_context.stop_core_metric(
+    debug_context.metric_tracker.stop(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
-      metric_name,
-    );
+      metric_name.clone(),
+    ));
     return result;
   }
 }
@@ -801,17 +861,19 @@ impl Debuggable for Load {
     debug_context: &mut DebugContext,
   ) -> Result<bool, Exception> {
     let metric_name = "load".to_string();
-    debug_context.start_core_metric(
+    debug_context.metric_tracker.start(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
       metric_name.clone(),
-    );
+    ));
     let result = self.execute(module, context);
-    debug_context.stop_core_metric(
+    debug_context.metric_tracker.stop(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
-      metric_name,
-    );
+      metric_name.clone(),
+    ));
     return result;
   }
 }
@@ -824,17 +886,19 @@ impl Debuggable for Store {
     debug_context: &mut DebugContext,
   ) -> Result<bool, Exception> {
     let metric_name = "store".to_string();
-    debug_context.start_core_metric(
+    debug_context.metric_tracker.start(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
       metric_name.clone(),
-    );
+    ));
     let result = self.execute(module, context);
-    debug_context.stop_core_metric(
+    debug_context.metric_tracker.stop(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
-      metric_name,
-    );
+      metric_name.clone(),
+    ));
     return result;
   }
 }
@@ -847,17 +911,19 @@ impl Debuggable for ArrayIndex {
     debug_context: &mut DebugContext,
   ) -> Result<bool, Exception> {
     let metric_name = "array_index".to_string();
-    debug_context.start_core_metric(
+    debug_context.metric_tracker.start(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
       metric_name.clone(),
-    );
+    ));
     let result = self.execute(module, context);
-    debug_context.stop_core_metric(
+    debug_context.metric_tracker.stop(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
-      metric_name,
-    );
+      metric_name.clone(),
+    ));
     return result;
   }
 }
@@ -870,17 +936,19 @@ impl Debuggable for LayoutIndex {
     debug_context: &mut DebugContext,
   ) -> Result<bool, Exception> {
     let metric_name = "layout_index".to_string();
-    debug_context.start_core_metric(
+    debug_context.metric_tracker.start(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
       metric_name.clone(),
-    );
+    ));
     let result = self.execute(module, context);
-    debug_context.stop_core_metric(
+    debug_context.metric_tracker.stop(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
-      metric_name,
-    );
+      metric_name.clone(),
+    ));
     return result;
   }
 }
@@ -893,17 +961,19 @@ impl Debuggable for Allocate {
     debug_context: &mut DebugContext,
   ) -> Result<bool, Exception> {
     let metric_name = "allocate".to_string();
-    debug_context.start_core_metric(
+    debug_context.metric_tracker.start(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
       metric_name.clone(),
-    );
+    ));
     let result = self.execute(module, context);
-    debug_context.stop_core_metric(
+    debug_context.metric_tracker.stop(format!(
+      "{}.{}.{}",
       context.current_module.clone(),
       context.current_function.clone(),
-      metric_name,
-    );
+      metric_name.clone(),
+    ));
     return result;
   }
 }

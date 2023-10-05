@@ -53,9 +53,13 @@ impl Type {
         for (member_name, subtype) in subtypes {
           values.insert(member_name.clone(), subtype.default());
         }
-        Value::Layout(Layout::new(module_name.clone(), layout_name.clone(), values))
+        Value::Layout(Layout::new(
+          module_name.clone(),
+          layout_name.clone(),
+          values,
+        ))
       }
-      Type::Layout(module_name, layout_name, None) => panic!("Unresolved type :(")
+      Type::Layout(module_name, layout_name, None) => panic!("Unresolved type :("),
     }
   }
 
@@ -222,7 +226,11 @@ pub struct Layout {
 
 impl Layout {
   pub fn new(module_name: String, layout_name: String, values: HashMap<String, Value>) -> Self {
-    Self { module_name, layout_name, values }
+    Self {
+      module_name,
+      layout_name,
+      values,
+    }
   }
 }
 

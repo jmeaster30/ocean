@@ -1,3 +1,1 @@
-pub struct AnalysisContext {
-  
-}
+pub struct AnalysisContext {}

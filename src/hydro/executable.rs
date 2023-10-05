@@ -703,7 +703,9 @@ impl Executable for Allocate {
       ));
     }
 
-    let allocated = module.resolve_type(self.allocated_type.clone(), context)?.default();
+    let allocated = module
+      .resolve_type(self.allocated_type.clone(), context)?
+      .default();
     let value_reference = context.stack.pop().unwrap();
     match &value_reference {
       Value::Reference(reference) => context.init(reference, allocated)?,
