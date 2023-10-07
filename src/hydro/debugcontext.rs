@@ -169,7 +169,24 @@ impl DebugContext {
           }
         }
         "metrics" => {
-          self.print_all_summarized_metrics();
+          if parsed.len() == 2 {
+            match parsed[1] {
+              "sec" | "milli" | "micro" | "nano" => {
+                self.print_all_summarized_metrics(parsed[1].to_string());
+              }
+              _ => println!(
+                "Unexpected unit '{}'. Expected 'sec', 'milli', 'micro', or 'nano'.",
+                parsed[1]
+              ),
+            }
+          } else if parsed.len() == 1 {
+            self.print_all_summarized_metrics("micro".to_string());
+          } else {
+            println!(
+              "Too many arguments. Expected 1 but got {}",
+              parsed.len() - 1
+            );
+          }
         }
         "pop" => match execution_context {
           Some(context) => match context.stack.pop() {
@@ -362,26 +379,93 @@ impl DebugContext {
     }
   }
 
-  pub fn print_all_summarized_metrics(&self) {
+  pub fn print_all_summarized_metrics(&self, unit: String) {
     for (metric_name, metrics) in &self.metric_tracker.finished_metrics {
-      Self::print_metric(MetricResults::new(metric_name.clone(), &metrics));
+      Self::print_metric(
+        MetricResults::new(metric_name.clone(), (&metrics).to_vec()),
+        unit.clone(),
+      );
     }
   }
 
-  fn print_metric(result: MetricResults) {
-    println!("Metric: {}", result.name);
-    println!("  Total Time: {}ms", result.total_time.as_millis());
-    println!("  Total Count: {}", result.total_count);
-    println!("  Min: {}ms", result.min.as_millis());
-    println!("  Q1: {}ms", result.quartile1.as_millis());
-    println!("  Median: {}ms", result.median.as_millis());
-    println!("  Q3: {}ms", result.quartile3.as_millis());
-    println!("  Max: {}ms", result.max.as_millis());
-    println!("  Mean: {}ms", result.mean.as_millis());
-    println!(
-      "  Standard Deviation: {}ms",
-      result.standard_deviation.as_millis()
-    );
+  fn print_metric(result: MetricResults, unit: String) {
+    match unit.as_str() {
+      "sec" => {
+        println!("Metric: {}", result.name);
+        println!("  Total Time: {}s", result.total_time.as_secs());
+        println!("  Total Count: {}", result.total_count);
+        println!("  Min: {}s", result.min.as_secs());
+        println!("  Q1: {}s", result.quartile1.as_secs());
+        println!("  Median: {}s", result.median.as_secs());
+        println!("  Q3: {}s", result.quartile3.as_secs());
+        println!("  Max: {}s", result.max.as_secs());
+        println!("  Mean: {}s", result.mean.as_secs());
+        println!(
+          "  Standard Deviation: {}s",
+          result.standard_deviation.as_secs()
+        );
+      }
+      "milli" => {
+        println!("Metric: {}", result.name);
+        println!("  Total Time: {}ms", result.total_time.as_millis());
+        println!("  Total Count: {}", result.total_count);
+        println!("  Min: {}ms", result.min.as_millis());
+        println!("  Q1: {}ms", result.quartile1.as_millis());
+        println!("  Median: {}ms", result.median.as_millis());
+        println!("  Q3: {}ms", result.quartile3.as_millis());
+        println!("  Max: {}ms", result.max.as_millis());
+        println!("  Mean: {}ms", result.mean.as_millis());
+        println!(
+          "  Standard Deviation: {}ms",
+          result.standard_deviation.as_millis()
+        );
+      }
+      "micro" => {
+        println!("Metric: {}", result.name);
+        println!("  Total Time: {}us", result.total_time.as_micros());
+        println!("  Total Count: {}", result.total_count);
+        println!("  Min: {}us", result.min.as_micros());
+        println!("  Q1: {}us", result.quartile1.as_micros());
+        println!("  Median: {}us", result.median.as_micros());
+        println!("  Q3: {}us", result.quartile3.as_micros());
+        println!("  Max: {}us", result.max.as_micros());
+        println!("  Mean: {}us", result.mean.as_micros());
+        println!(
+          "  Standard Deviation: {}us",
+          result.standard_deviation.as_micros()
+        );
+      }
+      "nano" => {
+        println!("Metric: {}", result.name);
+        println!("  Total Time: {}ns", result.total_time.as_nanos());
+        println!("  Total Count: {}", result.total_count);
+        println!("  Min: {}ns", result.min.as_nanos());
+        println!("  Q1: {}ns", result.quartile1.as_nanos());
+        println!("  Median: {}ns", result.median.as_nanos());
+        println!("  Q3: {}ns", result.quartile3.as_nanos());
+        println!("  Max: {}ns", result.max.as_nanos());
+        println!("  Mean: {}ns", result.mean.as_nanos());
+        println!(
+          "  Standard Deviation: {}ns",
+          result.standard_deviation.as_nanos()
+        );
+      }
+      _ => {
+        println!("Metric: {}", result.name);
+        println!("  Total Time: {}us", result.total_time.as_micros());
+        println!("  Total Count: {}", result.total_count);
+        println!("  Min: {}us", result.min.as_micros());
+        println!("  Q1: {}us", result.quartile1.as_micros());
+        println!("  Median: {}us", result.median.as_micros());
+        println!("  Q3: {}us", result.quartile3.as_micros());
+        println!("  Max: {}us", result.max.as_micros());
+        println!("  Mean: {}us", result.mean.as_micros());
+        println!(
+          "  Standard Deviation: {}us",
+          result.standard_deviation.as_micros()
+        );
+      }
+    }
   }
 
   pub fn print_summarized_core_metric(
@@ -394,7 +478,7 @@ impl DebugContext {
       .metric_tracker
       .get_results(format!("{}.{}.{}", module_name, function_name, metric_name))
     {
-      Some(results) => Self::print_metric(results),
+      Some(results) => Self::print_metric(results, "millis".to_string()),
       None => {}
     }
   }
@@ -405,7 +489,9 @@ impl DebugContext {
     function_name: String,
     metric_name: String,
   ) {
-    self.metric_tracker.start(format!("{}.{}.{}", module_name, function_name, metric_name));
+    self
+      .metric_tracker
+      .start(format!("{}.{}.{}", module_name, function_name, metric_name));
   }
 
   pub fn stop_custom_metric(
@@ -414,6 +500,8 @@ impl DebugContext {
     function_name: String,
     metric_name: String,
   ) {
-    self.metric_tracker.stop(format!("{}.{}.{}", module_name, function_name, metric_name));
+    self
+      .metric_tracker
+      .stop(format!("{}.{}.{}", module_name, function_name, metric_name));
   }
 }

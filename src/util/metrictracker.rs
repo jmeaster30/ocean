@@ -105,7 +105,7 @@ impl MetricTracker {
     self
       .finished_metrics
       .get(&metric_name)
-      .and_then(|metric_list| Some(MetricResults::new(metric_name, metric_list)))
+      .and_then(|metric_list| Some(MetricResults::new(metric_name, metric_list.clone())))
   }
 }
 
@@ -123,14 +123,15 @@ pub struct MetricResults {
 }
 
 impl MetricResults {
-  pub fn new(metric_name: String, metrics: &Vec<Metric>) -> Self {
+  pub fn new(metric_name: String, mut metrics: Vec<Metric>) -> Self {
     let total_count = metrics.len();
+    metrics.sort_by(|x, y| x.duration().partial_cmp(&y.duration()).unwrap());
 
     let mut min = Duration::MAX;
     let mut max = Duration::from_secs(0);
     let mut total_time = Duration::from_secs(0);
 
-    for metric in metrics {
+    for metric in &metrics {
       let metric_duration = metric.duration();
       total_time += metric_duration;
       if metric_duration < min {
@@ -141,46 +142,72 @@ impl MetricResults {
       }
     }
 
-    let quartile1 = if total_count % 4 == 0 {
-      metrics.get(total_count / 4).unwrap().duration()
-    } else if total_count == 1 {
-      metrics.get(0).unwrap().duration()
+    println!("{:?}", metrics);
+
+    let quartile_1_idx = total_count as f64 / 4.0;
+    let quartile_2_idx = total_count as f64 / 2.0;
+    let quartile_3_idx = 3.0 * total_count as f64 / 4.0;
+
+    let quartile1 = if quartile_1_idx.floor() == quartile_1_idx {
+      metrics
+        .get(quartile_1_idx.floor() as usize)
+        .unwrap()
+        .duration()
+        + metrics
+          .get((quartile_1_idx.floor() - 1.0) as usize)
+          .unwrap()
+          .duration()
+          / 2
     } else {
-      println!("quartile1 {} -> {}", total_count, (total_count / 4) + 1);
-      (metrics.get(total_count / 4).unwrap().duration()
-        + metrics.get((total_count / 4) + 1).unwrap().duration())
-        / 2
+      metrics
+        .get(quartile_1_idx.floor() as usize)
+        .unwrap()
+        .duration()
     };
 
-    let median = if total_count % 4 == 0 {
-      metrics.get(total_count / 2).unwrap().duration()
-    } else if total_count == 1 {
-      metrics.get(0).unwrap().duration()
+    let median = if quartile_2_idx.floor() == quartile_2_idx {
+      metrics
+        .get(quartile_2_idx.floor() as usize)
+        .unwrap()
+        .duration()
+        + metrics
+          .get((quartile_2_idx.floor() - 1.0) as usize)
+          .unwrap()
+          .duration()
+          / 2
     } else {
-      (metrics.get(total_count / 2).unwrap().duration()
-        + metrics.get((total_count / 2) + 1).unwrap().duration())
-        / 2
+      metrics
+        .get(quartile_2_idx.floor() as usize)
+        .unwrap()
+        .duration()
     };
 
-    let quartile3 = if total_count % 4 == 0 {
-      metrics.get(3 * total_count / 4).unwrap().duration()
-    } else if total_count == 1 {
-      metrics.get(0).unwrap().duration()
+    let quartile3 = if quartile_3_idx.floor() == quartile_3_idx {
+      metrics
+        .get(quartile_3_idx.floor() as usize)
+        .unwrap()
+        .duration()
+        + metrics
+          .get((quartile_3_idx.floor() - 1.0) as usize)
+          .unwrap()
+          .duration()
+          / 2
     } else {
-      (metrics.get(3 * total_count / 4).unwrap().duration()
-        + metrics.get((3 * total_count / 4) + 1).unwrap().duration())
-        / 2
+      metrics
+        .get(quartile_3_idx.floor() as usize)
+        .unwrap()
+        .duration()
     };
 
     let mean = total_time / total_count as u32;
     let mut standard_deviation_sum = 0;
     for metric in metrics {
       let metric_duration = metric.duration();
-      standard_deviation_sum +=
-        (metric_duration - mean).as_nanos() * (metric_duration - mean).as_nanos();
+      standard_deviation_sum += (metric_duration.as_nanos() as i128 - mean.as_nanos() as i128)
+        * (metric_duration.as_nanos() as i128 - mean.as_nanos() as i128);
     }
     let standard_deviation =
-      Duration::from_nanos(((standard_deviation_sum / total_count as u128) as f64).sqrt() as u64);
+      Duration::from_nanos(((standard_deviation_sum / total_count as i128) as f64).sqrt() as u64);
 
     Self {
       name: metric_name,
@@ -197,7 +224,7 @@ impl MetricResults {
   }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Metric {
   name: String,
   // if the metric wasn't paused this is just a single Duration
