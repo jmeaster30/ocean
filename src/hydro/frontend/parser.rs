@@ -1,11 +1,6 @@
 use crate::hydro::frontend::token::{Token, TokenType};
 use crate::hydro::function::Function;
-use crate::hydro::instruction::{
-  Add, Allocate, And, ArrayIndex, BitwiseAnd, BitwiseNot, BitwiseOr, BitwiseXor, Branch, Call,
-  Divide, Equal, GreaterThan, GreaterThanEqual, Instruction, Jump, LayoutIndex, LeftShift,
-  LessThan, LessThanEqual, Load, Modulo, Multiply, Not, NotEqual, Or, PopValue, PushValue, Return,
-  RightShift, Store, Subtract, Xor,
-};
+use crate::hydro::instruction::{Add, Allocate, And, ArrayIndex, BitwiseAnd, BitwiseNot, BitwiseOr, BitwiseXor, Branch, Call, Divide, Duplicate, Equal, GreaterThan, GreaterThanEqual, Instruction, Jump, LayoutIndex, LeftShift, LessThan, LessThanEqual, Load, Modulo, Multiply, Not, NotEqual, Or, PopValue, PushValue, Return, RightShift, Store, Subtract, Xor};
 use crate::hydro::layouttemplate::LayoutTemplate;
 use crate::hydro::module::Module;
 use crate::hydro::value::{
@@ -286,6 +281,7 @@ impl Parser {
         })
       }
       TokenType::Pop => Instruction::PopValue(PopValue {}),
+      TokenType::Duplicate => Instruction::Duplicate(Duplicate {}),
       TokenType::Add => Instruction::Add(Add {}),
       TokenType::Subtract => Instruction::Subtract(Subtract {}),
       TokenType::Multiply => Instruction::Multiply(Multiply {}),
@@ -594,6 +590,7 @@ impl Parser {
           "alloc" => TokenType::Alloc,
           "push" => TokenType::Push,
           "pop" => TokenType::Pop,
+          "duplicate" => TokenType::Duplicate,
           "add" => TokenType::Add,
           "subtract" => TokenType::Subtract,
           "multiply" => TokenType::Multiply,

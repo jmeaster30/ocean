@@ -5,6 +5,7 @@ use crate::hydro::value::Type;
 pub enum Instruction {
   PushValue(PushValue),
   PopValue(PopValue),
+  Duplicate(Duplicate),
 
   Add(Add),
   Subtract(Subtract),
@@ -52,6 +53,9 @@ pub struct PushValue {
 
 #[derive(Debug, Clone)]
 pub struct PopValue {}
+
+#[derive(Debug, Clone)]
+pub struct Duplicate {}
 
 #[derive(Debug, Clone)]
 pub struct Add {}
