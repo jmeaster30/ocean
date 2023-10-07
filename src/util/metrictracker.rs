@@ -142,8 +142,6 @@ impl MetricResults {
       }
     }
 
-    println!("{:?}", metrics);
-
     let quartile_1_idx = total_count as f64 / 4.0;
     let quartile_2_idx = total_count as f64 / 2.0;
     let quartile_3_idx = 3.0 * total_count as f64 / 4.0;

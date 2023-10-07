@@ -25,6 +25,8 @@ impl Instruction {
     match self {
       Instruction::PushValue(x) => x.debug(module, context, debug_context),
       Instruction::PopValue(x) => x.debug(module, context, debug_context),
+      Instruction::Duplicate(x) => x.debug(module, context, debug_context),
+      Instruction::Swap(x) => x.debug(module, context, debug_context),
       Instruction::Add(x) => x.debug(module, context, debug_context),
       Instruction::Subtract(x) => x.debug(module, context, debug_context),
       Instruction::Multiply(x) => x.debug(module, context, debug_context),
@@ -92,6 +94,46 @@ impl Debuggable for PopValue {
     debug_context: &mut DebugContext,
   ) -> Result<bool, Exception> {
     let metric_name = "pop".to_string();
+    debug_context.metric_tracker.start(format!(
+      "{}.{}.{}",
+      context.current_module.clone(),
+      context.current_function.clone(),
+      metric_name.clone(),
+    ));
+    let result = self.execute(module, context);
+    debug_context.metric_tracker.stop(format!(
+      "{}.{}.{}",
+      context.current_module.clone(),
+      context.current_function.clone(),
+      metric_name.clone(),
+    ));
+    return result;
+  }
+}
+
+impl Debuggable for Duplicate {
+  fn debug(&self, module: &Module, context: &mut ExecutionContext, debug_context: &mut DebugContext) -> Result<bool, Exception> {
+    let metric_name = "duplicate".to_string();
+    debug_context.metric_tracker.start(format!(
+      "{}.{}.{}",
+      context.current_module.clone(),
+      context.current_function.clone(),
+      metric_name.clone(),
+    ));
+    let result = self.execute(module, context);
+    debug_context.metric_tracker.stop(format!(
+      "{}.{}.{}",
+      context.current_module.clone(),
+      context.current_function.clone(),
+      metric_name.clone(),
+    ));
+    return result;
+  }
+}
+
+impl Debuggable for Swap {
+  fn debug(&self, module: &Module, context: &mut ExecutionContext, debug_context: &mut DebugContext) -> Result<bool, Exception> {
+    let metric_name = "swap".to_string();
     debug_context.metric_tracker.start(format!(
       "{}.{}.{}",
       context.current_module.clone(),

@@ -47,9 +47,9 @@ match (a, b) {
     }
   }
 
-  token_stream += "
-  _ => panic!(\"Operator not defined on provided types :(\")
-}";
+  token_stream += format!("
+  (left, right) => panic!(\"Operator not defined on provided types :( '{{:?}}' {} '{{:?}}'\", left, right)\
+}}", item).as_str();
 
   match TokenStream::from_str(&token_stream) {
     Ok(x) => x,
@@ -101,9 +101,9 @@ match (a, b) {
     }
   }
 
-  token_stream += "
-  _ => panic!(\"Operator not defined on provided types :(\")
-}";
+  token_stream += format!("
+  (left, right) => panic!(\"Operator not defined on provided types :( '{{:?}}' {} '{{:?}}'\", left, right)\
+}}", item).as_str();
 
   match TokenStream::from_str(&token_stream) {
     Ok(x) => x,
@@ -152,9 +152,9 @@ match (a, b) {
     }
   }
 
-  token_stream += "
-  _ => panic!(\"Operator not defined on provided types :(\")
-}";
+  token_stream += format!("
+  (left, right) => panic!(\"Operator not defined on provided types :( '{{:?}}' {} '{{:?}}'\", left, right)\
+}}", item).as_str();
 
   match TokenStream::from_str(&token_stream) {
     Ok(x) => x,

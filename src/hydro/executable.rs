@@ -18,6 +18,7 @@ impl Instruction {
       Instruction::PushValue(x) => x.execute(module, context),
       Instruction::PopValue(x) => x.execute(module, context),
       Instruction::Duplicate(x) => x.execute(module, context),
+      Instruction::Swap(x) => x.execute(module, context),
       Instruction::Add(x) => x.execute(module, context),
       Instruction::Subtract(x) => x.execute(module, context),
       Instruction::Multiply(x) => x.execute(module, context),
@@ -87,6 +88,25 @@ impl Executable for Duplicate {
     context.stack.push(value.clone());
 
     context.program_counter += 1; // TODO can we get rid of this??
+    Ok(true)
+  }
+}
+
+impl Executable for Swap {
+  fn execute(&self, module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
+    if context.stack.len() < 2 {
+      return Err(Exception::new(
+        context.clone(),
+        "Unexpected number of stack values. Expected 2 but got 1.",
+      ))
+    }
+
+    let a = context.stack.pop().unwrap();
+    let b = context.stack.pop().unwrap();
+    context.stack.push(a.clone());
+    context.stack.push(b.clone());
+
+    context.program_counter += 1;
     Ok(true)
   }
 }

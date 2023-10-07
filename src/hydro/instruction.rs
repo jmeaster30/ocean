@@ -6,6 +6,7 @@ pub enum Instruction {
   PushValue(PushValue),
   PopValue(PopValue),
   Duplicate(Duplicate),
+  Swap(Swap),
 
   Add(Add),
   Subtract(Subtract),
@@ -56,6 +57,9 @@ pub struct PopValue {}
 
 #[derive(Debug, Clone)]
 pub struct Duplicate {}
+
+#[derive(Debug, Clone)]
+pub struct Swap {}
 
 #[derive(Debug, Clone)]
 pub struct Add {}
