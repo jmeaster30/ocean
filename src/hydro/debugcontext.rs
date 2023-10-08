@@ -46,7 +46,7 @@ impl DebugContext {
     execution_context: &mut Option<&mut ExecutionContext>,
     final_return_value: Option<Value>,
   ) {
-    // TODO pause timers
+    self.metric_tracker.pause_all();
     println!(
       "{}Entering the Hydro Debugger!!{}",
       DebugContext::ansi_color_code("red"),
@@ -325,6 +325,7 @@ impl DebugContext {
       }
     }
     print!("{}", DebugContext::ansi_color_code("reset"));
+    self.metric_tracker.start_all();
   }
 
   // return true if we should enter a debug console
@@ -380,15 +381,15 @@ impl DebugContext {
   }
 
   pub fn print_all_summarized_metrics(&self, unit: String) {
-    for (metric_name, metrics) in &self.metric_tracker.finished_metrics {
+    for metric_result in &self.metric_tracker.get_results() {
       Self::print_metric(
-        MetricResults::new(metric_name.clone(), (&metrics).to_vec()),
+        metric_result,
         unit.clone(),
       );
     }
   }
 
-  fn print_metric(result: MetricResults, unit: String) {
+  fn print_metric(result: &MetricResults, unit: String) {
     match unit.as_str() {
       "sec" => {
         println!("Metric: {}", result.name);
@@ -476,9 +477,9 @@ impl DebugContext {
   ) {
     match self
       .metric_tracker
-      .get_results(format!("{}.{}.{}", module_name, function_name, metric_name))
+      .get_result(format!("{}.{}.{}", module_name, function_name, metric_name))
     {
-      Some(results) => Self::print_metric(results, "millis".to_string()),
+      Some(results) => Self::print_metric(&results, "millis".to_string()),
       None => {}
     }
   }

@@ -2,8 +2,8 @@ use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
 pub struct MetricTracker {
-  pub current_metrics: HashMap<String, Vec<Metric>>,
-  pub finished_metrics: HashMap<String, Vec<Metric>>,
+  current_metrics: HashMap<String, Vec<Metric>>,
+  finished_metrics: HashMap<String, Vec<Metric>>,
 }
 
 impl MetricTracker {
@@ -94,18 +94,25 @@ impl MetricTracker {
   }
 
   pub fn pause_all(&mut self) {
-    for (_, metric) in self.current_metrics.iter_mut() {
-      for metric in metric.iter_mut() {
-        metric.pause();
-      }
+    for (metric_name, _) in self.current_metrics.clone() {
+      self.pause(metric_name.clone())
     }
   }
 
-  pub fn get_results(&self, metric_name: String) -> Option<MetricResults> {
+  pub fn get_result(&self, metric_name: String) -> Option<MetricResults> {
     self
       .finished_metrics
       .get(&metric_name)
       .and_then(|metric_list| Some(MetricResults::new(metric_name, metric_list.clone())))
+  }
+
+  pub fn get_results(&self) -> Vec<MetricResults> {
+    let mut results = Vec::new();
+    for (metric_name, metric_list) in &self.finished_metrics {
+      results.push(MetricResults::new(metric_name.clone(), metric_list.clone()));
+    }
+    results.sort_by(|x, y| x.name.partial_cmp(&y.name).unwrap());
+    results
   }
 }
 
@@ -255,6 +262,7 @@ impl Metric {
         let duration = Instant::now() - instant;
         self.durations.push(duration);
         self.is_paused = false;
+        self.current_instant = None;
       }
       None => {
         self.is_paused = false;
@@ -268,6 +276,7 @@ impl Metric {
         let duration = Instant::now() - instant;
         self.durations.push(duration);
         self.is_paused = true;
+        self.current_instant = None;
       }
       None => {
         self.is_paused = true;
