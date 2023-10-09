@@ -7,3 +7,4 @@ target
 cobertura.xml
 *.vsix
 main.h2o.bin
+history.txt

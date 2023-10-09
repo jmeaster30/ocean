@@ -36,7 +36,7 @@ impl Type {
       Type::Signed64 => Value::Signed64(0),
       Type::Signed128 => Value::Signed128(0),
       Type::Float => todo!(),
-      Type::FunctionPointer(_, _) => todo!("default value for function pointer"),
+      Type::FunctionPointer(_, _) => todo!("default value for function pointer. Should this even be possible??"),
       Type::Array(length, subtype) => {
         let mut values = Vec::new();
         for _ in 0..*length {
@@ -47,7 +47,7 @@ impl Type {
           values,
         })
       }
-      Type::Reference(subtype) => todo!(),
+    Type::Reference(_) => todo!("default value for reference. Should this even be possible??"),
       Type::Layout(module_name, layout_name, Some(subtypes)) => {
         let mut values = HashMap::new();
         for (member_name, subtype) in subtypes {
@@ -59,7 +59,7 @@ impl Type {
           values,
         ))
       }
-      Type::Layout(module_name, layout_name, None) => panic!("Unresolved type :("),
+      Type::Layout(module_name, layout_name, None) => panic!("Unresolved type :( {} {}", module_name, layout_name),
     }
   }
 

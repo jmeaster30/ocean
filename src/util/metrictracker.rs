@@ -15,7 +15,7 @@ impl MetricTracker {
   }
 
   pub fn start(&mut self, metric_name: String) {
-    let mut new_metric = Metric::new(metric_name.clone());
+    let mut new_metric = Metric::new();
 
     match self.current_metrics.get_mut(metric_name.as_str()) {
       Some(metric_stack) => {
@@ -31,7 +31,7 @@ impl MetricTracker {
 
   pub fn start_all(&mut self) {
     for (_, metric_stack) in self.current_metrics.iter_mut() {
-      for mut metric in metric_stack {
+      for metric in metric_stack {
         metric.start();
       }
     }
@@ -61,14 +61,14 @@ impl MetricTracker {
     for (metric_name, metric_stack) in self.current_metrics.iter_mut() {
       match self.finished_metrics.get_mut(metric_name) {
         Some(finished_metric_stack) => {
-          for mut metric in metric_stack {
+          for metric in metric_stack {
             metric.stop();
             finished_metric_stack.push(metric.clone());
           }
         }
         None => {
           let mut finished_metric_stack = Vec::new();
-          for mut metric in metric_stack {
+          for metric in metric_stack {
             metric.stop();
             finished_metric_stack.push(metric.clone());
           }
@@ -84,7 +84,7 @@ impl MetricTracker {
   pub fn pause(&mut self, metric_name: String) {
     match self.current_metrics.get_mut(metric_name.as_str()) {
       Some(metric_stack) => match metric_stack.last_mut() {
-        Some(mut metric) => {
+        Some(metric) => {
           metric.pause();
         }
         None => {}
@@ -231,7 +231,6 @@ impl MetricResults {
 
 #[derive(Clone, Debug)]
 pub struct Metric {
-  name: String,
   // if the metric wasn't paused this is just a single Duration
   durations: Vec<Duration>,
   current_instant: Option<Instant>,
@@ -239,9 +238,8 @@ pub struct Metric {
 }
 
 impl Metric {
-  pub fn new(name: String) -> Self {
+  pub fn new() -> Self {
     Self {
-      name,
       durations: Vec::new(),
       current_instant: None,
       is_paused: false,

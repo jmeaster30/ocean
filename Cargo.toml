@@ -9,3 +9,4 @@ exclude = ["./ocean-language-support/*"]
 [dependencies]
 ocean_helpers = { path = "ocean_helpers" }
 regex = "1.9.3"
+rustyline = "12.0.0"

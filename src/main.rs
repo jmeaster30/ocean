@@ -93,10 +93,8 @@ fn main() -> std::io::Result<()> {
             &mut debug_context,
           );
 
-          // output some metrics or open debug console?
-
           match return_value {
-            Ok(result) => debug_context.console(&module, &mut None, result),
+            Ok(result) => debug_context.console(&module, &mut None, result).unwrap(),
             Err(e) => e.print_stacktrace(),
           }
         }

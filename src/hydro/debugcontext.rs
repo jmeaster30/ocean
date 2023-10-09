@@ -4,7 +4,8 @@ use crate::hydro::module::Module;
 use crate::hydro::value::Value;
 use crate::util::metrictracker::{MetricResults, MetricTracker};
 use std::collections::HashMap;
-use std::io::{stdin, stdout, Write};
+use rustyline::{DefaultEditor, Result};
+use rustyline::error::ReadlineError;
 
 pub struct DebugContext {
   pub step: Option<usize>,
@@ -45,17 +46,17 @@ impl DebugContext {
     module: &Module,
     execution_context: &mut Option<&mut ExecutionContext>,
     final_return_value: Option<Value>,
-  ) {
+  ) -> Result<()> {
     self.metric_tracker.pause_all();
     println!(
       "{}Entering the Hydro Debugger!!{}",
       DebugContext::ansi_color_code("red"),
-      DebugContext::ansi_color_code("reset")
+      DebugContext::ansi_color_code("cyan")
     );
     println!(
       "{}Type 'help' to get a list of debugger commands :){}",
       DebugContext::ansi_color_code("red"),
-      DebugContext::ansi_color_code("reset")
+      DebugContext::ansi_color_code("cyan")
     );
     if final_return_value.is_some() {
       println!(
@@ -67,265 +68,272 @@ impl DebugContext {
         "{}{:#?}{}",
         DebugContext::ansi_color_code("magenta"),
         final_return_value,
-        DebugContext::ansi_color_code("reset")
+        DebugContext::ansi_color_code("cyan")
       );
     }
+    print!("{}", DebugContext::ansi_color_code("cyan"));
+    let mut rl = DefaultEditor::new()?;
+    if rl.load_history("history.txt").is_err() {
+      println!("No previous history.");
+    }
     loop {
-      print!("{}> ", DebugContext::ansi_color_code("cyan"));
-      let mut input_buffer = String::new();
-      let _ = stdout().flush();
-      stdin()
-        .read_line(&mut input_buffer)
-        .expect("Invalid string :(");
-      if let Some('\n') = input_buffer.chars().next_back() {
-        input_buffer.pop();
-      }
-      if let Some('\r') = input_buffer.chars().next_back() {
-        input_buffer.pop();
-      }
+      let readline = rl.readline("> ");
+      match readline {
+        Ok(line) => {
+          rl.add_history_entry(line.as_str());
+          let parsed = line.split_ascii_whitespace().collect::<Vec<&str>>();
 
-      let parsed = input_buffer.split_ascii_whitespace().collect::<Vec<&str>>();
-
-      if parsed.len() == 0 {
-        println!("Please supply a command :)");
-        continue;
-      }
-
-      match parsed[0] {
-        "breakpoint" => {
-          if parsed.len() != 4 {
-            println!(
-              "Mismatch number of arguments for breakpoint. Expected 4 but got {}",
-              parsed.len()
-            );
-          } else {
-            let pc = parsed[3].parse::<usize>();
-            if pc.is_err() {
-              println!(
-                "Couldn't convert '{}' into a unsigned integer :(",
-                parsed[3]
-              );
-            } else {
-              println!(
-                "Setting break point at {} -> {} -> pc {}",
-                parsed[1], parsed[2], parsed[3]
-              );
-              self.set_break_point(parsed[1].to_string(), parsed[2].to_string(), pc.unwrap());
-            }
-          }
-        }
-        "continue" => match &execution_context {
-          Some(_) => break,
-          None => println!("Not in a continuable context :("),
-        },
-        "exit" => {
-          print!("{}", DebugContext::ansi_color_code("reset"));
-          panic!("Exiting from program run."); // TODO make this better than a panic
-        }
-        "help" => {
-          println!("breakpoint <module> <function> <program counter> - Set breakpoint");
-          println!("continue - Starts/continues execution");
-          println!("exit - exits the program");
-          println!("help - Prints this output");
-          println!("instruction - Prints the currently executing instruction");
-          println!("metric <module> <function> <program counter> - Print metric");
-          println!("run - Starts/continues execution");
-          println!("stack <length> - Prints <length> values from the top of the stack");
-          println!("stacktrace - Prints stacktrace");
-          println!("step <optional step size> - Execute step size number of instructions and break. defaults to 1");
-          println!("variable <variable name> - Print variable with name <variable name>");
-          println!("variables - Print all variables in current context");
-        }
-        "instruction" => match &execution_context {
-          // context.current_function must be in module.functions here
-          Some(context) => {
-            println!(
-              "Module: '{}' Function: '{}' at PC: {}",
-              context.current_module, context.current_function, context.program_counter
-            );
-            println!(
-              "{:?}",
-              module
-                .functions
-                .get(context.current_function.as_str())
-                .unwrap()
-                .body[context.program_counter]
-            )
-          }
-          None => println!("There is no current execution context to have a program counter :("),
-        },
-        "metric" => {
-          if parsed.len() != 4 {
-            println!(
-              "Mismatch number of arguments for metric. Expected 4 but got {}",
-              parsed.len()
-            );
-          } else {
-            self.print_summarized_core_metric(
-              parsed[1].to_string(),
-              parsed[2].to_string(),
-              parsed[3].to_string(),
-            );
-          }
-        }
-        "metrics" => {
-          if parsed.len() == 2 {
-            match parsed[1] {
-              "sec" | "milli" | "micro" | "nano" => {
-                self.print_all_summarized_metrics(parsed[1].to_string());
-              }
-              _ => println!(
-                "Unexpected unit '{}'. Expected 'sec', 'milli', 'micro', or 'nano'.",
-                parsed[1]
-              ),
-            }
-          } else if parsed.len() == 1 {
-            self.print_all_summarized_metrics("micro".to_string());
-          } else {
-            println!(
-              "Too many arguments. Expected 1 but got {}",
-              parsed.len() - 1
-            );
-          }
-        }
-        "pop" => match execution_context {
-          Some(context) => match context.stack.pop() {
-            Some(value) => println!("Popped value: {:?}", value),
-            None => println!("Stack was empty. Nothing popped"),
-          },
-          None => println!("Not in a context that has a stack :("),
-        },
-        "push" => match execution_context {
-          Some(context) => {
-            if parsed.len() != 3 {
-              println!(
-                "Mismatch number of arguments for push. Expected 3 but got {}",
-                parsed.len()
-              );
-              continue;
-            }
-
-            match Parser::create_value_from_type_string(
-              parsed[1].to_string(),
-              parsed[2].to_string(),
-            ) {
-              Ok(value) => context.stack.push(value),
-              Err(message) => println!("Error while parsing value: {}", message),
-            }
-          }
-          None => println!("Not in a context that has a stack :("),
-        },
-        "run" => match &execution_context {
-          Some(_) => break,
-          None => println!("Not in a runnable context :("),
-        },
-        "stack" => match &execution_context {
-          Some(context) => {
-            if parsed.len() != 2 {
-              println!(
-                "Mismatch number of arguments for stack. Expected 2 but got {}",
-                parsed.len()
-              );
-              continue;
-            }
-
-            let result_view_size = parsed[1].parse::<usize>();
-            if result_view_size.is_err() {
-              println!(
-                "Couldn't convert '{}' into a unsigned integer :(",
-                parsed[1]
-              );
-              continue;
-            } else {
-              let length = context.stack.len() - result_view_size.unwrap().min(context.stack.len());
-              let mut top_of_stack = context
-                .stack
-                .iter()
-                .skip(length.max(0))
-                .map(|x| x.clone())
-                .collect::<Vec<Value>>();
-              top_of_stack.reverse();
-              for (value, idx) in top_of_stack.iter().zip(0..top_of_stack.len()) {
-                println!("[{}] {:?}", idx, value);
-              }
-            }
-          }
-          None => println!("There is no current execution context to have a stack :("),
-        },
-        "stacktrace" => match &execution_context {
-          Some(context) => context.print_stacktrace(),
-          None => println!("There is no current execution context to have a stacktrace :("),
-        },
-        "step" => {
-          if parsed.len() != 1 && parsed.len() != 2 {
-            println!(
-              "Mismatch number of arguments for step. Expected 1 or 2 but got {}",
-              parsed.len()
-            );
+          if parsed.len() == 0 {
+            println!("Please supply a command :)");
             continue;
           }
 
-          if parsed.len() == 1 {
-            println!("Stepping by 1...");
-            self.step = Some(1);
-          } else {
-            let result_step_size = parsed[1].parse::<usize>();
-            if result_step_size.is_err() {
-              println!(
-                "Couldn't convert '{}' into a unsigned integer :(",
-                parsed[1]
-              );
-              continue;
-            } else {
-              let step_size = result_step_size.unwrap();
-              println!("Stepping by {}...", step_size);
-              self.step = Some(step_size);
+          match parsed[0] {
+            "breakpoint" => {
+              if parsed.len() != 4 {
+                println!(
+                  "Mismatch number of arguments for breakpoint. Expected 4 but got {}",
+                  parsed.len()
+                );
+              } else {
+                let pc = parsed[3].parse::<usize>();
+                if pc.is_err() {
+                  println!(
+                    "Couldn't convert '{}' into a unsigned integer :(",
+                    parsed[3]
+                  );
+                } else {
+                  println!(
+                    "Setting break point at {} -> {} -> pc {}",
+                    parsed[1], parsed[2], parsed[3]
+                  );
+                  self.set_break_point(parsed[1].to_string(), parsed[2].to_string(), pc.unwrap());
+                }
+              }
+            }
+            "continue" => match &execution_context {
+              Some(_) => break,
+              None => println!("Not in a continuable context :("),
+            },
+            "exit" => {
+              print!("{}", DebugContext::ansi_color_code("reset"));
+              panic!("Exiting from program run."); // TODO make this better than a panic
+            }
+            "help" => {
+              println!("breakpoint <module> <function> <program counter> - Set breakpoint");
+              println!("continue - Starts/continues execution");
+              println!("exit - exits the program");
+              println!("help - Prints this output");
+              println!("instruction - Prints the currently executing instruction");
+              println!("metric <module> <function> <program counter> - Print metric");
+              println!("run - Starts/continues execution");
+              println!("stack <length> - Prints <length> values from the top of the stack");
+              println!("stacktrace - Prints stacktrace");
+              println!("step <optional step size> - Execute step size number of instructions and break. defaults to 1");
+              println!("variable <variable name> - Print variable with name <variable name>");
+              println!("variables - Print all variables in current context");
+            }
+            "instruction" => match &execution_context {
+              // context.current_function must be in module.functions here
+              Some(context) => {
+                println!(
+                  "Module: '{}' Function: '{}' at PC: {}",
+                  context.current_module, context.current_function, context.program_counter
+                );
+                println!(
+                  "{:?}",
+                  module
+                    .functions
+                    .get(context.current_function.as_str())
+                    .unwrap()
+                    .body[context.program_counter]
+                )
+              }
+              None => println!("There is no current execution context to have a program counter :("),
+            },
+            "metric" => {
+              if parsed.len() != 4 {
+                println!(
+                  "Mismatch number of arguments for metric. Expected 4 but got {}",
+                  parsed.len()
+                );
+              } else {
+                self.print_summarized_core_metric(
+                  parsed[1].to_string(),
+                  parsed[2].to_string(),
+                  parsed[3].to_string(),
+                );
+              }
+            }
+            "metrics" => {
+              if parsed.len() == 2 {
+                match parsed[1] {
+                  "sec" | "milli" | "micro" | "nano" => {
+                    self.print_all_summarized_metrics(parsed[1].to_string());
+                  }
+                  _ => println!(
+                    "Unexpected unit '{}'. Expected 'sec', 'milli', 'micro', or 'nano'.",
+                    parsed[1]
+                  ),
+                }
+              } else if parsed.len() == 1 {
+                self.print_all_summarized_metrics("micro".to_string());
+              } else {
+                println!(
+                  "Too many arguments. Expected 1 but got {}",
+                  parsed.len() - 1
+                );
+              }
+            }
+            "pop" => match execution_context {
+              Some(context) => match context.stack.pop() {
+                Some(value) => println!("Popped value: {:?}", value),
+                None => println!("Stack was empty. Nothing popped"),
+              },
+              None => println!("Not in a context that has a stack :("),
+            },
+            "push" => match execution_context {
+              Some(context) => {
+                if parsed.len() != 3 {
+                  println!(
+                    "Mismatch number of arguments for push. Expected 3 but got {}",
+                    parsed.len()
+                  );
+                  continue;
+                }
+
+                match Parser::create_value_from_type_string(
+                  parsed[1].to_string(),
+                  parsed[2].to_string(),
+                ) {
+                  Ok(value) => context.stack.push(value),
+                  Err(message) => println!("Error while parsing value: {}", message),
+                }
+              }
+              None => println!("Not in a context that has a stack :("),
+            },
+            "run" => match &execution_context {
+              Some(_) => break,
+              None => println!("Not in a runnable context :("),
+            },
+            "stack" => match &execution_context {
+              Some(context) => {
+                if parsed.len() != 2 {
+                  println!(
+                    "Mismatch number of arguments for stack. Expected 2 but got {}",
+                    parsed.len()
+                  );
+                  continue;
+                }
+
+                let result_view_size = parsed[1].parse::<usize>();
+                if result_view_size.is_err() {
+                  println!(
+                    "Couldn't convert '{}' into a unsigned integer :(",
+                    parsed[1]
+                  );
+                  continue;
+                } else {
+                  let length = context.stack.len() - result_view_size.unwrap().min(context.stack.len());
+                  let mut top_of_stack = context
+                    .stack
+                    .iter()
+                    .skip(length.max(0))
+                    .map(|x| x.clone())
+                    .collect::<Vec<Value>>();
+                  top_of_stack.reverse();
+                  for (value, idx) in top_of_stack.iter().zip(0..top_of_stack.len()) {
+                    println!("[{}] {:?}", idx, value);
+                  }
+                }
+              }
+              None => println!("There is no current execution context to have a stack :("),
+            },
+            "stacktrace" => match &execution_context {
+              Some(context) => context.print_stacktrace(),
+              None => println!("There is no current execution context to have a stacktrace :("),
+            },
+            "step" => {
+              if parsed.len() != 1 && parsed.len() != 2 {
+                println!(
+                  "Mismatch number of arguments for step. Expected 1 or 2 but got {}",
+                  parsed.len()
+                );
+                continue;
+              }
+
+              if parsed.len() == 1 {
+                println!("Stepping by 1...");
+                self.step = Some(1);
+              } else {
+                let result_step_size = parsed[1].parse::<usize>();
+                if result_step_size.is_err() {
+                  println!(
+                    "Couldn't convert '{}' into a unsigned integer :(",
+                    parsed[1]
+                  );
+                  continue;
+                } else {
+                  let step_size = result_step_size.unwrap();
+                  println!("Stepping by {}...", step_size);
+                  self.step = Some(step_size);
+                }
+              }
+              break;
+            }
+            "variable" => match &execution_context {
+              Some(context) => {
+                if parsed.len() != 2 {
+                  println!(
+                    "Mismatch number of arguments for variable. Expected 2 but got {}",
+                    parsed.len()
+                  );
+                }
+
+                match context.variables.get(parsed[1]) {
+                  Some(value) => println!("{} := {:?}", parsed[1], value),
+                  None => println!(
+                    "Variable '{}' is not defined in the current context :(",
+                    parsed[1]
+                  ),
+                }
+              }
+              None => println!("Not in a context that has variables :("),
+            },
+            "variables" => match &execution_context {
+              Some(context) => {
+                if parsed.len() != 1 {
+                  println!(
+                    "Mismatch number of arguments for variables. Expected 1 but got {}",
+                    parsed.len()
+                  );
+                }
+
+                // print that there are no variables if here
+                for (variable_name, variable_value) in &context.variables {
+                  println!("{} := {:?}", variable_name, variable_value);
+                }
+              }
+              None => println!("Not in a context that has variables :("),
+            },
+            _ => {
+              println!("Unknown command '{}' :(", line);
             }
           }
-          break;
         }
-        "variable" => match &execution_context {
-          Some(context) => {
-            if parsed.len() != 2 {
-              println!(
-                "Mismatch number of arguments for variable. Expected 2 but got {}",
-                parsed.len()
-              );
-            }
-
-            match context.variables.get(parsed[1]) {
-              Some(value) => println!("{} := {:?}", parsed[1], value),
-              None => println!(
-                "Variable '{}' is not defined in the current context :(",
-                parsed[1]
-              ),
-            }
-          }
-          None => println!("Not in a context that has variables :("),
-        },
-        "variables" => match &execution_context {
-          Some(context) => {
-            if parsed.len() != 1 {
-              println!(
-                "Mismatch number of arguments for variables. Expected 1 but got {}",
-                parsed.len()
-              );
-            }
-
-            // print that there are no variables if here
-            for (variable_name, variable_value) in &context.variables {
-              println!("{} := {:?}", variable_name, variable_value);
-            }
-          }
-          None => println!("Not in a context that has variables :("),
-        },
-        _ => {
-          println!("Unknown command '{}' :(", input_buffer);
+        Err(ReadlineError::Interrupted) => {
+          print!("{}", DebugContext::ansi_color_code("reset"));
+          panic!("CTRL-C -- INTERRUPTED. Exiting...");
+        }
+        Err(err) => {
+          println!("Error: {:?}", err);
         }
       }
     }
     print!("{}", DebugContext::ansi_color_code("reset"));
+    rl.save_history("history.txt");
     self.metric_tracker.start_all();
+    Ok(())
   }
 
   // return true if we should enter a debug console
