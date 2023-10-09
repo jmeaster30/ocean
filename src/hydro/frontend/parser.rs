@@ -239,7 +239,7 @@ impl Parser {
         let value_token = self.expect_token();
         Instruction::PushValue(PushValue {
           value: match value_token.token_type {
-            TokenType::Number => {
+            TokenType::Number | TokenType::String => {
               self.consume();
               match Parser::create_value_from_type_string(
                 type_token.lexeme,
@@ -255,7 +255,7 @@ impl Parser {
             }
             TokenType::False => {
               self.consume();
-              Value::Boolean(true)
+              Value::Boolean(false)
             }
             TokenType::VariableRef | TokenType::IndexRef => {
               Value::Reference(self.parse_reference())
@@ -278,7 +278,7 @@ impl Parser {
                 function: function_token.lexeme,
               })
             }
-            _ => panic!("Expected to have a value token here :("),
+            _ => panic!("Expected to have a value token here :( {:?}", value_token),
           },
         })
       }
@@ -436,6 +436,8 @@ impl Parser {
           .clone()
           .into_bytes()
           .iter()
+          .skip(1)
+          .take(value_lexeme.len() - 2)
           .map(|x| Value::Unsigned8(*x))
           .collect::<Vec<Value>>();
         Ok(Value::Array(Array::create(
@@ -534,6 +536,35 @@ impl Parser {
                 }
               }
             }
+            '"' | '\'' => {
+              if lexeme.len() != 0 {
+                break;
+              }
+              let start_char = current_char;
+              lexeme += &current_char.to_string();
+              self.current_index += 1;
+              self.current_column += 1;
+              if self.is_not_done() {
+                current_char = self.file_contents[self.current_index];
+              }
+              while current_char != start_char && self.is_not_done() {
+                lexeme += &current_char.to_string();
+                self.current_index += 1;
+                self.current_column += 1;
+                if current_char == '\n' {
+                  self.current_line += 1;
+                  self.current_column = 1;
+                }
+                if self.is_not_done() {
+                  current_char = self.file_contents[self.current_index];
+                }
+              }
+              if self.is_not_done() && current_char == start_char {
+                lexeme += &current_char.to_string();
+                self.current_index += 1;
+                self.current_column += 1;
+              }
+            }
             _ => {
               if lexeme.len() == 0 {
                 lexeme += &current_char.to_string();
@@ -571,6 +602,7 @@ impl Parser {
         let number_re = Regex::new(r"^-?(([0-9]+)|([0-9]*\.[0-9]+))$").unwrap();
         let comment_re = Regex::new(r"^%.*$").unwrap();
         let identifier_re = Regex::new(r"^[0-9a-zA-Z.\-_\\/]+$").unwrap();
+        let string_re = Regex::new(r#"^['"].*['"]$"#).unwrap();
 
         let token_type = match lexeme.to_lowercase().as_str() {
           "u8" | "u16" | "u32" | "u64" | "u128" => TokenType::Type,
@@ -630,6 +662,8 @@ impl Parser {
               TokenType::Comment
             } else if identifier_re.is_match(lexeme.as_str()) {
               TokenType::Identifier
+            } else if string_re.is_match(lexeme.as_str()) {
+              TokenType::String
             } else {
               TokenType::Error
             }

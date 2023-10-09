@@ -6,6 +6,7 @@ pub enum TokenType {
   Comment,
   Identifier,
   Number,
+  String,
 
   Type,
   FunctionPointer,
