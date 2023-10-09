@@ -552,7 +552,9 @@ impl Executable for Call {
         let target_module = match func_pointer.module {
           Some(module_name) => match module.modules.get(&module_name) {
             Some(modu) => modu,
-            None => {
+            None => if module.name == module_name {
+              module
+            } else {
               return Err(Exception::new(
                 context.clone(),
                 format!("Could not find module '{}'", module_name).as_str(),

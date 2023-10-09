@@ -263,7 +263,7 @@ impl Parser {
             TokenType::FunctionPointer => {
               self.consume();
 
-              let module_token = self.expect_one_of(vec![TokenType::Identifier, TokenType::This]);
+              let module_token = self.expect_one_of(vec![TokenType::Identifier, TokenType::This, TokenType::Main]);
               self.consume();
 
               let function_token = self.expect_token_type(TokenType::Identifier);
@@ -271,7 +271,7 @@ impl Parser {
 
               Value::FunctionPointer(FunctionPointer {
                 module: match module_token.token_type {
-                  TokenType::Identifier => Some(module_token.lexeme),
+                  TokenType::Identifier | TokenType::Main => Some(module_token.lexeme),
                   TokenType::This => None,
                   _ => panic!("Shouldn't be hit"),
                 },
