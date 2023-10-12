@@ -1,0 +1,3 @@
+module std.io.print
+intrinsic print_char output body
+    version vm { print }

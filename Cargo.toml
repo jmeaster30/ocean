@@ -7,6 +7,7 @@ exclude = ["./ocean-language-support/*"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+lazy_static = "1.4.0"
 ocean_helpers = { path = "ocean_helpers" }
 regex = "1.9.3"
 rustyline = "12.0.0"

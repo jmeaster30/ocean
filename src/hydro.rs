@@ -10,5 +10,6 @@ mod instruction;
 pub mod layouttemplate;
 pub mod module;
 pub mod value;
+mod intrinsic;
 
 pub struct Hydro {}

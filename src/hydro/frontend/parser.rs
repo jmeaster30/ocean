@@ -672,8 +672,7 @@ impl Parser {
 
         match token_type {
           TokenType::Comment => {
-            // todo this feels kinda odd but it skips over comments
-            self.token();
+            self.token(); // skip comments
           }
           _ => {
             self.current_token = Some(Token::new(
