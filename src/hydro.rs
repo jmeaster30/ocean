@@ -1,4 +1,4 @@
-pub mod analyzer;
+//TODO pub mod analyzer;
 pub mod debugcontext;
 mod debuggable;
 pub mod exception;

@@ -80,7 +80,7 @@ impl DebugContext {
       let readline = rl.readline("> ");
       match readline {
         Ok(line) => {
-          rl.add_history_entry(line.as_str());
+          rl.add_history_entry(line.as_str())?;
           let parsed = line.split_ascii_whitespace().collect::<Vec<&str>>();
 
           if parsed.len() == 0 {
@@ -331,7 +331,7 @@ impl DebugContext {
       }
     }
     print!("{}", DebugContext::ansi_color_code("reset"));
-    rl.save_history("history.txt");
+    rl.save_history("history.txt")?;
     self.metric_tracker.start_all();
     Ok(())
   }

@@ -1,4 +1,4 @@
-use crate::hydro::frontend::binaryable::Binaryable;
+// TODO use crate::hydro::frontend::binaryable::Binaryable;
 use crate::hydro::frontend::parser::Parser;
 use crate::hydro::module::Module;
 use crate::hydro::Hydro;
@@ -43,9 +43,9 @@ impl Hydro {
   ) -> Result<(), Error> {
     let bytes = match translate_type {
       HydroTranslateType::Binary => {
-        let mut mod_output = module.output(9);
+        //TODO let mut mod_output = module.output(9);
         let mut output = vec![b'h', b'y', b'd', b'r', b'o', 0, 0, 0, 0];
-        output.append(&mut mod_output);
+        //TODO output.append(&mut mod_output);
         output
       }
     };
