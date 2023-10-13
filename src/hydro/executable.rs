@@ -564,7 +564,6 @@ impl Executable for Call {
           None => module,
         };
 
-        let mut arguments = Vec::new();
         let target_function = match target_module
           .functions
           .get(func_pointer.function.clone().as_str())
@@ -595,9 +594,10 @@ impl Executable for Call {
           ));
         }
 
-        for param in &target_function.parameters {
+        let mut arguments = Vec::new();
+        for _ in &target_function.parameters {
           let param_value = context.stack.pop().unwrap();
-          arguments.push((param.clone(), param_value));
+          arguments.insert(0, param_value);
         }
 
         let return_value = target_module.execute(

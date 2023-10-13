@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 use std::collections::HashMap;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Type {
   Boolean,
   Array(u64, Box<Type>),
@@ -19,6 +19,12 @@ pub enum Type {
   Signed64,
   Signed128,
   Float,
+}
+
+impl PartialOrd for Type {
+  fn partial_cmp(&self, _other: &Self) -> Option<Ordering> {
+    todo!()
+  }
 }
 
 impl Type {
@@ -43,6 +49,7 @@ impl Type {
           values.push((*subtype).default());
         }
         Value::Array(Array {
+          value_type: (**subtype).clone(),
           length: Box::new(Value::Unsigned64(*length)),
           values,
         })
@@ -96,6 +103,24 @@ impl Type {
       _ => panic!("This type doesn't have a maximum"),
     }
   }
+
+  pub fn subset(sub: &Type, sup: &Type) -> bool {
+    // TODO type subsetting
+    match (sub, sup) {
+      (Type::Boolean, Type::Boolean) => true,
+      (Type::Unsigned8, Type::Unsigned8) => true,
+      (Type::Unsigned16, Type::Unsigned16) => true,
+      (Type::Unsigned32, Type::Unsigned32) => true,
+      (Type::Unsigned64, Type::Unsigned64) => true,
+      (Type::Unsigned128, Type::Unsigned128) => true,
+      (Type::Signed8, Type::Signed8) => true,
+      (Type::Signed16, Type::Signed16) => true,
+      (Type::Signed32, Type::Signed32) => true,
+      (Type::Signed64, Type::Signed64) => true,
+      (Type::Signed128, Type::Signed128) => true,
+      _ => false,
+    }
+  }
 }
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
@@ -125,7 +150,7 @@ impl Value {
   pub fn type_of(&self) -> Type {
     match self {
       Value::Boolean(_) => Type::Boolean,
-      Value::Array(_) => todo!(),
+      Value::Array(array) => Type::Array(array.length.to_u64(), Box::new(array.value_type.clone())),
       Value::Layout(_) => todo!(),
       Value::FunctionPointer(_) => todo!(),
       Value::Reference(_) => todo!(),
@@ -140,6 +165,22 @@ impl Value {
       Value::Signed64(_) => Type::Signed64,
       Value::Signed128(_) => Type::Signed128,
       Value::Float => Type::Float,
+    }
+  }
+
+  pub fn to_u64(&self) -> u64 {
+    match self {
+      Value::Unsigned8(x) => *x as u64,
+      Value::Unsigned16(x) => *x as u64,
+      Value::Unsigned32(x) => *x as u64,
+      Value::Unsigned64(x) => *x,
+      Value::Unsigned128(x) => *x as u64,
+      Value::Signed8(x) => *x as u64,
+      Value::Signed16(x) => *x as u64,
+      Value::Signed32(x) => *x as u64,
+      Value::Signed64(x) => *x as u64,
+      Value::Signed128(x) => *x as u64,
+      _ => panic!("Cannot convert {:?} to u64", self)
     }
   }
 }
@@ -200,20 +241,22 @@ impl LayoutIndexRef {
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub struct Array {
+  pub value_type: Type,
   pub length: Box<Value>,
   pub values: Vec<Value>,
 }
 
 impl Array {
-  pub fn new(length: Box<Value>) -> Self {
+  pub fn new(value_type: Type, length: Box<Value>) -> Self {
     Self {
+      value_type,
       length,
       values: Vec::new(),
     }
   }
 
-  pub fn create(length: Box<Value>, values: Vec<Value>) -> Self {
-    Self { length, values }
+  pub fn create(value_type: Type, length: Box<Value>, values: Vec<Value>) -> Self {
+    Self { value_type, length, values }
   }
 }
 

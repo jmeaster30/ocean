@@ -822,7 +822,7 @@ impl Debuggable for Call {
 
         for param in &target_function.parameters {
           let param_value = context.stack.pop().unwrap();
-          arguments.push((param.clone(), param_value));
+          arguments.insert(0, param_value);
         }
 
         let return_value = target_module.debug(

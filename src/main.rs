@@ -70,10 +70,9 @@ fn main() -> std::io::Result<()> {
         }
         "hydro-run" => {
           let module = Hydro::compile(arguments.get("Source File").unwrap().as_str())?;
-
           let return_value = module.execute(
             "main".to_string(),
-            vec![("funnyNumber".to_string(), Value::Unsigned32(69))],
+            vec![Value::Unsigned32(69)],
             None,
           );
 
@@ -88,7 +87,7 @@ fn main() -> std::io::Result<()> {
 
           let return_value = module.debug(
             "main".to_string(),
-            vec![("funnyNumber".to_string(), Value::Unsigned32(69))],
+            vec![Value::Unsigned32(69)],
             None,
             &mut debug_context,
           );

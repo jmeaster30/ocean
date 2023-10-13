@@ -105,13 +105,18 @@ impl Parser {
     let mut function = Function::build(identifier_token.lexeme.as_str());
     // parse params
     loop {
-      let id_token = self.expect_one_of(vec![TokenType::Identifier, TokenType::Body]);
+      let id_token = self.expect_one_of(vec![TokenType::Type,
+                                             TokenType::Identifier,
+                                             TokenType::This,
+                                             TokenType::Number, TokenType::Body]);
       match id_token.token_type {
-        TokenType::Identifier => self.consume(),
+        TokenType::Identifier | TokenType::Type | TokenType::Number | TokenType::This => {
+          let param_type = self.parse_type();
+          function = function.parameter(param_type);
+        },
         TokenType::Body => break,
         _ => {}
       }
-      function = function.parameter(id_token.lexeme.as_str());
     }
 
     let _ = self.expect_token_type(TokenType::Body);
@@ -406,7 +411,7 @@ impl Parser {
   fn create_default_value_from_type_string(type_lexeme: String) -> Value {
     match type_lexeme.as_str() {
       "bool" => Value::Boolean(false),
-      "string" => Value::Array(Array::new(Box::new(Value::Unsigned8(0)))),
+      "string" => Value::Array(Array::new(Type::Unsigned8, Box::new(Value::Unsigned8(0)))),
       "u8" => Value::Unsigned8(0),
       "u16" => Value::Unsigned16(0),
       "u32" => Value::Unsigned32(0),
@@ -441,6 +446,7 @@ impl Parser {
           .map(|x| Value::Unsigned8(*x))
           .collect::<Vec<Value>>();
         Ok(Value::Array(Array::create(
+          Type::Unsigned8,
           Box::new(Value::Unsigned64(value_lexeme.len() as u64)),
           bytes,
         )))

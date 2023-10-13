@@ -172,7 +172,7 @@ impl Module {
   pub fn execute(
     &self,
     function_name: String,
-    arguments: Vec<(String, Value)>,
+    arguments: Vec<Value>,
     parent_context: Option<Box<ExecutionContext>>,
   ) -> Result<Option<Value>, Exception> {
     let mut context = ExecutionContext {
@@ -185,19 +185,13 @@ impl Module {
       current_module: self.name.clone(),
     };
 
-    let args = arguments
-      .iter()
-      .map(|x| (x.0.clone(), x.1.clone()))
-      .collect::<HashMap<String, Value>>();
-
     let current_function = self.functions.get(&*function_name).unwrap();
 
-    for param in &current_function.parameters {
-      match args.get(param.as_str()) {
-        Some(value) => {
-          context.variables.insert(param.clone(), value.clone());
-        }
-        None => {}
+    for (expected_type, got_value) in current_function.parameters.iter().zip(arguments) {
+      if Type::subset(&got_value.type_of(), expected_type) {
+        context.stack.push(got_value);
+      } else {
+        return Err(Exception::new(context, format!("Unexpected function parameter type found {:?} but expected {:?}", got_value.type_of(), expected_type).as_str()));
       }
     }
 
@@ -219,7 +213,7 @@ impl Module {
   pub fn debug(
     &self,
     function_name: String,
-    arguments: Vec<(String, Value)>,
+    arguments: Vec<Value>,
     parent_context: Option<Box<ExecutionContext>>,
     debug_context: &mut DebugContext,
   ) -> Result<Option<Value>, Exception> {
@@ -252,19 +246,19 @@ impl Module {
       "total".to_string(),
     ));
 
-    let args = arguments
-      .iter()
-      .map(|x| (x.0.clone(), x.1.clone()))
-      .collect::<HashMap<String, Value>>();
-
     let current_function = self.functions.get(&*function_name).unwrap();
 
-    for param in &current_function.parameters {
-      match args.get(param.as_str()) {
-        Some(value) => {
-          context.variables.insert(param.clone(), value.clone());
-        }
-        None => {}
+    for (expected_type, got_value) in current_function.parameters.iter().zip(arguments) {
+      if Type::subset(&got_value.type_of(), expected_type) {
+        context.stack.push(got_value);
+      } else {
+        debug_context.metric_tracker.stop(format!(
+          "{}.{}.{}",
+          self.name.clone(),
+          function_name.clone(),
+          "total".to_string(),
+        ));
+        return Err(Exception::new(context, format!("Unexpected function parameter type found {:?} but expected {:?}", got_value.type_of(), expected_type).as_str()));
       }
     }
 

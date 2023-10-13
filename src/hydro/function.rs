@@ -1,17 +1,17 @@
 use crate::hydro::instruction::{
   Add, ArrayIndex, Call, Instruction, Load, PopValue, PushValue, Return, Store,
 };
-use crate::hydro::value::{Reference, Value, VariableRef};
+use crate::hydro::value::{Reference, Type, Value, VariableRef};
 
 #[derive(Debug, Clone)]
 pub struct Function {
   pub name: String,
-  pub parameters: Vec<String>,
+  pub parameters: Vec<Type>,
   pub body: Vec<Instruction>,
 }
 
 impl Function {
-  pub fn new(name: String, parameters: Vec<String>, body: Vec<Instruction>) -> Self {
+  pub fn new(name: String, parameters: Vec<Type>, body: Vec<Instruction>) -> Self {
     Self {
       name,
       parameters,
@@ -23,8 +23,8 @@ impl Function {
     Function::new(name.to_string(), Vec::new(), Vec::new())
   }
 
-  pub fn parameter(mut self, name: &str) -> Self {
-    self.parameters.push(name.to_string());
+  pub fn parameter(mut self, param_type: Type) -> Self {
+    self.parameters.insert(0, param_type);
     self
   }
 
