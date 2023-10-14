@@ -6,6 +6,7 @@ use crate::util::metrictracker::{MetricResults, MetricTracker};
 use std::collections::HashMap;
 use rustyline::{DefaultEditor, Result};
 use rustyline::error::ReadlineError;
+use crate::hydro::visualizer::moduledependencyvisualization::ModuleDependencyVisualization;
 
 pub struct DebugContext {
   pub step: Option<usize>,
@@ -307,6 +308,7 @@ impl DebugContext {
                     "Mismatch number of arguments for variables. Expected 1 but got {}",
                     parsed.len()
                   );
+                  continue;
                 }
 
                 // print that there are no variables if here
@@ -316,6 +318,29 @@ impl DebugContext {
               }
               None => println!("Not in a context that has variables :("),
             },
+            "viz" => if parsed.len() == 4 {
+              match which::which("dot") {
+                Ok(_) => match parsed[1] {
+                  "moddep" => {
+                    let viz = ModuleDependencyVisualization::create(module);
+                    match parsed[2] {
+                      "png" => viz.png(parsed[3].to_string()),
+                      "svg" => viz.svg(parsed[3].to_string()),
+                      _ => {
+                        println!("Unknown output type for visualization");
+                        continue;
+                      }
+                    }
+                    println!("Output {} viz to {} file {}", parsed[1], parsed[2], parsed[3]);
+                  }
+                  _ => println!("Unknown visualization {}", parsed[1]),
+                }
+                Err(_) => println!("Graphviz not installed. Please install to use visualizations")
+              }
+            } else {
+              println!("Mismatch number of arguments for viz. Expected 4 but got {}",
+                       parsed.len())
+            }
             _ => {
               println!("Unknown command '{}' :(", line);
             }

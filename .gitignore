@@ -8,3 +8,7 @@ cobertura.xml
 *.vsix
 main.h2o.bin
 history.txt
+.env
+check-todo-issues.py
+*.svg
+*.png
