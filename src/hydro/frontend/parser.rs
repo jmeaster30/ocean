@@ -1,5 +1,5 @@
 use crate::hydro::frontend::token::{Token, TokenType};
-use crate::hydro::function::Function;
+use crate::hydro::function::{Function, Target};
 use crate::hydro::instruction::{Add, Allocate, And, ArrayIndex, BitwiseAnd, BitwiseNot, BitwiseOr, BitwiseXor, Branch, Call, Divide, Duplicate, Equal, GreaterThan, GreaterThanEqual, Instruction, Jump, LayoutIndex, LeftShift, LessThan, LessThanEqual, Load, Modulo, Multiply, Not, NotEqual, Or, PopValue, PushValue, Return, RightShift, Store, Subtract, Swap, Xor};
 use crate::hydro::layouttemplate::LayoutTemplate;
 use crate::hydro::module::Module;
@@ -164,6 +164,12 @@ impl Parser {
           let instruction = self.parse_instruction();
           function = function.inst(instruction);
         }
+        TokenType::Label => {
+          self.consume();
+          let target_name_token = self.expect_token_type(TokenType::Identifier);
+          self.consume();
+          function.add_label(target_name_token.lexeme, function.body.len());
+        }
         TokenType::Module
         | TokenType::Function
         | TokenType::Layout
@@ -312,23 +318,41 @@ impl Parser {
       TokenType::LessThanEqual => Instruction::LessThanEqual(LessThanEqual {}),
       TokenType::GreaterThanEqual => Instruction::GreaterThanEqual(GreaterThanEqual {}),
       TokenType::Jump => {
-        let number_token = self.expect_token_type(TokenType::Number);
+        let target_token = self.expect_one_of(vec![TokenType::Number, TokenType::Identifier]);
         self.consume();
 
+        let target = match target_token.token_type {
+          TokenType::Number => Target::Index(target_token.lexeme.parse::<usize>().unwrap()),
+          TokenType::Identifier => Target::Label(target_token.lexeme),
+          _ => panic!("Should not have been hit :)")
+        };
+
         Instruction::Jump(Jump {
-          index: number_token.lexeme.parse::<usize>().unwrap(),
+          target
         })
       }
       TokenType::Branch => {
-        let true_token = self.expect_token_type(TokenType::Number);
+        let true_target_token = self.expect_one_of(vec![TokenType::Number, TokenType::Identifier]);
         self.consume();
 
-        let false_token = self.expect_token_type(TokenType::Number);
+        let true_target = match true_target_token.token_type {
+          TokenType::Number => Target::Index(true_target_token.lexeme.parse::<usize>().unwrap()),
+          TokenType::Identifier => Target::Label(true_target_token.lexeme),
+          _ => panic!("Should not have been hit :)")
+        };
+
+        let false_target_token = self.expect_one_of(vec![TokenType::Number, TokenType::Identifier]);
         self.consume();
+
+        let false_target = match false_target_token.token_type {
+          TokenType::Number => Target::Index(false_target_token.lexeme.parse::<usize>().unwrap()),
+          TokenType::Identifier => Target::Label(false_target_token.lexeme),
+          _ => panic!("Should not have been hit :)")
+        };
 
         Instruction::Branch(Branch {
-          true_index: true_token.lexeme.parse::<usize>().unwrap(),
-          false_index: false_token.lexeme.parse::<usize>().unwrap(),
+          true_target,
+          false_target,
         })
       }
       TokenType::Call => Instruction::Call(Call {}),
@@ -656,6 +680,7 @@ impl Parser {
           "greaterthanequal" => TokenType::GreaterThanEqual,
           "jump" => TokenType::Jump,
           "branch" => TokenType::Branch,
+          "label" => TokenType::Label,
           "call" => TokenType::Call,
           "return" => TokenType::Return,
           "load" => TokenType::Load,

@@ -509,14 +509,18 @@ impl Executable for GreaterThanEqual {
 }
 
 impl Executable for Jump {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
-    context.program_counter = self.index;
+  fn execute(&self, module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
+    let current_function = module.functions.get(context.current_function.as_str()).unwrap();
+    match current_function.get_target_pointer(self.target.clone()) {
+      Ok(index) => context.program_counter = index,
+      Err(message ) => return Err(Exception::new(context.clone(), message.as_str()))
+    }
     Ok(true)
   }
 }
 
 impl Executable for Branch {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
+  fn execute(&self, module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 1 {
       return Err(Exception::new(
         context.clone(),
@@ -527,10 +531,18 @@ impl Executable for Branch {
     let a = context.stack.pop().unwrap();
     let result = context.bool(a);
 
+    let current_function = module.functions.get(context.current_function.as_str()).unwrap();
+
     if result {
-      context.program_counter = self.true_index;
+      match current_function.get_target_pointer(self.true_target.clone()) {
+        Ok(index) => context.program_counter = index,
+        Err(message ) => return Err(Exception::new(context.clone(), message.as_str()))
+      }
     } else {
-      context.program_counter = self.false_index;
+      match current_function.get_target_pointer(self.false_target.clone()) {
+        Ok(index) => context.program_counter = index,
+        Err(message ) => return Err(Exception::new(context.clone(), message.as_str()))
+      }
     }
     Ok(true)
   }

@@ -1,3 +1,4 @@
+use crate::hydro::function::Target;
 use super::value::Value;
 use crate::hydro::value::Type;
 
@@ -126,13 +127,13 @@ pub struct GreaterThanEqual {}
 
 #[derive(Debug, Clone)]
 pub struct Jump {
-  pub index: usize,
+  pub target: Target,
 }
 
 #[derive(Debug, Clone)]
 pub struct Branch {
-  pub true_index: usize,
-  pub false_index: usize,
+  pub true_target: Target,
+  pub false_target: Target,
 }
 
 #[derive(Debug, Clone)]

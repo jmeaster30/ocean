@@ -1,13 +1,22 @@
+use std::collections::HashMap;
+use crate::hydro::function::Target::{Index, Label};
 use crate::hydro::instruction::{
   Add, ArrayIndex, Call, Instruction, Load, PopValue, PushValue, Return, Store,
 };
 use crate::hydro::value::{Reference, Type, Value, VariableRef};
 
 #[derive(Debug, Clone)]
+pub enum Target {
+  Label(String),
+  Index(usize),
+}
+
+#[derive(Debug, Clone)]
 pub struct Function {
   pub name: String,
   pub parameters: Vec<Type>,
   pub body: Vec<Instruction>,
+  pub jump_labels: HashMap<String, usize>,
 }
 
 impl Function {
@@ -16,7 +25,23 @@ impl Function {
       name,
       parameters,
       body,
+      jump_labels: HashMap::new(),
     }
+  }
+
+  pub fn get_target_pointer(&self, target: Target) -> Result<usize, String>
+  {
+    match target {
+      Label(label_name) => match self.jump_labels.get(label_name.as_str()) {
+        Some(result) => Ok(*result),
+        None => Err(format!("Label not found '{}'", label_name))
+      },
+      Index(result) => Ok(result),
+    }
+  }
+
+  pub fn add_label(&mut self, name: String, target: usize) {
+    self.jump_labels.insert(name, target);
   }
 
   pub fn build(name: &str) -> Self {

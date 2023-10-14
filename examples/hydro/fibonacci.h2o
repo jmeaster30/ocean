@@ -5,8 +5,10 @@ function fibonacci u128 body
     duplicate
     push u128 1
     lessthanequal
-    branch 5 6
+    branch finish notfinish
+    label finish
     return
+    label notfinish
     push u128 1
     subtract
     push funcp main fibonacci

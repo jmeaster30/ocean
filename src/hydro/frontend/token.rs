@@ -50,6 +50,7 @@ pub enum TokenType {
   GreaterThanEqual,
   Jump,
   Branch,
+  Label,
   Call,
   Return,
   Load,
