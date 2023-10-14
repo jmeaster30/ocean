@@ -75,7 +75,7 @@ impl Executable for PopValue {
 }
 
 impl Executable for Duplicate {
-  fn execute(&self, module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
+  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 1 {
       return Err(Exception::new(
         context.clone(),
@@ -87,13 +87,13 @@ impl Executable for Duplicate {
     context.stack.push(value.clone());
     context.stack.push(value.clone());
 
-    context.program_counter += 1; // TODO can we get rid of this??
+    context.program_counter += 1;
     Ok(true)
   }
 }
 
 impl Executable for Swap {
-  fn execute(&self, module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
+  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 2 {
       return Err(Exception::new(
         context.clone(),

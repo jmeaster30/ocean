@@ -1,5 +1,6 @@
 use crate::hydro::debugcontext::DebugContext;
 use std::collections::HashMap;
+use std::error::Error;
 
 use crate::hydro::exception::Exception;
 use crate::hydro::executioncontext::ExecutionContext;
@@ -231,7 +232,10 @@ impl Module {
     match parent_context {
       Some(_) => {}
       None => {
-        debug_context.console(self, &mut Some(&mut context), None).unwrap(); // TODO we should handle this readline error in a better way
+        match debug_context.console(self, &mut Some(&mut context), None) {
+          Ok(_) => {}
+          Err(readline_error) => return Err(Exception::new(context, readline_error.to_string().as_str()))
+        }
         // hacky way of letting the user step immediately when the program runs
         if debug_context.step.clone().is_some() {
           debug_context.step = Some(debug_context.step.clone().unwrap() + 1);
@@ -272,7 +276,10 @@ impl Module {
           context.program_counter,
         )
       {
-        debug_context.console(self, &mut Some(&mut context), None).unwrap(); // TODO we should handle this readline error in a better way
+        match debug_context.console(self, &mut Some(&mut context), None) {
+          Ok(_) => {}
+          Err(readline_error) => return Err(Exception::new(context, readline_error.to_string().as_str()))
+        }
       }
 
       //check for profile points here
@@ -283,7 +290,10 @@ impl Module {
         Ok(should_continue) if !should_continue => break,
         Err(exception) => {
           exception.print_stacktrace();
-          debug_context.console(self, &mut Some(&mut context), None).unwrap(); // TODO we should handle this readline error in a better way
+          match debug_context.console(self, &mut Some(&mut context), None) {
+            Ok(_) => {}
+            Err(readline_error) => return Err(Exception::new(context, readline_error.to_string().as_str()))
+          }
           debug_context.metric_tracker.stop(format!(
             "{}.{}.{}",
             self.name.clone(),

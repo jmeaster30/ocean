@@ -77,8 +77,7 @@ impl Function {
     self
   }
 
-  // TODO better name?
-  pub fn return_(mut self) -> Self {
+  pub fn ret(mut self) -> Self {
     self.body.push(Instruction::Return(Return {}));
     self
   }
