@@ -77,7 +77,10 @@ fn main() -> std::io::Result<()> {
           );
 
           match return_value {
-            Ok(result) => println!("{:#?}", result),
+            Ok(result) => match result {
+              Some(value) => println!("{}", value.to_string()),
+              None => println!("None"),
+            }
             Err(e) => e.print_stacktrace(),
           }
         }

@@ -55,7 +55,8 @@ pub enum TokenType {
   Return,
   Load,
   Store,
-  Index,
+  GetIndex,
+  SetIndex,
 
   True,
   False,

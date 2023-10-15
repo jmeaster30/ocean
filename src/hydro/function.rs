@@ -1,8 +1,6 @@
 use std::collections::HashMap;
 use crate::hydro::function::Target::{Index, Label};
-use crate::hydro::instruction::{
-  Add, ArrayIndex, Call, Instruction, Load, PopValue, PushValue, Return, Store,
-};
+use crate::hydro::instruction::*;
 use crate::hydro::value::{Reference, Type, Value, VariableRef};
 
 #[derive(Debug, Clone)]
@@ -94,11 +92,6 @@ impl Function {
 
   pub fn store(mut self) -> Self {
     self.body.push(Instruction::Store(Store {}));
-    self
-  }
-
-  pub fn index(mut self) -> Self {
-    self.body.push(Instruction::ArrayIndex(ArrayIndex {}));
     self
   }
 

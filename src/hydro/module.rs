@@ -1,6 +1,5 @@
 use crate::hydro::debugcontext::DebugContext;
 use std::collections::HashMap;
-use std::error::Error;
 
 use crate::hydro::exception::Exception;
 use crate::hydro::executioncontext::ExecutionContext;

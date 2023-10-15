@@ -54,8 +54,10 @@ impl Instruction {
       Instruction::Return(x) => x.debug(module, context, debug_context),
       Instruction::Load(x) => x.debug(module, context, debug_context),
       Instruction::Store(x) => x.debug(module, context, debug_context),
-      Instruction::ArrayIndex(x) => x.debug(module, context, debug_context),
-      Instruction::LayoutIndex(x) => x.debug(module, context, debug_context),
+      Instruction::GetArrayIndex(x) => x.debug(module, context, debug_context),
+      Instruction::SetArrayIndex(x) => x.debug(module, context, debug_context),
+      Instruction::GetLayoutIndex(x) => x.debug(module, context, debug_context),
+      Instruction::SetLayoutIndex(x) => x.debug(module, context, debug_context),
       Instruction::Allocate(x) => x.debug(module, context, debug_context),
     }
   }
@@ -820,7 +822,7 @@ impl Debuggable for Call {
           ));
         }
 
-        for param in &target_function.parameters {
+        for _ in &target_function.parameters {
           let param_value = context.stack.pop().unwrap();
           arguments.insert(0, param_value);
         }
@@ -947,14 +949,14 @@ impl Debuggable for Store {
   }
 }
 
-impl Debuggable for ArrayIndex {
+impl Debuggable for GetArrayIndex {
   fn debug(
     &self,
     module: &Module,
     context: &mut ExecutionContext,
     debug_context: &mut DebugContext,
   ) -> Result<bool, Exception> {
-    let metric_name = "array_index".to_string();
+    let metric_name = "get_array_index".to_string();
     debug_context.metric_tracker.start(format!(
       "{}.{}.{}",
       context.current_module.clone(),
@@ -972,14 +974,64 @@ impl Debuggable for ArrayIndex {
   }
 }
 
-impl Debuggable for LayoutIndex {
+impl Debuggable for SetArrayIndex {
   fn debug(
     &self,
     module: &Module,
     context: &mut ExecutionContext,
     debug_context: &mut DebugContext,
   ) -> Result<bool, Exception> {
-    let metric_name = "layout_index".to_string();
+    let metric_name = "set_array_index".to_string();
+    debug_context.metric_tracker.start(format!(
+      "{}.{}.{}",
+      context.current_module.clone(),
+      context.current_function.clone(),
+      metric_name.clone(),
+    ));
+    let result = self.execute(module, context);
+    debug_context.metric_tracker.stop(format!(
+      "{}.{}.{}",
+      context.current_module.clone(),
+      context.current_function.clone(),
+      metric_name.clone(),
+    ));
+    return result;
+  }
+}
+
+impl Debuggable for GetLayoutIndex {
+  fn debug(
+    &self,
+    module: &Module,
+    context: &mut ExecutionContext,
+    debug_context: &mut DebugContext,
+  ) -> Result<bool, Exception> {
+    let metric_name = "get_layout_index".to_string();
+    debug_context.metric_tracker.start(format!(
+      "{}.{}.{}",
+      context.current_module.clone(),
+      context.current_function.clone(),
+      metric_name.clone(),
+    ));
+    let result = self.execute(module, context);
+    debug_context.metric_tracker.stop(format!(
+      "{}.{}.{}",
+      context.current_module.clone(),
+      context.current_function.clone(),
+      metric_name.clone(),
+    ));
+    return result;
+  }
+}
+
+impl Debuggable for SetLayoutIndex {
+  fn debug(
+    &self,
+    module: &Module,
+    context: &mut ExecutionContext,
+    debug_context: &mut DebugContext,
+  ) -> Result<bool, Exception> {
+    let metric_name = "set_layout_index".to_string();
     debug_context.metric_tracker.start(format!(
       "{}.{}.{}",
       context.current_module.clone(),

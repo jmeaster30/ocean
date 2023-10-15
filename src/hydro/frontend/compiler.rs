@@ -38,13 +38,13 @@ impl Hydro {
 
   pub fn output(
     translate_type: HydroTranslateType,
-    module: &Module,
+    _module: &Module,
     path: String,
   ) -> Result<(), Error> {
     let bytes = match translate_type {
       HydroTranslateType::Binary => {
         //TODO let mut mod_output = module.output(9);
-        let mut output = vec![b'h', b'y', b'd', b'r', b'o', 0, 0, 0, 0];
+        let output = vec![b'h', b'y', b'd', b'r', b'o', 0, 0, 0, 0];
         //TODO output.append(&mut mod_output);
         output
       }

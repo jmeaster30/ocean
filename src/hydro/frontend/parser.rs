@@ -1,6 +1,6 @@
 use crate::hydro::frontend::token::{Token, TokenType};
 use crate::hydro::function::{Function, Target};
-use crate::hydro::instruction::{Add, Allocate, And, ArrayIndex, BitwiseAnd, BitwiseNot, BitwiseOr, BitwiseXor, Branch, Call, Divide, Duplicate, Equal, GreaterThan, GreaterThanEqual, Instruction, Jump, LayoutIndex, LeftShift, LessThan, LessThanEqual, Load, Modulo, Multiply, Not, NotEqual, Or, PopValue, PushValue, Return, RightShift, Store, Subtract, Swap, Xor};
+use crate::hydro::instruction::*;
 use crate::hydro::layouttemplate::LayoutTemplate;
 use crate::hydro::module::Module;
 use crate::hydro::value::{
@@ -160,7 +160,8 @@ impl Parser {
         | TokenType::Return
         | TokenType::Load
         | TokenType::Store
-        | TokenType::Index => {
+        | TokenType::GetIndex
+        | TokenType::SetIndex => {
           let instruction = self.parse_instruction();
           function = function.inst(instruction);
         }
@@ -360,16 +361,28 @@ impl Parser {
       TokenType::Return => Instruction::Return(Return {}),
       TokenType::Load => Instruction::Load(Load {}),
       TokenType::Store => Instruction::Store(Store {}),
-      TokenType::Index => {
+      TokenType::GetIndex => {
         let optional_id = self.optional_token_type(TokenType::Identifier);
         match optional_id {
           Some(token) => {
             self.consume();
-            Instruction::LayoutIndex(LayoutIndex {
+            Instruction::GetLayoutIndex(GetLayoutIndex {
               member: token.lexeme,
             })
           }
-          None => Instruction::ArrayIndex(ArrayIndex {}),
+          None => Instruction::GetArrayIndex(GetArrayIndex {}),
+        }
+      }
+      TokenType::SetIndex => {
+        let optional_id = self.optional_token_type(TokenType::Identifier);
+        match optional_id {
+          Some(token) => {
+            self.consume();
+            Instruction::SetLayoutIndex(SetLayoutIndex {
+              member: token.lexeme,
+            })
+          }
+          None => Instruction::SetArrayIndex(SetArrayIndex {}),
         }
       }
       _ => panic!("Unexpected token. Expected an instruction :("),
@@ -687,7 +700,8 @@ impl Parser {
           "return" => TokenType::Return,
           "load" => TokenType::Load,
           "store" => TokenType::Store,
-          "index" => TokenType::Index,
+          "getindex" => TokenType::GetIndex,
+          "setindex" => TokenType::SetIndex,
           _ => {
             if number_re.is_match(lexeme.as_str()) {
               TokenType::Number

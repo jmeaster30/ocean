@@ -153,7 +153,7 @@ impl Value {
   pub fn type_of(&self) -> Type {
     match self {
       Value::Boolean(_) => Type::Boolean,
-      Value::Array(array) => Type::Array(array.length.to_u64(), Box::new(array.value_type.clone())),
+      Value::Array(array) => Type::Array(array.length.to_u64().unwrap(), Box::new(array.value_type.clone())),
       Value::Layout(_) => todo!(),
       Value::FunctionPointer(_) => todo!(),
       Value::Reference(_) => todo!(),
@@ -171,19 +171,127 @@ impl Value {
     }
   }
 
-  pub fn to_u64(&self) -> u64 {
+  pub fn to_u64(&self) -> Result<u64, String> {
     match self {
-      Value::Unsigned8(x) => *x as u64,
-      Value::Unsigned16(x) => *x as u64,
-      Value::Unsigned32(x) => *x as u64,
-      Value::Unsigned64(x) => *x,
-      Value::Unsigned128(x) => *x as u64,
-      Value::Signed8(x) => *x as u64,
-      Value::Signed16(x) => *x as u64,
-      Value::Signed32(x) => *x as u64,
-      Value::Signed64(x) => *x as u64,
-      Value::Signed128(x) => *x as u64,
-      _ => panic!("Cannot convert {:?} to u64", self)
+      Value::Unsigned8(x) => Ok(*x as u64),
+      Value::Unsigned16(x) => Ok(*x as u64),
+      Value::Unsigned32(x) => Ok(*x as u64),
+      Value::Unsigned64(x) => Ok(*x),
+      Value::Unsigned128(x) => Ok(*x as u64),
+      Value::Signed8(x) => Ok(*x as u64),
+      Value::Signed16(x) => Ok(*x as u64),
+      Value::Signed32(x) => Ok(*x as u64),
+      Value::Signed64(x) => Ok(*x as u64),
+      Value::Signed128(x) => Ok(*x as u64),
+      _ => Err(format!("Cannot convert {:?} to u64", self)),
+    }
+  }
+
+  pub fn to_u8(&self) -> Result<u8, String> {
+    match self {
+      Value::Unsigned8(x) => Ok(*x),
+      _ => Err(format!("Cannot convert {:?} to u8", self)),
+    }
+  }
+
+  pub fn to_string(&self) -> String {
+    match self {
+      Value::Boolean(value) => if *value { "true" } else { "false" }.to_string(),
+      Value::Array(array) => if Type::subset(&array.value_type, &Type::Unsigned8) {
+        String::from_utf8(array.values.iter().map(|x| x.to_u8().unwrap()).collect()).unwrap()
+      } else {
+        let mut result = "[".to_string();
+        for idx in 0..array.values.len() {
+          let value = array.values[idx].clone();
+          result += value.to_string().as_str();
+          if idx != array.values.len() - 1 {
+            result += ", "
+          }
+        }
+
+        result + "]"
+      },
+      Value::Layout(layout) => {
+        let mut result = format!("{}.{}{{", layout.module_name, layout.layout_name);
+        for idx in 0..layout.values.keys().len() {
+          let key = layout.values.keys().nth(idx).unwrap();
+          let value = layout.values.get(key).unwrap();
+          result += format!("'{}': {}", key, value.to_string()).as_str();
+          if idx != layout.values.len() - 1 {
+            result += ", "
+          }
+        }
+
+        result + "}"
+      },
+      Value::FunctionPointer(pointer) => format!("function {:?} {}", pointer.module, pointer.function),
+      Value::Reference(refer) => format!("{:?}", refer),
+      Value::Unsigned8(x) => x.to_string(),
+      Value::Unsigned16(x) => x.to_string(),
+      Value::Unsigned32(x) => x.to_string(),
+      Value::Unsigned64(x) => x.to_string(),
+      Value::Unsigned128(x) => x.to_string(),
+      Value::Signed8(x) => x.to_string(),
+      Value::Signed16(x) => x.to_string(),
+      Value::Signed32(x) => x.to_string(),
+      Value::Signed64(x) => x.to_string(),
+      Value::Signed128(x) => x.to_string(),
+      value => format!("{:?}", value),
+    }
+  }
+
+  pub fn index(&self, index: u64) -> Result<Value, String> {
+    match self {
+      Value::Array(array) => if (index as usize) <= array.values.len() {
+        Ok(array.values[index as usize].clone())
+      } else {
+        Err(format!("Array index out of bounds. Tried to index array of length {:?} with index {}", *array.length, index))
+      },
+      _ => Err(format!("Cannot index a {:?} :(", self.type_of())),
+    }
+  }
+
+  pub fn set_index(&mut self, index: u64, value: Value) -> Result<(), String> {
+    match self {
+      Value::Array(array) => if (index as usize) <= array.values.len() {
+        if Type::subset(&value.type_of(), &array.value_type) {
+          array.values[index as usize] = value.clone();
+          Ok(())
+        } else {
+          Err(format!("Cannot insert value {:?} of type {:?} into array of type {:?}", value, value.type_of(), array.value_type))
+        }
+      } else {
+        Err(format!("Array index out of bounds. Tried to index array of length {:?} with index {}", *array.length, index))
+      },
+      _ => Err(format!("Cannot index a {:?} :(", self.type_of())),
+    }
+  }
+
+  pub fn get_member(&self, member: String) -> Result<Value, String> {
+    match self {
+      Value::Layout(layout) => match layout.values.get(member.as_str()) {
+        Some(value) => Ok(value.clone()),
+        None => Err(format!("{:?} does not have the member '{}'", layout, member)),
+      }
+      Value::Array(array) => if member.as_str() == "length" {
+        Ok(*array.length.clone())
+      } else {
+        Err(format!("{:?} does not have the member '{}'", array, member))
+      }
+      _ => Err(format!("{:?} does not have any member variables", self.type_of())),
+    }
+  }
+
+  pub fn set_member(&mut self, member: String, value: Value) -> Result<(), String> {
+    match self {
+      Value::Layout(layout) => if layout.values.contains_key(member.as_str()) {
+        layout.values.insert(member, value);
+        Ok(())
+      } else {
+        Err(format!("{:?} does not have the member '{}'", layout, member))
+      }
+      Value::Array(_) => Err(format!("{:?} has no modifiable member variables", self.type_of())),
+      _ => Err(format!("{:?} does not have any member variables", self.type_of())),
     }
   }
 }

@@ -2,7 +2,6 @@ use super::{executioncontext::ExecutionContext, instruction::*, value::Value};
 use crate::hydro::exception::Exception;
 
 use crate::hydro::module::Module;
-use crate::hydro::value::{ArrayIndexRef, LayoutIndexRef, Reference};
 
 pub trait Executable {
   fn execute(&self, module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception>;
@@ -47,8 +46,10 @@ impl Instruction {
       Instruction::Load(x) => x.execute(module, context),
       Instruction::Store(x) => x.execute(module, context),
       Instruction::Allocate(x) => x.execute(module, context),
-      Instruction::ArrayIndex(x) => x.execute(module, context),
-      Instruction::LayoutIndex(x) => x.execute(module, context),
+      Instruction::GetArrayIndex(x) => x.execute(module, context),
+      Instruction::SetArrayIndex(x) => x.execute(module, context),
+      Instruction::GetLayoutIndex(x) => x.execute(module, context),
+      Instruction::SetLayoutIndex(x) => x.execute(module, context),
     }
   }
 }
@@ -705,7 +706,7 @@ impl Executable for Store {
   }
 }
 
-impl Executable for ArrayIndex {
+impl Executable for GetArrayIndex {
   fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 2 {
       return Err(Exception::new(
@@ -715,20 +716,51 @@ impl Executable for ArrayIndex {
     }
 
     let index = context.stack.pop().unwrap();
-    let reference = context.stack.pop().unwrap();
-    context
-      .stack
-      .push(Value::Reference(Reference::ArrayIndex(ArrayIndexRef::new(
-        Box::new(reference),
-        Box::new(index),
-      ))));
+    let array = context.stack.pop().unwrap();
+
+    match index.to_u64() {
+      Ok(result) => match array.index(result) {
+        Ok(value_from_array) => {
+          context.stack.push(array);
+          context.stack.push(value_from_array);
+        }
+        Err(message) => return Err(Exception::new(context.clone(), message.as_str())),
+      }
+      Err(message) => return Err(Exception::new(context.clone(), message.as_str())),
+    }
 
     context.program_counter += 1;
     Ok(true)
   }
 }
 
-impl Executable for LayoutIndex {
+impl Executable for SetArrayIndex {
+  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
+    if context.stack.len() < 3 {
+      return Err(Exception::new(
+        context.clone(),
+        "Unexpected number of stack values. Expected 3 and got less.",
+      ));
+    }
+
+    let value = context.stack.pop().unwrap();
+    let index = context.stack.pop().unwrap();
+    let mut array = context.stack.pop().unwrap();
+
+    match index.to_u64() {
+      Ok(result) => match array.set_index(result, value) {
+        Ok(()) => context.stack.push(array),
+        Err(message) => return Err(Exception::new(context.clone(), message.as_str())),
+      }
+      Err(message) => return Err(Exception::new(context.clone(), message.as_str())),
+    }
+
+    context.program_counter += 1;
+    Ok(true)
+  }
+}
+
+impl Executable for GetLayoutIndex {
   fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 1 {
       return Err(Exception::new(
@@ -737,10 +769,37 @@ impl Executable for LayoutIndex {
       ));
     }
 
-    let reference = context.stack.pop().unwrap();
-    context.stack.push(Value::Reference(Reference::LayoutIndex(
-      LayoutIndexRef::new(Box::new(reference), self.member.clone()),
-    )));
+    let layout = context.stack.pop().unwrap();
+
+    match layout.get_member(self.member.clone()) {
+      Ok(result) => {
+        context.stack.push(layout);
+        context.stack.push(result);
+      },
+      Err(message) => return Err(Exception::new(context.clone(), message.as_str())),
+    }
+
+    context.program_counter += 1;
+    Ok(true)
+  }
+}
+
+impl Executable for SetLayoutIndex {
+  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
+    if context.stack.len() < 2 {
+      return Err(Exception::new(
+        context.clone(),
+        "Unexpected number of stack values. Expected 2 and got less.",
+      ));
+    }
+
+    let value = context.stack.pop().unwrap();
+    let mut layout = context.stack.pop().unwrap();
+
+    match layout.set_member(self.member.clone(), value) {
+      Ok(_) => context.stack.push(layout),
+      Err(message) => return Err(Exception::new(context.clone(), message.as_str())),
+    }
 
     context.program_counter += 1;
     Ok(true)

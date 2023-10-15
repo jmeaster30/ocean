@@ -68,7 +68,10 @@ impl DebugContext {
       println!(
         "{}{:#?}{}",
         DebugContext::ansi_color_code("magenta"),
-        final_return_value,
+        match final_return_value {
+          Some(value) => value.to_string(),
+          None => "None".to_string(),
+        },
         DebugContext::ansi_color_code("cyan")
       );
     }

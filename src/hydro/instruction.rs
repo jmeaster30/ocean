@@ -43,8 +43,10 @@ pub enum Instruction {
 
   Load(Load),
   Store(Store),
-  ArrayIndex(ArrayIndex),
-  LayoutIndex(LayoutIndex),
+  GetArrayIndex(GetArrayIndex),
+  SetArrayIndex(SetArrayIndex),
+  GetLayoutIndex(GetLayoutIndex),
+  SetLayoutIndex(SetLayoutIndex),
   Allocate(Allocate),
 }
 
@@ -149,10 +151,18 @@ pub struct Load {}
 pub struct Store {}
 
 #[derive(Debug, Clone)]
-pub struct ArrayIndex {}
+pub struct SetArrayIndex {}
 
 #[derive(Debug, Clone)]
-pub struct LayoutIndex {
+pub struct GetArrayIndex {}
+
+#[derive(Debug, Clone)]
+pub struct SetLayoutIndex {
+  pub member: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct GetLayoutIndex {
   pub member: String,
 }
 
