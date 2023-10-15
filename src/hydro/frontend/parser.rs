@@ -199,6 +199,7 @@ impl Parser {
 
     match start_token.token_type {
       TokenType::Type => match start_token.lexeme.as_str() {
+        "any" => Type::Any,
         "bool" => Type::Boolean,
         "u8" => Type::Unsigned8,
         "u16" => Type::Unsigned16,
@@ -639,6 +640,7 @@ impl Parser {
           "s8" | "s16" | "s32" | "s64" | "s128" => TokenType::Type,
           "string" => TokenType::Type,
           "bool" => TokenType::Type,
+          "any" => TokenType::Type,
           "true" => TokenType::True,
           "false" => TokenType::False,
           "main" => TokenType::Main,

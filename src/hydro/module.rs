@@ -106,6 +106,7 @@ impl Module {
     context: &ExecutionContext,
   ) -> Result<Type, Exception> {
     match type_to_resolve {
+      Type::Any => Ok(type_to_resolve),
       Type::Float => Ok(type_to_resolve),
       Type::Boolean => Ok(type_to_resolve),
       Type::Unsigned8 => Ok(type_to_resolve),

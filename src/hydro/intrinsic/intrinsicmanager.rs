@@ -23,7 +23,7 @@ impl IntrinsicManager {
     };
 
     manager.add_map("print", print);
-    manager.add_map("print_char", print);
+    manager.add_map("println", println);
 
     manager
   }
@@ -35,8 +35,6 @@ impl IntrinsicManager {
   pub fn call(&self, intrinsic_name: String, execution_context: &ExecutionContext, arguments: Vec<Value>) -> Result<Vec<Value>, Exception> {
     self.mapping[&intrinsic_name](execution_context, arguments)
   }
-
-
 }
 
 fn print(context: &ExecutionContext, args: Vec<Value>) -> Result<Vec<Value>, Exception> {
@@ -46,6 +44,17 @@ fn print(context: &ExecutionContext, args: Vec<Value>) -> Result<Vec<Value>, Exc
     ).as_str()))
   } else {
     print!("{:?}", args[0]);
+    Ok(Vec::new())
+  }
+}
+
+fn println(context: &ExecutionContext, args: Vec<Value>) -> Result<Vec<Value>, Exception> {
+  if args.len() != 1 {
+    Err(Exception::new(context.clone(), format!(
+      "Expected 1 argument for print but got {}", args.len()
+    ).as_str()))
+  } else {
+    println!("{:?}", args[0]);
     Ok(Vec::new())
   }
 }

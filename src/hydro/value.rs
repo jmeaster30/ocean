@@ -3,6 +3,7 @@ use std::collections::HashMap;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Type {
+  Any,
   Boolean,
   Array(u64, Box<Type>),
   Layout(String, String, Option<HashMap<String, Type>>),
@@ -30,6 +31,7 @@ impl PartialOrd for Type {
 impl Type {
   pub fn default(&self) -> Value {
     match self {
+      Type::Any => todo!("default value for any type. This should likely not be possible"),
       Type::Boolean => Value::Boolean(false),
       Type::Unsigned8 => Value::Unsigned8(0),
       Type::Unsigned16 => Value::Unsigned16(0),
@@ -107,6 +109,7 @@ impl Type {
   pub fn subset(sub: &Type, sup: &Type) -> bool {
     // TODO type subsetting
     match (sub, sup) {
+      (_, Type::Any) => true,
       (Type::Boolean, Type::Boolean) => true,
       (Type::Unsigned8, Type::Unsigned8) => true,
       (Type::Unsigned16, Type::Unsigned16) => true,

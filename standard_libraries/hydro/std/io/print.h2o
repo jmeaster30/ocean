@@ -1,3 +1,6 @@
 module std.io.print
-intrinsic print_char output body
-    version vm { print }
+intrinsic print any body
+    version vm print
+
+intrinsic println any body
+    version vm println
