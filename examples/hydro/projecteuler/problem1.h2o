@@ -1,0 +1,43 @@
+% Multiples of 3 or 5
+% If we list all the natural numbers below 10 that are multiples of 3 or 5, we get 3, 5, 6 and 9. The sum of these multiples is 23.
+% Find the sum of all the multiples of 3 or 5 below 1000.
+
+module main
+main body
+    push u32 0 % total
+    push u32 1000 % current number
+    push u32 1
+    subtract % we are working on less than
+    label loopstart
+    duplicate
+    push u32 3
+    modulo
+    push u32 0
+    equal
+    branch div3 notdiv3
+    label div3
+    duplicate 1
+    add
+    swap
+    jump loopfinal
+    label notdiv3
+    duplicate
+    push u32 5
+    modulo
+    push u32 0
+    equal
+    branch div5 loopfinal
+    label div5
+    duplicate 1
+    add
+    swap
+    label loopfinal
+    push u32 1
+    subtract
+    duplicate
+    push u32 0
+    equal
+    branch exit loopstart
+    label exit
+    pop
+    return

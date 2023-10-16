@@ -176,9 +176,9 @@ impl Parser {
         | TokenType::Layout
         | TokenType::Using
         | TokenType::Main => break,
-        token_type => panic!(
-          "Expected to have an instruction here but read a {:?} :(",
-          token_type
+        _ => panic!(
+          "Expected to have an instruction here but read {:?} :(",
+          inst_token
         ),
       }
     }
@@ -296,7 +296,16 @@ impl Parser {
         })
       }
       TokenType::Pop => Instruction::PopValue(PopValue {}),
-      TokenType::Duplicate => Instruction::Duplicate(Duplicate {}),
+      TokenType::Duplicate => {
+        let offset = match self.optional_token_type(TokenType::Number) {
+          Some(token) => {
+            self.consume();
+            token.lexeme.parse::<usize>().unwrap()
+          }
+          None => 0,
+        };
+        Instruction::Duplicate(Duplicate { offset })
+      },
       TokenType::Swap => Instruction::Swap(Swap {}),
       TokenType::Add => Instruction::Add(Add {}),
       TokenType::Subtract => Instruction::Subtract(Subtract {}),

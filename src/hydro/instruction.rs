@@ -59,7 +59,9 @@ pub struct PushValue {
 pub struct PopValue {}
 
 #[derive(Debug, Clone)]
-pub struct Duplicate {}
+pub struct Duplicate {
+  pub offset: usize,
+}
 
 #[derive(Debug, Clone)]
 pub struct Swap {}

@@ -77,16 +77,17 @@ impl Executable for PopValue {
 
 impl Executable for Duplicate {
   fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
-    if context.stack.len() < 1 {
+    if context.stack.len() < 1 + self.offset {
       return Err(Exception::new(
         context.clone(),
-        "Unexpected number of stack values. Expected 1 but got 0.",
+        format!("Unexpected number of stack values. Expected 1 + {} but got {}.", self.offset, context.stack.len()).as_str(),
       ))
     }
 
     let value = context.stack.pop().unwrap();
-    context.stack.push(value.clone());
-    context.stack.push(value.clone());
+    // This shouldn't overflow because of our check above
+    context.stack.insert(context.stack.len().checked_sub(self.offset).unwrap(), value.clone());
+    context.stack.push(value);
 
     context.program_counter += 1;
     Ok(true)
