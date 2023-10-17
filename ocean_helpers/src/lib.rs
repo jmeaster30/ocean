@@ -3,6 +3,7 @@ use proc_macro::TokenStream;
 use std::cmp::min;
 use std::str::FromStr;
 
+// TODO I need to think much more deeply about if I want wrapping behavior for these operations
 #[proc_macro]
 pub fn make_add_operations(item: TokenStream) -> TokenStream {
   // a_value and b_value will be assumed to be resolved for ease of use
@@ -17,7 +18,7 @@ match (a, b) {
     for b in &unsigned {
       let max = if a < b { b } else { a };
       token_stream += format!(
-        "(Value::Unsigned{}(left), Value::Unsigned{}(right)) => Value::Unsigned{}(left as {} {} right as {}),\n",
+        "(Value::Unsigned{}(left), Value::Unsigned{}(right)) => Value::Unsigned{}((std::num::Wrapping(left as {}) {} std::num::Wrapping(right as {})).0),\n",
         a, b, max, format!("u{}", max), item, format!("u{}", max)
       ).as_str()
     }
@@ -27,7 +28,7 @@ match (a, b) {
     for b in &signed {
       let max = if a < b { b } else { a };
       token_stream += format!(
-        "(Value::Signed{}(left), Value::Signed{}(right)) => Value::Signed{}(left as {} {} right as {}),\n",
+        "(Value::Signed{}(left), Value::Signed{}(right)) => Value::Signed{}((std::num::Wrapping(left as {}) {} std::num::Wrapping(right as {})).0),\n",
         a, b, max, format!("i{}", max), item, format!("i{}", max)
       ).as_str()
     }
@@ -37,11 +38,11 @@ match (a, b) {
     for b in &unsigned {
       let max = if a <= b { min(128, b * 2) } else { *a };
       token_stream += format!(
-        "(Value::Signed{}(left), Value::Unsigned{}(right)) => Value::Signed{}(left as {} {} right as {}),\n",
+        "(Value::Signed{}(left), Value::Unsigned{}(right)) => Value::Signed{}((std::num::Wrapping(left as {}) {} std::num::Wrapping(right as {})).0),\n",
         a, b, max, format!("i{}", max), item, format!("i{}", max)
       ).as_str();
       token_stream += format!(
-        "(Value::Unsigned{}(left), Value::Signed{}(right)) => Value::Signed{}(left as {} {} right as {}),\n",
+        "(Value::Unsigned{}(left), Value::Signed{}(right)) => Value::Signed{}((std::num::Wrapping(left as {}) {} std::num::Wrapping(right as {})).0),\n",
         b, a, max, format!("i{}", max), item, format!("i{}", max)
       ).as_str();
     }
