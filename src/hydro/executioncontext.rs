@@ -41,13 +41,6 @@ impl ExecutionContext {
     }
   }
 
-  pub fn bool(&self, value: Value) -> bool {
-    match value {
-      Value::Boolean(x) => x,
-      _ => panic!("Bool does not make sense for this Value type :("),
-    }
-  }
-
   pub fn resolve(&self, value: Value) -> Result<Value, Exception> {
     match value {
       Value::Reference(base_reference) => match base_reference {

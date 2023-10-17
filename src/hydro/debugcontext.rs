@@ -100,19 +100,49 @@ impl DebugContext {
                   parsed.len()
                 );
               } else {
-                let pc = parsed[3].parse::<usize>();
-                if pc.is_err() {
-                  println!(
-                    "Couldn't convert '{}' into a unsigned integer :(",
-                    parsed[3]
-                  );
-                } else {
-                  println!(
-                    "Setting break point at {} -> {} -> pc {}",
-                    parsed[1], parsed[2], parsed[3]
-                  );
-                  self.set_break_point(parsed[1].to_string(), parsed[2].to_string(), pc.unwrap());
-                }
+                let value = match parsed[3].parse::<usize>() {
+                  Ok(value) => value, //TODO maybe add more checks in this like making sure the module and function exist and that the index is a valid index. Maybe print the instruction??
+                  Err(_) => if module.name == parsed[1] {
+                    match module.functions.get(parsed[2]) {
+                      Some(function) => match function.jump_labels.get(parsed[3]) {
+                        Some(value) => *value,
+                        None => {
+                          println!("Label '{}' does not exist for function '{}' in module '{}'", parsed[3], parsed[2], parsed[1]);
+                          continue
+                        }
+                      }
+                      None => {
+                        println!("Function '{}' does not exist in module '{}'", parsed[2], parsed[1]);
+                        continue
+                      }
+                    }
+                  } else {
+                    match module.modules.get(parsed[1]) {
+                      Some(module) => match module.functions.get(parsed[2]) {
+                        Some(function) => match function.jump_labels.get(parsed[3]) {
+                          Some(value) => *value,
+                          None => {
+                            println!("Label '{}' does not exist for function '{}' in module '{}'", parsed[3], parsed[2], parsed[1]);
+                            continue
+                          }
+                        }
+                        None => {
+                          println!("Function '{}' does not exist in module '{}'", parsed[2], parsed[1]);
+                          continue
+                        }
+                      }
+                      None => {
+                        println!("Module '{}' does not exist", parsed[1]);
+                        continue
+                      }
+                    }
+                  }
+                };
+                println!(
+                  "Setting break point at {} -> {} -> pc {}",
+                  parsed[1], parsed[2], parsed[3]
+                );
+                self.set_break_point(parsed[1].to_string(), parsed[2].to_string(), value);
               }
             }
             "continue" => match &execution_context {

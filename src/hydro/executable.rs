@@ -531,7 +531,10 @@ impl Executable for Branch {
     }
 
     let a = context.stack.pop().unwrap();
-    let result = context.bool(a);
+    let result = match a.to_bool() {
+      Ok(value) => value,
+      Err(message) => return Err(Exception::new(context.clone(), message.as_str())),
+    };
 
     let current_function = module.functions.get(context.current_function.as_str()).unwrap();
 

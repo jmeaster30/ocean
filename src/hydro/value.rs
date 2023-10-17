@@ -194,6 +194,13 @@ impl Value {
     }
   }
 
+  pub fn to_bool(&self) -> Result<bool, String> {
+    match self {
+      Value::Boolean(x) => Ok(*x),
+      _ => Err(format!("Cannot convert {:?} to a boolean value :(", self)),
+    }
+  }
+
   pub fn to_string(&self) -> String {
     match self {
       Value::Boolean(value) => if *value { "true" } else { "false" }.to_string(),
