@@ -18,6 +18,7 @@ impl Instruction {
       Instruction::PopValue(x) => x.execute(module, context),
       Instruction::Duplicate(x) => x.execute(module, context),
       Instruction::Swap(x) => x.execute(module, context),
+      Instruction::Rotate(x) => x.execute(module, context),
       Instruction::Add(x) => x.execute(module, context),
       Instruction::Subtract(x) => x.execute(module, context),
       Instruction::Multiply(x) => x.execute(module, context),
@@ -107,6 +108,28 @@ impl Executable for Swap {
     let b = context.stack.pop().unwrap();
     context.stack.push(a.clone());
     context.stack.push(b.clone());
+
+    context.program_counter += 1;
+    Ok(true)
+  }
+}
+
+impl Executable for Rotate {
+  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
+    if context.stack.len() < self.size {
+      return Err(Exception::new(
+        context.clone(),
+        format!("Unexpected number of stack values. Expected at least {} but got {}.", self.size, context.stack.len()).as_str(),
+      ))
+    }
+
+    if self.size == 0 {
+      context.program_counter += 1;
+      return Ok(true)
+    }
+
+    let value = context.stack.remove(context.stack.len() - self.size);
+    context.stack.push(value);
 
     context.program_counter += 1;
     Ok(true)

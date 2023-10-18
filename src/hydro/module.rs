@@ -106,7 +106,8 @@ impl Module {
   ) -> Result<Type, Exception> {
     match type_to_resolve {
       Type::Any => Ok(type_to_resolve),
-      Type::Float => Ok(type_to_resolve),
+      Type::Float32 => Ok(type_to_resolve),
+      Type::Float64 => Ok(type_to_resolve),
       Type::Boolean => Ok(type_to_resolve),
       Type::Unsigned8 => Ok(type_to_resolve),
       Type::Unsigned16 => Ok(type_to_resolve),

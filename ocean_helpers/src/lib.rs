@@ -13,6 +13,7 @@ match (a, b) {
 
   let unsigned = vec![8, 16, 32, 64, 128];
   let signed = vec![8, 16, 32, 64, 128];
+  let floated = vec![32, 64];
 
   for a in &unsigned {
     for b in &unsigned {
@@ -44,6 +45,44 @@ match (a, b) {
       token_stream += format!(
         "(Value::Unsigned{}(left), Value::Signed{}(right)) => Value::Signed{}((std::num::Wrapping(left as {}) {} std::num::Wrapping(right as {})).0),\n",
         b, a, max, format!("i{}", max), item, format!("i{}", max)
+      ).as_str();
+    }
+  }
+
+  for a in &floated {
+    for b in &floated {
+      let max = if a <= b { b } else { a };
+      token_stream += format!(
+        "(Value::Float{}(left), Value::Float{}(right)) => Value::Float{}((left as f{}) {} (right as f{})),\n",
+        a, b, max, max, item, max
+      ).as_str();
+    }
+  }
+
+  for a in &floated {
+    for b in &unsigned {
+      // TODO I think this is wrong
+      token_stream += format!(
+        "(Value::Float{}(left), Value::Unsigned{}(right)) => Value::Float{}((left as f{}) {} (right as f{})),\n",
+        a, b, a, a, item, a
+      ).as_str();
+      token_stream += format!(
+        "(Value::Unsigned{}(left), Value::Float{}(right)) => Value::Float{}((left as f{}) {} (right as f{})),\n",
+        b, a, a, a, item, a
+      ).as_str();
+    }
+  }
+
+  for a in &floated {
+    for b in &signed {
+      // TODO I think this is wrong
+      token_stream += format!(
+        "(Value::Float{}(left), Value::Signed{}(right)) => Value::Float{}((left as f{}) {} (right as f{})),\n",
+        a, b, a, a, item, a
+      ).as_str();
+      token_stream += format!(
+        "(Value::Signed{}(left), Value::Float{}(right)) => Value::Float{}((left as f{}) {} (right as f{})),\n",
+        b, a, a, a, item, a
       ).as_str();
     }
   }
@@ -121,6 +160,7 @@ match (a, b) {
 
   let unsigned = vec![8, 16, 32, 64, 128];
   let signed = vec![8, 16, 32, 64, 128];
+  let floated = vec![32, 64];
 
   for a in &unsigned {
     for b in &unsigned {
@@ -149,6 +189,44 @@ match (a, b) {
       token_stream += format!(
         "(Value::Unsigned{}(left), Value::Signed{}(right)) => Value::Boolean((left as i128) {} (right as i128)),\n",
         b, a, item
+      ).as_str();
+    }
+  }
+
+  for a in &floated {
+    for b in &floated {
+      let max = if a <= b { b } else { a };
+      token_stream += format!(
+        "(Value::Float{}(left), Value::Float{}(right)) => Value::Boolean((left as f{}) {} (right as f{})),\n",
+        a, b, max, item, max
+      ).as_str();
+    }
+  }
+
+  for a in &floated {
+    for b in &unsigned {
+      // TODO I think this is wrong
+      token_stream += format!(
+        "(Value::Float{}(left), Value::Unsigned{}(right)) => Value::Boolean((left as f{}) {} (right as f{})),\n",
+        a, b, a, item, a
+      ).as_str();
+      token_stream += format!(
+        "(Value::Unsigned{}(left), Value::Float{}(right)) => Value::Boolean((left as f{}) {} (right as f{})),\n",
+        b, a, a, item, a
+      ).as_str();
+    }
+  }
+
+  for a in &floated {
+    for b in &signed {
+      // TODO I think this is wrong
+      token_stream += format!(
+        "(Value::Float{}(left), Value::Signed{}(right)) => Value::Boolean((left as f{}) {} (right as f{})),\n",
+        a, b, a, item, a
+      ).as_str();
+      token_stream += format!(
+        "(Value::Signed{}(left), Value::Float{}(right)) => Value::Boolean((left as f{}) {} (right as f{})),\n",
+        b, a, a, item, a
       ).as_str();
     }
   }

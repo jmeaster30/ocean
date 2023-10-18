@@ -133,6 +133,7 @@ impl Parser {
         | TokenType::Pop
         | TokenType::Duplicate
         | TokenType::Swap
+        | TokenType::Rotate
         | TokenType::Add
         | TokenType::Subtract
         | TokenType::Multiply
@@ -307,6 +308,13 @@ impl Parser {
         Instruction::Duplicate(Duplicate { offset })
       },
       TokenType::Swap => Instruction::Swap(Swap {}),
+      TokenType::Rotate => {
+        let size_token = self.expect_token_type(TokenType::Number);
+        self.consume();
+        Instruction::Rotate(Rotate {
+          size: size_token.lexeme.parse::<usize>().unwrap(),
+        })
+      }
       TokenType::Add => Instruction::Add(Add {}),
       TokenType::Subtract => Instruction::Subtract(Subtract {}),
       TokenType::Multiply => Instruction::Multiply(Multiply {}),
@@ -469,6 +477,8 @@ impl Parser {
       "s32" => Value::Signed32(0),
       "s64" => Value::Signed64(0),
       "s128" => Value::Signed128(0),
+      "f32" => Value::Float32(0.0),
+      "f64" => Value::Float64(0.0),
       _ => panic!("Unexpected type string"),
     }
   }
@@ -537,6 +547,14 @@ impl Parser {
       "s128" => match value_lexeme.parse::<i128>() {
         Ok(value) => Ok(Value::Signed128(value)),
         Err(_) => Err(format!("Couldn't parse '{}' into a s128", value_lexeme)),
+      },
+      "f32" => match value_lexeme.parse::<f32>() {
+        Ok(value) => Ok(Value::Float32(value)),
+        Err(_) => Err(format!("Couldn't parse '{}' into an f32", value_lexeme)),
+      },
+      "f64" => match value_lexeme.parse::<f64>() {
+        Ok(value) => Ok(Value::Float64(value)),
+        Err(_) => Err(format!("Couldn't parse '{}' into an f64", value_lexeme)),
       },
       _ => Err("Unexpected type string".to_string()),
     }
@@ -660,6 +678,7 @@ impl Parser {
         let token_type = match lexeme.to_lowercase().as_str() {
           "u8" | "u16" | "u32" | "u64" | "u128" => TokenType::Type,
           "s8" | "s16" | "s32" | "s64" | "s128" => TokenType::Type,
+          "f32" | "f64" => TokenType::Type,
           "string" => TokenType::Type,
           "bool" => TokenType::Type,
           "any" => TokenType::Type,
@@ -681,6 +700,7 @@ impl Parser {
           "pop" => TokenType::Pop,
           "duplicate" => TokenType::Duplicate,
           "swap" => TokenType::Swap,
+          "rotate" => TokenType::Rotate,
           "add" => TokenType::Add,
           "subtract" => TokenType::Subtract,
           "multiply" => TokenType::Multiply,

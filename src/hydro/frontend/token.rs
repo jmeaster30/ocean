@@ -27,6 +27,7 @@ pub enum TokenType {
   Pop,
   Duplicate,
   Swap,
+  Rotate,
   Add,
   Subtract,
   Multiply,

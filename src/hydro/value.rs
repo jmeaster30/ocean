@@ -19,7 +19,9 @@ pub enum Type {
   Signed32,
   Signed64,
   Signed128,
-  Float,
+  Float32,
+  Float64,
+  // TODO I want F8 to F128 but we are limited by rust types for now
 }
 
 impl PartialOrd for Type {
@@ -43,7 +45,8 @@ impl Type {
       Type::Signed32 => Value::Signed32(0),
       Type::Signed64 => Value::Signed64(0),
       Type::Signed128 => Value::Signed128(0),
-      Type::Float => todo!(),
+      Type::Float32 => Value::Float32(0.0),
+      Type::Float64 => Value::Float64(0.0),
       Type::FunctionPointer(_, _) => todo!("default value for function pointer. Should this even be possible??"),
       Type::Array(length, subtype) => {
         let mut values = Vec::new();
@@ -72,40 +75,6 @@ impl Type {
     }
   }
 
-  pub fn min(t: Type) -> Value {
-    match t {
-      Type::Boolean => Value::Boolean(false),
-      Type::Unsigned8 => Value::Unsigned8(u8::MIN),
-      Type::Unsigned16 => Value::Unsigned16(u16::MIN),
-      Type::Unsigned32 => Value::Unsigned32(u32::MIN),
-      Type::Unsigned64 => Value::Unsigned64(u64::MIN),
-      Type::Unsigned128 => Value::Unsigned128(u128::MIN),
-      Type::Signed8 => Value::Signed8(i8::MIN),
-      Type::Signed16 => Value::Signed16(i16::MIN),
-      Type::Signed32 => Value::Signed32(i32::MIN),
-      Type::Signed64 => Value::Signed64(i64::MIN),
-      Type::Signed128 => Value::Signed128(i128::MIN),
-      _ => panic!("This type doesn't have a minimum"),
-    }
-  }
-
-  pub fn max(t: Type) -> Value {
-    match t {
-      Type::Boolean => Value::Boolean(true),
-      Type::Unsigned8 => Value::Unsigned8(u8::MAX),
-      Type::Unsigned16 => Value::Unsigned16(u16::MAX),
-      Type::Unsigned32 => Value::Unsigned32(u32::MAX),
-      Type::Unsigned64 => Value::Unsigned64(u64::MAX),
-      Type::Unsigned128 => Value::Unsigned128(u128::MAX),
-      Type::Signed8 => Value::Signed8(i8::MAX),
-      Type::Signed16 => Value::Signed16(i16::MAX),
-      Type::Signed32 => Value::Signed32(i32::MAX),
-      Type::Signed64 => Value::Signed64(i64::MAX),
-      Type::Signed128 => Value::Signed128(i128::MAX),
-      _ => panic!("This type doesn't have a maximum"),
-    }
-  }
-
   pub fn subset(sub: &Type, sup: &Type) -> bool {
     // TODO type subsetting
     match (sub, sup) {
@@ -121,6 +90,8 @@ impl Type {
       (Type::Signed32, Type::Signed32) => true,
       (Type::Signed64, Type::Signed64) => true,
       (Type::Signed128, Type::Signed128) => true,
+      (Type::Float32, Type::Float32) => true,
+      (Type::Float64, Type::Float64) => true,
       _ => false,
     }
   }
@@ -146,7 +117,8 @@ pub enum Value {
   Signed64(i64),
   Signed128(i128),
 
-  Float,
+  Float32(f32),
+  Float64(f64),
 }
 
 impl Value {
@@ -167,7 +139,8 @@ impl Value {
       Value::Signed32(_) => Type::Signed32,
       Value::Signed64(_) => Type::Signed64,
       Value::Signed128(_) => Type::Signed128,
-      Value::Float => Type::Float,
+      Value::Float32(_) => Type::Float32,
+      Value::Float64(_) => Type::Float64,
     }
   }
 
@@ -183,6 +156,8 @@ impl Value {
       Value::Signed32(x) => Ok(*x as u64),
       Value::Signed64(x) => Ok(*x as u64),
       Value::Signed128(x) => Ok(*x as u64),
+      Value::Float32(x) => Ok(*x as u64),
+      Value::Float64(x) => Ok(*x as u64),
       _ => Err(format!("Cannot convert {:?} to u64", self)),
     }
   }
@@ -243,6 +218,8 @@ impl Value {
       Value::Signed32(x) => x.to_string(),
       Value::Signed64(x) => x.to_string(),
       Value::Signed128(x) => x.to_string(),
+      Value::Float32(x) => x.to_string(),
+      Value::Float64(x) => x.to_string(),
       value => format!("{:?}", value),
     }
   }
