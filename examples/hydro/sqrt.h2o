@@ -48,12 +48,14 @@ function isqrt u32 body
     add
     push u32 2
     divide
+    label calculatedmid
     % stack is top > mid > start > end > target
     duplicate duplicate
     multiply
     % stack is top > mid*mid > mid > start > end > target
     rotate 5
     duplicate 4
+    label thistest
     % stack is top > target > mid*mid > mid > start > end > target
     duplicate 1 swap duplicate 1
     equal
@@ -67,17 +69,36 @@ function isqrt u32 body
     greaterthanequal
     branch buildans buildend
     label buildans
-    % TODO
+    % stack is top > mid > start > end > target
+    swap pop
+    duplicate
+    push u32 1
+    add
+    % stack is top > mid+1 > mid > end > target
+    swap
+    rotate 4
+    rotate 4
+    rotate 4 % hmmmm?? potentially a negative rotate? or some other way to encode the direction of the rotation
     label buildend
-    % TODO
+    % stack is top > mid > start > end > target
+    push u32 1
+    subtract
+    % stack is top > mid-1 > start > end > target
+    rotate 3
+    pop
+    swap
+    label here
     jump loopstart
     label endloop
+    pop
+    pop
+    return
 
 
 module main
 using math
 main body
-    push u32 100
-    push funcp math sqrt
+    push u32 64
+    push funcp math isqrt
     call
     return
