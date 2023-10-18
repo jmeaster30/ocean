@@ -18,23 +18,22 @@
 
 
 module math
-function isqrt u32 body
+function isqrt u128 body
     % if we are equal to 0 or 1 then return that value
     duplicate
-    push u32 0
+    push u128 0
     equal
     branch earlyreturn check1
     label earlyreturn
     return
     label check1
     duplicate
-    push u32 1
+    push u128 1
     equal
     branch earlyreturn complicated
     label complicated
     duplicate % end
-    push u32 0 % start
-
+    push u128 0 % start
     label loopstart
     % stack is top > start > end > target
     duplicate 1 swap duplicate 1
@@ -46,7 +45,7 @@ function isqrt u32 body
     duplicate 1 swap duplicate 1
     % stack is top > start > end > start > end > target
     add
-    push u32 2
+    push u128 2
     divide
     label calculatedmid
     % stack is top > mid > start > end > target
@@ -72,33 +71,31 @@ function isqrt u32 body
     % stack is top > mid > start > end > target
     swap pop
     duplicate
-    push u32 1
+    push u128 1
     add
     % stack is top > mid+1 > mid > end > target
     swap
     rotate 4
     rotate 4
     rotate 4 % hmmmm?? potentially a negative rotate? or some other way to encode the direction of the rotation
+    jump loopstart
     label buildend
     % stack is top > mid > start > end > target
-    push u32 1
+    push u128 1
     subtract
     % stack is top > mid-1 > start > end > target
     rotate 3
     pop
     swap
-    label here
     jump loopstart
     label endloop
-    pop
-    pop
+    pop pop pop
     return
-
 
 module main
 using math
 main body
-    push u32 64
+    push u128 600851475143
     push funcp math isqrt
     call
     return
