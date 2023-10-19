@@ -1,21 +1,57 @@
-%def mySqrt(x):
-%        # return int(math.sqrt(x))
-%        if x==0 or x==1:
-%            return x
-%        else:
-%            start = 0
-%            end = x
-%            while (start <= end):
-%                mid = int((start + end) / 2)
-%                if (mid*mid == x):
-%                    return mid
-%                elif (mid*mid < x):
-%                    start = mid + 1
-%                    ans = mid
-%                else:
-%                    end = mid - 1
-%            return ans
+% Largest Prime Factor
+% The prime factors fo 13195 are 5, 7, 13, and 29.
+% What is the largest prime factor of the number 600851475143?
 
+module main
+using math
+main body
+    push u128 600851475143
+    duplicate
+    push funcp math isqrt
+    call
+    push u128 1
+    add
+    swap
+    push u128 2
+    % stack top > current_number > target > max
+    label loopstart
+    % check if we are at the end
+    rotate 3
+    duplicate 1 swap duplicate 1
+    % stack top > current_number > max > current_number > max > target
+    lessthanequal
+    branch loopend divisorcheck
+    label divisorcheck
+    % stack top > current_number > max > target
+    rotate 3
+    swap
+    % stack top > current_number > target > max
+    % do divisor check
+    duplicate 1 swap duplicate 1 swap
+    modulo
+    % stack top > target%current_number > target > current_number > max
+    push u128 0
+    equal
+    branch founddivisor notdivisor
+    label founddivisor
+    % stack top > target > current_number > max
+    swap
+    duplicate 1
+    divide
+    % stack top > target/current_number > current_number > max
+    % intentionally don't increment current_number
+    swap
+    jump loopstart
+    label notdivisor
+    % stack top > target > current_number > max
+    swap
+    push u128 1
+    add
+    jump loopstart
+    label loopend
+    pop
+    pop
+    return
 
 module math
 function isqrt u128 body
@@ -88,12 +124,4 @@ function isqrt u128 body
     jump loopstart
     label endloop
     pop pop pop
-    return
-
-module main
-using math
-main body
-    push u128 600851475143
-    push funcp math isqrt
-    call
     return
