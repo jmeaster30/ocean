@@ -23,12 +23,20 @@ TYPE -> u8
       | NUMBER TYPE
       | IDENTIFIER IDENTIFIER
       .
-PROGRAM -> module IDENTIFIER FUNCTIONS PROGRAM
+PROGRAM -> module IDENTIFIER MODULEBODY PROGRAM
          | 
          .
-FUNCTIONS -> FUNCTION FUNCTIONS
-           |
-           .
+MODULEBODY -> FUNCTION MODULEBODY
+            | USING MODULEBODY
+            | LAYOUT MODULEBODY
+            |
+            .
+USING -> using IDENTIFIER
+       .
+LAYOUT -> layout MEMBERS
+MEMBERS -> TYPE IDENTIFIER MEMBERS
+         | TYPE IDENTIFIER
+         .
 FUNCTION -> main PARAMETERS body INSTRUCTIONS
           | function IDENTIFIER PARAMETERS body INSTRUCTIONS
           .
