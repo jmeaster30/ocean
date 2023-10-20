@@ -1,0 +1,20 @@
+{
+  parserClass="com.syrency.ocean.language.parser.HydroParser"
+
+  extends="com.intellij.extapi.psi.ASTWrapperPsiElement"
+
+  psiClassPrefix="Hydro"
+  psiImplClassSuffix="Impl"
+  psiPackage="com.syrency.ocean.language.psi"
+  psiImplPackage="com.syrency.ocean.language.psi.impl"
+
+  elementTypeHolderClass="com.syrency.ocean.language.psi.HydroTypes"
+  elementTypeClass="com.syrency.ocean.language.psi.HydroElementType"
+  tokenTypeClass="com.syrency.ocean.language.HydroTokenType"
+}
+
+sourceFile ::= module*
+
+private module ::= 'module' IDENTIFIER
+
+property ::= (KEY? SEPARATOR VALUE?) | KEY
