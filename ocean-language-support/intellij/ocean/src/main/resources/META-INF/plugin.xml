@@ -28,5 +28,6 @@
       fieldName="INSTANCE"
       language="Hydro"
       extensions="h2o"/>
+    <lang.parserDefinition language="Hydro" implementationClass="com.syrency.ocean.language.HydroParserDefinition"/>
   </extensions>
 </idea-plugin>

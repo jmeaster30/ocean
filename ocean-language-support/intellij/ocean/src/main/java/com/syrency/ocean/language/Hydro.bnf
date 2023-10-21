@@ -10,11 +10,74 @@
 
   elementTypeHolderClass="com.syrency.ocean.language.psi.HydroTypes"
   elementTypeClass="com.syrency.ocean.language.psi.HydroElementType"
-  tokenTypeClass="com.syrency.ocean.language.HydroTokenType"
+  tokenTypeClass="com.syrency.ocean.language.psi.HydroTokenType"
+
+  generateTokenAccessors = true
+
+  tokens=[
+    NUMBER='regexp:-?(([0-9]+)|([0-9]*\.[0-9]+))'
+    BOOLEAN='regexp:true|false'
+    KEYWORD='regexp:module|using|layout|function|main|body|funcp|vref|iref|label|alloc|push|pop|duplicate|rotate|swap|add|subtract|multiply|divide|modulo|leftshift|rightshift|bitwiseand|bitwiseor|bitwisexor|bitwisenot|and|or|xor|not|equal|notequal|lessthan|greaterthan|lessthanequal|greaterthanequal|jump|branch|call|return|load|store|getindex|setindex'
+    BASETYPE='regexp:u8|u16|u32|u64|u128|s8|s16|s32|s64|s128|string|bool|any|f32|f64'
+    STRING="regexp:(['\"].*['\"])"
+    COMMENT='regexp:%.*'
+    IDENTIFIER='regexp:[0-9a-zA-Z.\-_\\/]+'
+  ]
 }
 
 sourceFile ::= module*
 
-private module ::= 'module' IDENTIFIER
+module ::= 'module' (IDENTIFIER | 'main') module_body
 
-property ::= (KEY? SEPARATOR VALUE?) | KEY
+private module_body ::= (using_node | layout_node | function_node)*
+using_node ::= 'using' IDENTIFIER
+layout_node ::= 'layout' layout_member*
+layout_member ::= type IDENTIFIER
+function_node ::= (('function' IDENTIFIER) | 'main') type* 'body' instruction*
+type ::= (BASETYPE | (NUMBER type) | type_layout)
+type_layout ::= module_name layout_name
+private module_name ::= IDENTIFIER
+private layout_name ::= IDENTIFIER
+instruction ::= (
+    ('alloc' type)
+    | ('push' (type (NUMBER | STRING | BOOLEAN) | func_pointer | ref))
+    | 'pop'
+    | ('duplicate' NUMBER?)
+    | ('rotate' NUMBER)
+    | 'swap'
+    | 'add'
+    | 'subtract'
+    | 'multiply'
+    | 'divide'
+    | 'modulo'
+    | 'leftshift'
+    | 'rightshift'
+    | 'bitwiseand'
+    | 'bitwiseor'
+    | 'bitwisexor'
+    | 'bitwisenot'
+    | 'and'
+    | 'or'
+    | 'xor'
+    | 'not'
+    | 'equal'
+    | 'notequal'
+    | 'lessthan'
+    | 'greaterthan'
+    | 'lessthanequal'
+    | 'greaterthanequal'
+    | ('label' IDENTIFIER)
+    | ('jump' target)
+    | ('branch' target target)
+    | 'call'
+    | 'return'
+    | 'load'
+    | 'store'
+    | ('getindex' IDENTIFIER?)
+    | ('setindex' IDENTIFIER?)
+)
+target ::= NUMBER | IDENTIFIER
+private func_pointer ::= 'funcp' module_name layout_name
+private variable_name ::= IDENTIFIER
+private index_name ::= IDENTIFIER
+ref ::= ('vref' variable_name | 'iref' ref index_name)

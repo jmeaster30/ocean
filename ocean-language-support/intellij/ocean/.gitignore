@@ -37,3 +37,7 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+
+idea-flex.skeleton
+jflex-1.9.1.jar
+**/gen/*
