@@ -29,5 +29,7 @@
       language="Hydro"
       extensions="h2o"/>
     <lang.parserDefinition language="Hydro" implementationClass="com.syrency.ocean.language.HydroParserDefinition"/>
+    <lang.syntaxHighlighterFactory language="Hydro" implementationClass="com.syrency.ocean.language.HydroSyntaxHighlighterFactory"/>
+    <colorSettingsPage implementation="com.syrency.ocean.language.HydroColorSettingsPage"/>
   </extensions>
 </idea-plugin>

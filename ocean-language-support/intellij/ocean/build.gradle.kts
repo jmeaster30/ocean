@@ -2,6 +2,7 @@ plugins {
   id("java")
   id("org.jetbrains.kotlin.jvm") version "1.9.0"
   id("org.jetbrains.intellij") version "1.15.0"
+  id("org.jetbrains.grammarkit") version "2022.3.2"
 }
 
 group = "com.syrency"
@@ -29,8 +30,22 @@ intellij {
 }
 
 tasks {
+  generateLexer {
+    sourceFile.set(file("src/main/java/com/syrency/ocean/language/Hydro.flex"))
+    targetDir.set("src/main/gen/com/syrency/ocean/language/")
+    targetClass.set("HydroLexer")
+    purgeOldFiles.set(true)
+  }
+  generateParser {
+    sourceFile.set(file("src/main/java/com/syrency/ocean/language/Hydro.bnf"))
+    targetRoot.set("src/main/gen")
+    pathToParser.set("com/syrency/ocean/language/parser/HydroParser.java")
+    pathToPsiRoot.set("com/syrency/ocean/language/psi")
+    purgeOldFiles.set(true)
+  }
   // Set the JVM compatibility versions
   withType<JavaCompile> {
+    dependsOn(generateLexer, generateParser)
     sourceCompatibility = "17"
     targetCompatibility = "17"
   }
