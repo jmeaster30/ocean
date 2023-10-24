@@ -126,10 +126,10 @@ impl Parser {
     let mut targets = HashMap::new();
 
     loop {
-      let target_token = self.expect_one_of(vec![TokenType::Target, TokenType::Intrinsic, TokenType::Function, TokenType::Module, TokenType::Using]);
+      let target_token = self.expect_one_of(vec![TokenType::Target, TokenType::Intrinsic, TokenType::Function, TokenType::Main, TokenType::Module, TokenType::Using]);
       match target_token.token_type {
         TokenType::Target => self.consume(),
-        TokenType::Intrinsic | TokenType::Function | TokenType::Module | TokenType::Using => break,
+        TokenType::Intrinsic | TokenType::Function | TokenType::Module | TokenType::Using | TokenType::Main => break,
         _ => panic!("Uh oh this shouldn't have been hit")
       };
 

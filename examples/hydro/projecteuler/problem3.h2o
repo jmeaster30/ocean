@@ -4,6 +4,7 @@
 
 module main
 using math
+
 main body
     push u128 600851475143
     duplicate
@@ -15,6 +16,7 @@ main body
     push u128 2
     % stack top > current_number > target > max
     label loopstart
+
     % check if we are at the end
     rotate 3
     duplicate 1 swap duplicate 1
@@ -38,6 +40,11 @@ main body
     swap
     duplicate 1
     divide
+    duplicate
+    push u32 1
+    equal
+    branch preloopend notone
+    label notone
     % stack top > target/current_number > current_number > max
     % intentionally don't increment current_number
     swap
@@ -48,6 +55,8 @@ main body
     push u128 1
     add
     jump loopstart
+    label preloopend
+    duplicate
     label loopend
     pop
     pop
