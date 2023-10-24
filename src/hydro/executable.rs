@@ -1,5 +1,6 @@
 use super::{executioncontext::ExecutionContext, instruction::*, value::Value};
 use crate::hydro::exception::Exception;
+use crate::hydro::intrinsic::intrinsicmanager::INTRINSIC_MANAGER;
 
 use crate::hydro::module::Module;
 
@@ -604,54 +605,87 @@ impl Executable for Call {
           None => module,
         };
 
-        let target_function = match target_module
+        match target_module
           .functions
           .get(func_pointer.function.clone().as_str())
         {
-          Some(func) => func,
-          None => {
-            return Err(Exception::new(
+          Some(target_function) => {
+            if context.stack.len() < target_function.parameters.len() {
+              return Err(Exception::new(
+                context.clone(),
+                format!(
+                  "Unexpected number of stack values. Expected {} and got {}.",
+                  target_function.parameters.len(),
+                  context.stack.len()
+                )
+                  .as_str(),
+              ));
+            }
+
+            let mut arguments = Vec::new();
+            for _ in &target_function.parameters {
+              let param_value = context.stack.pop().unwrap();
+              arguments.insert(0, param_value);
+            }
+
+            let return_value = target_module.execute(
+              func_pointer.function,
+              arguments,
+              Some(Box::new(context.clone())),
+            );
+            match return_value {
+              Ok(optional_return) => match optional_return {
+                Some(value) => context.stack.push(value),
+                None => {}
+              },
+              Err(e) => return Err(e),
+            }
+          },
+          None => match target_module.intrinsics.get(func_pointer.function.clone().as_str()) {
+            Some(target_intrinsic) => {
+              if context.stack.len() < target_intrinsic.parameters.len() {
+                return Err(Exception::new(
+                  context.clone(),
+                  format!(
+                    "Unexpected number of stack values. Expected {} and got {}.",
+                    target_intrinsic.parameters.len(),
+                    context.stack.len()
+                  )
+                    .as_str(),
+                ));
+              }
+
+              let mut arguments = Vec::new();
+              for _ in &target_intrinsic.parameters {
+                let param_value = context.stack.pop().unwrap();
+                arguments.insert(0, param_value);
+              }
+
+              let code = match target_intrinsic.get_intrinsic_code("vm".to_string()) {
+                Ok(code) => code,
+                Err(message) => return Err(Exception::new(
+                  context.clone(),
+                  message.as_str(),
+                ))
+              };
+
+              let return_value = INTRINSIC_MANAGER.call(code, context, arguments);
+              match return_value {
+                Ok(mut values) => context.stack.append(&mut values),
+                Err(e) => return Err(e),
+              }
+            }
+            None => return Err(Exception::new(
               context.clone(),
               format!(
                 "Could not find function '{}' in module '{}'",
                 func_pointer.function.clone().as_str(),
                 target_module.name
               )
-              .as_str(),
+                .as_str(),
             ))
           }
         };
-
-        if context.stack.len() < target_function.parameters.len() {
-          return Err(Exception::new(
-            context.clone(),
-            format!(
-              "Unexpected number of stack values. Expected {} and got {}.",
-              target_function.parameters.len(),
-              context.stack.len()
-            )
-            .as_str(),
-          ));
-        }
-
-        let mut arguments = Vec::new();
-        for _ in &target_function.parameters {
-          let param_value = context.stack.pop().unwrap();
-          arguments.insert(0, param_value);
-        }
-
-        let return_value = target_module.execute(
-          func_pointer.function,
-          arguments,
-          Some(Box::new(context.clone())),
-        );
-        match return_value {
-          Ok(optional_return) => match optional_return {
-            Some(value) => context.stack.push(value),
-            None => {}
-          },
-          Err(e) => return Err(e),
-        }
       }
       _ => {
         return Err(Exception::new(

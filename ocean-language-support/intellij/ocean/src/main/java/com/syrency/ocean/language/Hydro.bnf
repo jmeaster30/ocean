@@ -29,11 +29,13 @@ sourceFile ::= module*
 
 module ::= 'module' (IDENTIFIER | main_node) module_body
 
-private module_body ::= (using_node | layout_node | function_node)*
+private module_body ::= (using_node | layout_node | function_node | intrinsic_node)*
 using_node ::= 'using' IDENTIFIER
 layout_node ::= 'layout' IDENTIFIER layout_member*
 layout_member ::= type IDENTIFIER
 function_node ::= (('function' IDENTIFIER) | main_node) type* 'body' instruction*
+intrinsic_node ::= 'intrinsic' IDENTIFIER type* 'body' intrinsic_target*
+intrinsic_target ::= 'target' IDENTIFIER STRING
 type ::= (BASETYPE | (NUMBER type) | type_layout)
 type_layout ::= module_name layout_name
 main_node ::= 'main'

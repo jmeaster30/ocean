@@ -220,7 +220,6 @@ impl Value {
       Value::Signed128(x) => x.to_string(),
       Value::Float32(x) => x.to_string(),
       Value::Float64(x) => x.to_string(),
-      value => format!("{:?}", value),
     }
   }
 

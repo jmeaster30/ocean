@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use crate::hydro::frontend::token::{Token, TokenType};
 use crate::hydro::function::{Function, Target};
 use crate::hydro::instruction::*;
@@ -11,6 +12,7 @@ use regex::Regex;
 use std::fs::File;
 use std::io;
 use std::io::Read;
+use crate::hydro::intrinsic::Intrinsic;
 
 pub struct Parser {
   file_contents: Vec<char>,
@@ -71,11 +73,15 @@ impl Parser {
           let func = self.parse_function();
           module = module.function(func);
         }
+        TokenType::Intrinsic => {
+          let intrinsic = self.parse_intrinsic();
+          module = module.intrinsic(intrinsic);
+        }
         TokenType::Module => {
           break;
         }
         _ => panic!(
-          "Unexpected token in module statement. Expected 'using', 'layout', 'main', or 'function'"
+          "Unexpected token in module statement. Expected 'using', 'layout', 'intrinsic', 'main', or 'function'"
         ),
       }
     }
@@ -89,6 +95,52 @@ impl Parser {
     let identifier_token = self.expect_token_type(TokenType::Identifier);
     self.consume();
     identifier_token.lexeme
+  }
+
+  fn parse_intrinsic(&mut self) -> Intrinsic {
+    let _ = self.expect_token_type(TokenType::Intrinsic);
+    self.consume();
+
+    let identifier_token = self.expect_token_type(TokenType::Identifier);
+    self.consume();
+
+    let mut parameter_types = Vec::new();
+    loop {
+      let id_token = self.expect_one_of(vec![TokenType::Type,
+                                             TokenType::Identifier,
+                                             TokenType::This,
+                                             TokenType::Number, TokenType::Body]);
+      match id_token.token_type {
+        TokenType::Identifier | TokenType::Type | TokenType::Number | TokenType::This => {
+          let param_type = self.parse_type();
+          parameter_types.push(param_type);
+        },
+        TokenType::Body => break,
+        _ => {}
+      }
+    }
+
+    let _ = self.expect_token_type(TokenType::Body);
+    self.consume();
+
+    let mut targets = HashMap::new();
+
+    loop {
+      let target_token = self.expect_one_of(vec![TokenType::Target, TokenType::Intrinsic, TokenType::Function, TokenType::Module, TokenType::Using]);
+      match target_token.token_type {
+        TokenType::Target => self.consume(),
+        TokenType::Intrinsic | TokenType::Function | TokenType::Module | TokenType::Using => break,
+        _ => panic!("Uh oh this shouldn't have been hit")
+      };
+
+      let identifier = self.expect_token_type(TokenType::Identifier);
+      self.consume();
+      let intrinsic_contents = self.expect_token_type(TokenType::String);
+      self.consume();
+      targets.insert(identifier.lexeme, intrinsic_contents.lexeme[1..intrinsic_contents.lexeme.len() - 1].to_string());
+    }
+
+    return Intrinsic::new(identifier_token.lexeme, parameter_types, targets);
   }
 
   fn parse_function(&mut self) -> Function {
@@ -176,7 +228,8 @@ impl Parser {
         | TokenType::Function
         | TokenType::Layout
         | TokenType::Using
-        | TokenType::Main => break,
+        | TokenType::Main
+        | TokenType::Intrinsic => break,
         _ => panic!(
           "Expected to have an instruction here but read {:?} :(",
           inst_token
@@ -447,7 +500,7 @@ impl Parser {
       let type_token = self.expect_token();
       match type_token.token_type {
         TokenType::Type => self.consume(),
-        TokenType::Module | TokenType::Function | TokenType::Layout | TokenType::Using => break,
+        TokenType::Module | TokenType::Function | TokenType::Layout | TokenType::Using | TokenType::Intrinsic => break,
         _ => panic!("Expected to have a type token here :("),
       }
 
@@ -691,6 +744,8 @@ impl Parser {
           "module" => TokenType::Module,
           "using" => TokenType::Using,
           "function" => TokenType::Function,
+          "intrinsic" => TokenType::Intrinsic,
+          "target" => TokenType::Target,
           "body" => TokenType::Body,
           "layout" => TokenType::Layout,
           "array" => TokenType::Array,
@@ -781,7 +836,7 @@ impl Parser {
         } else {
           panic!(
             "Expected token type {:?} but got {:?}",
-            token_type, token.token_type
+            token_type, token
           );
         }
       }
@@ -810,7 +865,7 @@ impl Parser {
         } else {
           panic!(
             "Expected one of {:?} but got {:?}",
-            token_types, token.token_type
+            token_types, token
           );
         }
       }

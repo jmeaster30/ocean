@@ -1,6 +1,16 @@
 module std.io.print
 intrinsic print any body
-    version vm print
+    target vm "print"
 
 intrinsic println any body
-    version vm println
+    target vm "println"
+
+module main
+using std.io.print
+main body
+    push u32 1234
+    push funcp std.io.print println
+    call
+    push string "oh baby"
+    push funcp std.io.print println
+    call

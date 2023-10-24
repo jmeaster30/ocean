@@ -7,7 +7,7 @@ use crate::hydro::value::Value;
 // TODO This way kinda sucks a lot and the name implies it would handle code output for non-vm intrinsic functions
 
 lazy_static! {
-  static ref INTRINSIC_MANAGER: IntrinsicManager = IntrinsicManager::initialize();
+  pub static ref INTRINSIC_MANAGER: IntrinsicManager = IntrinsicManager::initialize();
 }
 
 type IntrinsicFunction = fn(&ExecutionContext, Vec<Value>) -> Result<Vec<Value>, Exception>;
@@ -43,7 +43,7 @@ fn print(context: &ExecutionContext, args: Vec<Value>) -> Result<Vec<Value>, Exc
       "Expected 1 argument for print but got {}", args.len()
     ).as_str()))
   } else {
-    print!("{:?}", args[0]);
+    print!("{}", args[0].to_string());
     Ok(Vec::new())
   }
 }
@@ -54,7 +54,7 @@ fn println(context: &ExecutionContext, args: Vec<Value>) -> Result<Vec<Value>, E
       "Expected 1 argument for print but got {}", args.len()
     ).as_str()))
   } else {
-    println!("{:?}", args[0]);
+    println!("{}", args[0].to_string());
     Ok(Vec::new())
   }
 }

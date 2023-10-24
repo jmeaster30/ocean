@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use crate::hydro::exception::Exception;
 use crate::hydro::executioncontext::ExecutionContext;
 use crate::hydro::function::Function;
+use crate::hydro::intrinsic::Intrinsic;
 use crate::hydro::layouttemplate::LayoutTemplate;
 use crate::hydro::value::{Type, Value};
 
@@ -14,6 +15,11 @@ pub struct Module {
   pub modules: HashMap<String, Module>,
   pub layout_templates: HashMap<String, LayoutTemplate>,
   pub functions: HashMap<String, Function>,
+  pub intrinsics: HashMap<String, Intrinsic>,
+}
+
+impl Module {
+
 }
 
 impl Module {
@@ -38,6 +44,7 @@ impl Module {
         .iter()
         .map(|x| (x.clone().name, x.clone()))
         .collect::<HashMap<String, Function>>(),
+      intrinsics: HashMap::new(),
     }
   }
 
@@ -48,6 +55,7 @@ impl Module {
       modules: HashMap::new(),
       layout_templates: HashMap::new(),
       functions: HashMap::new(),
+      intrinsics: HashMap::new(),
     }
   }
 
@@ -68,6 +76,11 @@ impl Module {
 
   pub fn function(mut self, function: Function) -> Self {
     self.functions.insert(function.name.clone(), function);
+    self
+  }
+
+  pub fn intrinsic(mut self, intrinsic: Intrinsic) -> Module {
+    self.intrinsics.insert(intrinsic.name.clone(), intrinsic);
     self
   }
 

@@ -86,6 +86,7 @@ fn main() -> std::io::Result<()> {
         }
         "hydro-debug" => {
           let module = Hydro::compile(arguments.get("Source File").unwrap().as_str())?;
+          println!("{:#?}", module);
           let mut debug_context = DebugContext::new();
 
           let return_value = module.debug(

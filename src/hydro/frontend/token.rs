@@ -17,6 +17,8 @@ pub enum TokenType {
   Using,
   Module,
   Function,
+  Intrinsic,
+  Target,
   Body,
   Layout,
   Array,
