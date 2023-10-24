@@ -1,13 +1,13 @@
 use crate::hydro::function::Function;
 use crate::hydro::module::Module;
-use crate::hydro::value::Value;
+use crate::hydro::value::{Type, Value};
 
 #[test]
 fn test_push_return() {
   let module = Module::build("main").function(
     Function::build("main")
       .push_value(Value::Unsigned32(420))
-      .return_(),
+      .ret(),
   );
 
   let return_value = module.execute("main".to_string(), Vec::new(), None);
@@ -32,7 +32,7 @@ fn test_add() {
       .push_value(Value::Unsigned32(420))
       .push_value(Value::Unsigned32(69))
       .add()
-      .return_(),
+      .ret(),
   );
 
   let return_value = module.execute("main".to_string(), Vec::new(), None);
@@ -44,17 +44,17 @@ fn test_add() {
 fn test_add_with_variable() {
   let module = Module::build("main").function(
     Function::build("main")
-      .parameter("coolNumber")
+      .parameter(Type::Unsigned32)
       .var_ref("coolNumber")
       .load()
       .push_value(Value::Unsigned32(69))
       .add()
-      .return_(),
+      .ret(),
   );
 
   let return_value = module.execute(
     "main".to_string(),
-    vec![("coolNumber".to_string(), Value::Unsigned32(420))],
+    vec![Value::Unsigned32(420)],
     None,
   );
 
