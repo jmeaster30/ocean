@@ -160,9 +160,10 @@ impl Parser {
       let id_token = self.expect_one_of(vec![TokenType::Type,
                                              TokenType::Identifier,
                                              TokenType::This,
-                                             TokenType::Number, TokenType::Body]);
+                                             TokenType::Array,
+                                             TokenType::Body]);
       match id_token.token_type {
-        TokenType::Identifier | TokenType::Type | TokenType::Number | TokenType::This => {
+        TokenType::Identifier | TokenType::Type | TokenType::Array | TokenType::This => {
           let param_type = self.parse_type();
           function = function.parameter(param_type);
         },
@@ -248,7 +249,7 @@ impl Parser {
       TokenType::Type,
       TokenType::Identifier,
       TokenType::This,
-      TokenType::Number,
+      TokenType::Array,
     ]);
     self.consume();
 
@@ -266,6 +267,8 @@ impl Parser {
         "s32" => Type::Signed32,
         "s64" => Type::Signed64,
         "s128" => Type::Signed128,
+        "f32" => Type::Float32,
+        "f64" => Type::Float64,
         _ => panic!("Unexpected type string"),
       },
       TokenType::Identifier | TokenType::This => {
@@ -273,8 +276,15 @@ impl Parser {
         self.consume();
         Type::Layout(start_token.lexeme, layout_token.lexeme, None)
       }
-      TokenType::Number => {
-        let length = start_token.lexeme.parse::<u64>().unwrap();
+      TokenType::Array => {
+        let length = match self.optional_token_type(TokenType::Number) {
+          Some(length) => {
+            self.consume();
+            Some(length.lexeme.parse::<u64>().unwrap())
+          }
+          None => None
+        };
+
         let subtype = self.parse_type();
 
         Type::Array(length, Box::new(subtype))
@@ -289,8 +299,32 @@ impl Parser {
 
     match inst_token.token_type {
       TokenType::Alloc => {
-        let allocated_type = self.parse_type();
-        Instruction::Allocate(Allocate { allocated_type })
+        match self.optional_token_type(TokenType::Array) {
+          Some(_) => {
+            self.consume();
+            match self.optional_token_type(TokenType::Number) {
+              Some(array_size ) => {
+                self.consume();
+                let array_sub_type = self.parse_type();
+                Instruction::AllocateArray(AllocateArray {
+                  array_size: Some(array_size.lexeme.parse::<u64>().unwrap()),
+                  array_sub_type
+                })
+              }
+              None => {
+                let array_sub_type = self.parse_type();
+                Instruction::AllocateArray(AllocateArray {
+                  array_size: None,
+                  array_sub_type
+                })
+              }
+            }
+          }
+          None => {
+            let allocated_type = self.parse_type();
+            Instruction::Allocate(Allocate { allocated_type })
+          }
+        }
       }
       TokenType::Push => {
         let type_token = self.expect_token();
@@ -557,7 +591,7 @@ impl Parser {
           .collect::<Vec<Value>>();
         Ok(Value::Array(Array::create(
           Type::Unsigned8,
-          Box::new(Value::Unsigned64(value_lexeme.len() as u64)),
+          Box::new(Value::Unsigned64((value_lexeme.len() - 2) as u64)),
           bytes,
         )))
       }

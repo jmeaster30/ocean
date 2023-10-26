@@ -5,7 +5,7 @@ use std::collections::HashMap;
 pub enum Type {
   Any,
   Boolean,
-  Array(u64, Box<Type>),
+  Array(Option<u64>, Box<Type>),
   Layout(String, String, Option<HashMap<String, Type>>),
   FunctionPointer(Vec<Type>, Box<Type>),
   Reference(Box<Type>),
@@ -50,12 +50,20 @@ impl Type {
       Type::FunctionPointer(_, _) => todo!("default value for function pointer. Should this even be possible??"),
       Type::Array(length, subtype) => {
         let mut values = Vec::new();
-        for _ in 0..*length {
-          values.push((*subtype).default());
+        match length {
+          Some(length) => {
+            for _ in 0..*length {
+              values.push((*subtype).default());
+            }
+          }
+          None => {}
         }
         Value::Array(Array {
           value_type: (**subtype).clone(),
-          length: Box::new(Value::Unsigned64(*length)),
+          length: Box::new(Value::Unsigned64(match length {
+            Some(length) => *length,
+            None => 0,
+          })),
           values,
         })
       }
@@ -79,6 +87,15 @@ impl Type {
     // TODO type subsetting
     match (sub, sup) {
       (_, Type::Any) => true,
+      (Type::Array(left_size, left_subtype), Type::Array(right_size, right_subtype)) => if Type::subset(left_subtype, right_subtype) {
+        match (left_size, right_size) {
+          (_, None) => true,
+          (None, _) => true,
+          (Some(left_size), Some(right_size)) => *left_size == *right_size, // TODO this could do subsetting as well
+        }
+      } else {
+        false
+      }
       (Type::Boolean, Type::Boolean) => true,
       (Type::Unsigned8, Type::Unsigned8) => true,
       (Type::Unsigned16, Type::Unsigned16) => true,
@@ -125,7 +142,7 @@ impl Value {
   pub fn type_of(&self) -> Type {
     match self {
       Value::Boolean(_) => Type::Boolean,
-      Value::Array(array) => Type::Array(array.length.to_u64().unwrap(), Box::new(array.value_type.clone())),
+      Value::Array(array) => Type::Array(Some(array.length.to_u64().unwrap()), Box::new(array.value_type.clone())),
       Value::Layout(_) => todo!(),
       Value::FunctionPointer(_) => todo!(),
       Value::Reference(_) => todo!(),
@@ -225,7 +242,7 @@ impl Value {
 
   pub fn index(&self, index: u64) -> Result<Value, String> {
     match self {
-      Value::Array(array) => if (index as usize) <= array.values.len() {
+      Value::Array(array) => if (index as usize) < array.values.len() {
         Ok(array.values[index as usize].clone())
       } else {
         Err(format!("Array index out of bounds. Tried to index array of length {:?} with index {}", *array.length, index))
@@ -236,7 +253,7 @@ impl Value {
 
   pub fn set_index(&mut self, index: u64, value: Value) -> Result<(), String> {
     match self {
-      Value::Array(array) => if (index as usize) <= array.values.len() {
+      Value::Array(array) => if (index as usize) < array.values.len() {
         if Type::subset(&value.type_of(), &array.value_type) {
           array.values[index as usize] = value.clone();
           Ok(())

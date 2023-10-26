@@ -1,0 +1,54 @@
+module main
+function reverse array u8 body
+    getindex length
+    duplicate
+    alloc array u8
+    rotate 3
+    % stack top > old array > new array > length
+    push u64 0
+    duplicate 1
+    label loopstart
+
+    % stack top > index > old array > index > new array > length
+    getindex
+    % stack top > value > old array > index > new array > length
+    rotate 4 swap rotate 4 duplicate 2
+    % stack top > index > value > new array > index > old array > length
+    % stack top > length > index > value > new array > index > old array
+    rotate 6
+    duplicate 5
+    swap
+    subtract
+    push u64 1
+    subtract
+    swap
+    setindex
+    % stack top > new array > index > old array > length
+    rotate 4 rotate 3
+    % stack top > index > length > new array > old array
+    push u32 1
+    add
+    duplicate 1 swap duplicate 1
+    % stack top > length > index > length > index > new array > old array
+    label testing
+    equal
+    branch loopend fixup
+    label fixup
+    % stack top > length > index > new array > old array
+    rotate 4
+    rotate 4
+    rotate 4 % it would be nice to have a negative rotate so we don't need multiple instructions for this
+    duplicate
+    rotate 4
+    swap
+    jump loopstart
+    label loopend
+    pop
+    pop
+    return
+
+main body
+    push string "hello"
+    push funcp this reverse
+    call
+    return

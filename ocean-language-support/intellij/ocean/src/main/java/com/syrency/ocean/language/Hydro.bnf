@@ -36,14 +36,14 @@ layout_member ::= type IDENTIFIER
 function_node ::= (('function' IDENTIFIER) | main_node) type* 'body' instruction*
 intrinsic_node ::= 'intrinsic' IDENTIFIER type* 'body' intrinsic_target*
 intrinsic_target ::= 'target' IDENTIFIER STRING
-type ::= (BASETYPE | (NUMBER type) | type_layout)
+type ::= (BASETYPE | ('array' NUMBER? type) | type_layout)
 type_layout ::= module_name layout_name
 main_node ::= 'main'
 this_node ::= 'this'
 private module_name ::= (IDENTIFIER | main_node | this_node)
 private layout_name ::= IDENTIFIER
 instruction ::= (
-    ('alloc' type)
+    ('alloc' ('array' NUMBER?)? type)
     | ('push' (type (NUMBER | STRING | BOOLEAN) | func_pointer | ref))
     | 'pop'
     | ('duplicate' NUMBER?)

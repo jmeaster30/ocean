@@ -3,6 +3,7 @@ use crate::hydro::exception::Exception;
 use crate::hydro::intrinsic::intrinsicmanager::INTRINSIC_MANAGER;
 
 use crate::hydro::module::Module;
+use crate::hydro::value::Type;
 
 pub trait Executable {
   fn execute(&self, module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception>;
@@ -48,6 +49,7 @@ impl Instruction {
       Instruction::Load(x) => x.execute(module, context),
       Instruction::Store(x) => x.execute(module, context),
       Instruction::Allocate(x) => x.execute(module, context),
+      Instruction::AllocateArray(x) => x.execute(module, context),
       Instruction::GetArrayIndex(x) => x.execute(module, context),
       Instruction::SetArrayIndex(x) => x.execute(module, context),
       Instruction::GetLayoutIndex(x) => x.execute(module, context),
@@ -872,7 +874,7 @@ impl Executable for Allocate {
     if context.stack.len() < 1 {
       return Err(Exception::new(
         context.clone(),
-        "Unexpected number of stack values. Expected 2 and got 1.",
+        "Unexpected number of stack values. Expected 1 and got 0.",
       ));
     }
 
@@ -891,6 +893,39 @@ impl Executable for Allocate {
     }
 
     context.stack.push(value_reference.clone());
+
+    context.program_counter += 1;
+    Ok(true)
+  }
+}
+
+impl Executable for AllocateArray {
+  fn execute(&self, module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
+    if context.stack.len() < (if self.array_size.is_none() { 1 } else { 0 }) {
+      return Err(Exception::new(
+        context.clone(),
+        "Unexpected number of stack values. Expected 1 and got 0.",
+      ));
+    }
+
+    let array_size = match self.array_size {
+      Some(array_size) => array_size,
+      None => match context.stack.pop().unwrap().to_u64() {
+        Ok(value) => value,
+        Err(message) => {
+          return Err(Exception::new(
+            context.clone(),
+            message.as_str(),
+          ))
+        }
+      }
+    };
+
+    let allocated = module
+      .resolve_type(Type::Array(Some(array_size), Box::new(self.array_sub_type.clone())), context)?
+      .default();
+
+    context.stack.push(allocated);
 
     context.program_counter += 1;
     Ok(true)

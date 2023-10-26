@@ -49,6 +49,7 @@ pub enum Instruction {
   GetLayoutIndex(GetLayoutIndex),
   SetLayoutIndex(SetLayoutIndex),
   Allocate(Allocate),
+  AllocateArray(AllocateArray),
 }
 
 #[derive(Debug, Clone)]
@@ -177,6 +178,12 @@ pub struct GetLayoutIndex {
 #[derive(Debug, Clone)]
 pub struct Allocate {
   pub allocated_type: Type,
+}
+
+#[derive(Debug, Clone)]
+pub struct AllocateArray {
+  pub array_size: Option<u64>,
+  pub array_sub_type: Type,
 }
 
 #[derive(Debug, Clone)]
