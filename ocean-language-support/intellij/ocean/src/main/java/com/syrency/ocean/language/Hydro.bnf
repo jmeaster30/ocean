@@ -17,7 +17,7 @@
   tokens=[
     NUMBER='regexp:-?(([0-9]+)|([0-9]*\.[0-9]+))'
     BOOLEAN='regexp:true|false'
-    KEYWORD='regexp:module|using|layout|function|main|this|body|funcp|vref|iref|label|alloc|push|pop|duplicate|rotate|swap|add|subtract|multiply|divide|modulo|leftshift|rightshift|bitwiseand|bitwiseor|bitwisexor|bitwisenot|and|or|xor|not|equal|notequal|lessthan|greaterthan|lessthanequal|greaterthanequal|jump|branch|call|return|load|store|getindex|setindex'
+    KEYWORD='regexp:module|using|layout|function|main|this|body|cast|funcp|vref|iref|label|alloc|push|pop|duplicate|rotate|swap|add|subtract|multiply|divide|modulo|leftshift|rightshift|bitwiseand|bitwiseor|bitwisexor|bitwisenot|and|or|xor|not|equal|notequal|lessthan|greaterthan|lessthanequal|greaterthanequal|jump|branch|call|return|load|store|getindex|setindex'
     BASETYPE='regexp:u8|u16|u32|u64|u128|s8|s16|s32|s64|s128|string|bool|any|f32|f64'
     STRING="regexp:(['\"].*['\"])"
     COMMENT='regexp:%.*'
@@ -77,6 +77,7 @@ instruction ::= (
     | 'return'
     | 'load'
     | 'store'
+    | ('cast' type)
     | ('getindex' IDENTIFIER?)
     | ('setindex' IDENTIFIER?)
 )

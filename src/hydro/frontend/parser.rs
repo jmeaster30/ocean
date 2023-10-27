@@ -215,7 +215,8 @@ impl Parser {
         | TokenType::Load
         | TokenType::Store
         | TokenType::GetIndex
-        | TokenType::SetIndex => {
+        | TokenType::SetIndex
+        | TokenType::Cast => {
           let instruction = self.parse_instruction();
           function = function.inst(instruction);
         }
@@ -269,6 +270,7 @@ impl Parser {
         "s128" => Type::Signed128,
         "f32" => Type::Float32,
         "f64" => Type::Float64,
+        "string" => Type::Array(None, Box::new(Type::Unsigned8)),
         _ => panic!("Unexpected type string"),
       },
       TokenType::Identifier | TokenType::This => {
@@ -325,6 +327,10 @@ impl Parser {
             Instruction::Allocate(Allocate { allocated_type })
           }
         }
+      }
+      TokenType::Cast => {
+        let parsed_type = self.parse_type();
+        Instruction::Cast(Cast { to_type: parsed_type })
       }
       TokenType::Push => {
         let type_token = self.expect_token();
@@ -820,6 +826,7 @@ impl Parser {
           "store" => TokenType::Store,
           "getindex" => TokenType::GetIndex,
           "setindex" => TokenType::SetIndex,
+          "cast" => TokenType::Cast,
           _ => {
             if number_re.is_match(lexeme.as_str()) {
               TokenType::Number

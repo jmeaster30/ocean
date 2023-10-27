@@ -54,6 +54,7 @@ impl Instruction {
       Instruction::SetArrayIndex(x) => x.execute(module, context),
       Instruction::GetLayoutIndex(x) => x.execute(module, context),
       Instruction::SetLayoutIndex(x) => x.execute(module, context),
+      Instruction::Cast(x) => x.execute(module, context),
     }
   }
 }
@@ -926,6 +927,30 @@ impl Executable for AllocateArray {
       .default();
 
     context.stack.push(allocated);
+
+    context.program_counter += 1;
+    Ok(true)
+  }
+}
+
+impl Executable for Cast {
+  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
+    if context.stack.len() < 1 {
+      return Err(Exception::new(
+        context.clone(),
+        "Unexpected number of stack values. Expected 1 and got 0.",
+      ));
+    }
+
+    let value = context.stack.pop().unwrap();
+
+    match value.to_type(self.to_type.clone()) {
+      Ok(value) => context.stack.push(value),
+      Err(message) => return Err(Exception::new(
+        context.clone(),
+        message.as_str(),
+      )),
+    }
 
     context.program_counter += 1;
     Ok(true)

@@ -8,7 +8,6 @@ function reverse array u8 body
     push u64 0
     duplicate 1
     label loopstart
-
     % stack top > index > old array > index > new array > length
     getindex
     % stack top > value > old array > index > new array > length

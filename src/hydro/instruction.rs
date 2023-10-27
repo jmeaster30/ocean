@@ -41,6 +41,7 @@ pub enum Instruction {
 
   Call(Call),
   Return(Return),
+  Cast(Cast),
 
   Load(Load),
   Store(Store),
@@ -176,6 +177,11 @@ pub struct GetLayoutIndex {
 }
 
 #[derive(Debug, Clone)]
+pub struct Cast {
+  pub to_type: Type,
+}
+
+#[derive(Debug, Clone)]
 pub struct Allocate {
   pub allocated_type: Type,
 }
@@ -184,17 +190,4 @@ pub struct Allocate {
 pub struct AllocateArray {
   pub array_size: Option<u64>,
   pub array_sub_type: Type,
-}
-
-#[derive(Debug, Clone)]
-pub struct Breakpoint {}
-
-#[derive(Debug, Clone)]
-pub struct ProfileStart {
-  pub name: String,
-}
-
-#[derive(Debug, Clone)]
-pub struct ProfileStop {
-  pub name: String,
 }

@@ -62,6 +62,7 @@ impl Instruction {
       Instruction::SetLayoutIndex(x) => x.debug(module, context, debug_context),
       Instruction::Allocate(x) => x.debug(module, context, debug_context),
       Instruction::AllocateArray(x) => x.debug(module, context, debug_context),
+      Instruction::Cast(x) => x.debug(module, context, debug_context),
     }
   }
 }
@@ -1181,4 +1182,30 @@ impl Debuggable for AllocateArray {
     return result;
   }
 }
+
+impl Debuggable for Cast {
+  fn debug(
+    &self,
+    module: &Module,
+    context: &mut ExecutionContext,
+    debug_context: &mut DebugContext,
+  ) -> Result<bool, Exception> {
+    let metric_name = "cast".to_string();
+    debug_context.metric_tracker.start(format!(
+      "{}.{}.{}",
+      context.current_module.clone(),
+      context.current_function.clone(),
+      metric_name.clone(),
+    ));
+    let result = self.execute(module, context);
+    debug_context.metric_tracker.stop(format!(
+      "{}.{}.{}",
+      context.current_module.clone(),
+      context.current_function.clone(),
+      metric_name.clone(),
+    ));
+    return result;
+  }
+}
+
 

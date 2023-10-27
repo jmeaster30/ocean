@@ -161,6 +161,21 @@ impl Value {
     }
   }
 
+  pub fn to_type(&self, to_type: Type) -> Result<Value, String> {
+    match (self.type_of(), to_type.clone()) {
+      (_, Type::Array(None, subtype)) if Type::subset(&*subtype, &Type::Unsigned8) => {
+        let str = self.to_string();
+        Ok(Value::Array(Array {
+          length: Box::new(Value::Unsigned64(str.len() as u64)),
+          values: str.as_bytes().iter().map(|x| Value::Unsigned8(*x)).collect::<Vec<Value>>(),
+          value_type: Type::Unsigned8,
+        }))
+      }
+      (a, b) if a == b => Ok(self.clone()),
+      _ => Err(format!("Cast from {:?} to {:?} is invalid", self.type_of(), to_type))
+    }
+  }
+
   pub fn to_u64(&self) -> Result<u64, String> {
     match self {
       Value::Unsigned8(x) => Ok(*x as u64),

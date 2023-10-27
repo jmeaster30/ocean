@@ -60,7 +60,7 @@ pub enum TokenType {
   Store,
   GetIndex,
   SetIndex,
-
+  Cast,
   True,
   False,
 }

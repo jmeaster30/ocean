@@ -1,0 +1,7 @@
+module main
+main body
+    push u32 100
+    cast string
+    push u32 100
+    add
+    return

@@ -400,6 +400,18 @@ impl ExecutionContext {
   pub fn equal(&self, a_value: Value, b_value: Value) -> Value {
     match (a_value, b_value) {
       (Value::Boolean(a), Value::Boolean(b)) => Value::Boolean(a == b),
+      (Value::Array(a), Value::Array(b)) => if a.value_type == b.value_type && a.length == b.length {
+        let mut result = true;
+        for (left, right) in a.values.iter().zip(b.values.iter()) {
+          if !self.equal(left.clone(), right.clone()).to_bool().unwrap() {
+            result = false;
+            break;
+          }
+        }
+        Value::Boolean(result)
+      } else {
+        Value::Boolean(false)
+      }
       (a, b) => make_comparison_operations!(==),
     }
   }
