@@ -3,26 +3,14 @@ use crate::util::tokentrait::TokenTrait;
 
 #[test]
 fn test_token_is_lexeme() {
-  let token = Token::new(
-    "test".to_string(),
-    TokenType::Identifier,
-    (0, 0),
-    (0, 0),
-    (0, 0),
-  );
+  let token = Token::new("test".to_string(), TokenType::Identifier, (0, 0), (0, 0), (0, 0));
 
   assert!(token.is_lexeme("test"));
 }
 
 #[test]
 fn test_token_is_token_type_id_1() {
-  let token = Token::new(
-    "test".to_string(),
-    TokenType::Identifier,
-    (0, 0),
-    (0, 0),
-    (0, 0),
-  );
+  let token = Token::new("test".to_string(), TokenType::Identifier, (0, 0), (0, 0), (0, 0));
 
   assert!(token.is_token_type(TokenType::Identifier));
 }

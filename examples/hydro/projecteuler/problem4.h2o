@@ -1,0 +1,126 @@
+% Largest Palindrome Product
+% A palindromic number reads the same both ways. The largest palindrome mad from the product of two 2-digit numbers is
+% 9009 = 91 * 99.
+% Find the largest palindrome made from the product of two 3-digit numbers.
+
+
+% loop from 999 to 100
+%
+
+module main
+main body
+    push u32 0 % result
+    push u32 999 % a
+
+    label outerloopstart
+    duplicate
+    push u32 100
+    lessthan
+    branch outerloopend innerloopinit
+    label innerloopinit
+    push u32 999 %b
+    label innerloopstart
+    % stack top > b > a > result
+    duplicate 1 swap duplicate 1
+    % stack top > a > b > a > b > result
+    greaterthanequal
+    branch innerloopcheck2 innerloopfinish
+    label innerloopcheck2
+    % stack a > b > result
+    swap
+    duplicate
+    push u32 100
+    lessthan
+    branch innerloopfinish innerloopbody
+    label innerloopbody
+    % stack a > b > result
+    duplicate 1 swap duplicate 1
+    % stack b > a > b > a > result
+    multiply
+    duplicate
+    cast string
+    duplicate
+    push funcp this reverse
+    call
+    equal
+    branch checkifnewresult innerloopfix
+    label checkifnewresult
+    % stack a*b > b > a > result
+    rotate 4
+    duplicate 1 swap duplicate 1
+    % stack a*b > result > a*b > result > b > a
+    lessthan
+    branch newresult sameresult
+    label newresult
+    % stack a*b > result > b > a
+    swap
+    label sameresult
+    pop
+    rotate 3
+    rotate 3
+    jump innerloopend
+    label innerloopfix
+    pop
+    label innerloopend
+    % stack b > a > result
+    push u32 1
+    subtract
+    jump innerloopstart
+
+    label innerloopfinish
+    % stack top > a > b > result
+    swap pop
+    push u32 1
+    subtract
+    jump outerloopstart
+
+    label outerloopend
+    pop
+    return
+
+function reverse array u8 body
+    getindex length
+    duplicate
+    alloc array u8
+    rotate 3
+    % stack top > old array > new array > length
+    push u64 0
+    duplicate 1
+    label loopstart
+    % stack top > index > old array > index > new array > length
+    getindex
+    % stack top > value > old array > index > new array > length
+    rotate 4 swap rotate 4 duplicate 2
+    % stack top > index > value > new array > index > old array > length
+    % stack top > length > index > value > new array > index > old array
+    rotate 6
+    duplicate 5
+    swap
+    subtract
+    push u64 1
+    subtract
+    swap
+    setindex
+    % stack top > new array > index > old array > length
+    rotate 4 rotate 3
+    % stack top > index > length > new array > old array
+    push u32 1
+    add
+    duplicate 1 swap duplicate 1
+    % stack top > length > index > length > index > new array > old array
+    label testing
+    equal
+    branch loopend fixup
+    label fixup
+    % stack top > length > index > new array > old array
+    rotate 4
+    rotate 4
+    rotate 4 % it would be nice to have a negative rotate so we don't need multiple instructions for this
+    duplicate
+    rotate 4
+    swap
+    jump loopstart
+    label loopend
+    pop
+    pop
+    return

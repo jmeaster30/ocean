@@ -1,7 +1,7 @@
-use std::collections::HashMap;
 use crate::hydro::function::Target::{Index, Label};
 use crate::hydro::instruction::*;
 use crate::hydro::value::{Reference, Type, Value, VariableRef};
+use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
 pub enum Target {
@@ -19,20 +19,14 @@ pub struct Function {
 
 impl Function {
   pub fn new(name: String, parameters: Vec<Type>, body: Vec<Instruction>) -> Self {
-    Self {
-      name,
-      parameters,
-      body,
-      jump_labels: HashMap::new(),
-    }
+    Self { name, parameters, body, jump_labels: HashMap::new() }
   }
 
-  pub fn get_target_pointer(&self, target: Target) -> Result<usize, String>
-  {
+  pub fn get_target_pointer(&self, target: Target) -> Result<usize, String> {
     match target {
       Label(label_name) => match self.jump_labels.get(label_name.as_str()) {
         Some(result) => Ok(*result),
-        None => Err(format!("Label not found '{}'", label_name))
+        None => Err(format!("Label not found '{}'", label_name)),
       },
       Index(result) => Ok(result),
     }
@@ -57,11 +51,7 @@ impl Function {
   }
 
   pub fn var_ref(mut self, variable_name: &str) -> Self {
-    self.body.push(Instruction::PushValue(PushValue {
-      value: Value::Reference(Reference::Variable(VariableRef::new(
-        variable_name.to_string(),
-      ))),
-    }));
+    self.body.push(Instruction::PushValue(PushValue { value: Value::Reference(Reference::Variable(VariableRef::new(variable_name.to_string()))) }));
     self
   }
 

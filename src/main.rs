@@ -1,5 +1,3 @@
-//#![deny(warnings)]
-
 pub mod hydro;
 #[cfg(test)]
 mod tests;
@@ -15,10 +13,12 @@ use util::argsparser::{ArgsParser, Argument};
 
 fn main() -> std::io::Result<()> {
   let args: Vec<String> = env::args().collect();
-  let arg_parser = ArgsParser::new("Ocean")
-    .version("0.0.1")
-    .author("John Easterday <jmeaster30>")
-    .description("A C-like programming language (get it like C sounds like sea and oceans are kinda like seas lol)")
+  #[rustfmt::skip]
+  let arg_parser = {
+    ArgsParser::new("Ocean")
+      .version("0.0.1")
+      .author("John Easterday <jmeaster30>")
+      .description("A C-like programming language (get it like C sounds like sea and oceans are kinda like seas lol)")
       .command(Command::new("help")
         .description("Print this help message"))
       .command(Command::new("version")
@@ -46,7 +46,8 @@ fn main() -> std::io::Result<()> {
         .arg(Argument::new("Source File")
           .last()
           .default("main.h2o")
-          .help("The main source file to compile")));
+          .help("The main source file to compile")))
+  };
 
   match arg_parser.parse(args[1..].to_vec()) {
     Ok(arguments) => match arguments.get("command") {
@@ -70,17 +71,13 @@ fn main() -> std::io::Result<()> {
         }
         "hydro-run" => {
           let module = Hydro::compile(arguments.get("Source File").unwrap().as_str())?;
-          let return_value = module.execute(
-            "main".to_string(),
-            vec![Value::Unsigned32(69)],
-            None,
-          );
+          let return_value = module.execute("main".to_string(), vec![Value::Unsigned32(69)], None);
 
           match return_value {
             Ok(result) => match result {
               Some(value) => println!("{}", value.to_string()),
               None => println!("None"),
-            }
+            },
             Err(e) => e.print_stacktrace(),
           }
         }
@@ -88,12 +85,7 @@ fn main() -> std::io::Result<()> {
           let module = Hydro::compile(arguments.get("Source File").unwrap().as_str())?;
           let mut debug_context = DebugContext::new();
 
-          let return_value = module.debug(
-            "main".to_string(),
-            vec![Value::Unsigned32(69)],
-            None,
-            &mut debug_context,
-          );
+          let return_value = module.debug("main".to_string(), vec![Value::Unsigned32(69)], None, &mut debug_context);
 
           match return_value {
             Ok(result) => debug_context.console(&module, &mut None, result).unwrap(),

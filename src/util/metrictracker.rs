@@ -8,10 +8,7 @@ pub struct MetricTracker {
 
 impl MetricTracker {
   pub fn new() -> Self {
-    Self {
-      current_metrics: HashMap::new(),
-      finished_metrics: HashMap::new(),
-    }
+    Self { current_metrics: HashMap::new(), finished_metrics: HashMap::new() }
   }
 
   pub fn start(&mut self, metric_name: String) {
@@ -72,9 +69,7 @@ impl MetricTracker {
             metric.stop();
             finished_metric_stack.push(metric.clone());
           }
-          self
-            .finished_metrics
-            .insert(metric_name.clone(), finished_metric_stack);
+          self.finished_metrics.insert(metric_name.clone(), finished_metric_stack);
         }
       }
     }
@@ -100,10 +95,7 @@ impl MetricTracker {
   }
 
   pub fn get_result(&self, metric_name: String) -> Option<MetricResults> {
-    self
-      .finished_metrics
-      .get(&metric_name)
-      .and_then(|metric_list| Some(MetricResults::new(metric_name, metric_list.clone())))
+    self.finished_metrics.get(&metric_name).and_then(|metric_list| Some(MetricResults::new(metric_name, metric_list.clone())))
   }
 
   pub fn get_results(&self) -> Vec<MetricResults> {
@@ -154,65 +146,30 @@ impl MetricResults {
     let quartile_3_idx = 3.0 * total_count as f64 / 4.0;
 
     let quartile1 = if quartile_1_idx.floor() == quartile_1_idx {
-      metrics
-        .get(quartile_1_idx.floor() as usize)
-        .unwrap()
-        .duration()
-        + metrics
-          .get((quartile_1_idx.floor() - 1.0) as usize)
-          .unwrap()
-          .duration()
-          / 2
+      metrics.get(quartile_1_idx.floor() as usize).unwrap().duration() + metrics.get((quartile_1_idx.floor() - 1.0) as usize).unwrap().duration() / 2
     } else {
-      metrics
-        .get(quartile_1_idx.floor() as usize)
-        .unwrap()
-        .duration()
+      metrics.get(quartile_1_idx.floor() as usize).unwrap().duration()
     };
 
     let median = if quartile_2_idx.floor() == quartile_2_idx {
-      metrics
-        .get(quartile_2_idx.floor() as usize)
-        .unwrap()
-        .duration()
-        + metrics
-          .get((quartile_2_idx.floor() - 1.0) as usize)
-          .unwrap()
-          .duration()
-          / 2
+      metrics.get(quartile_2_idx.floor() as usize).unwrap().duration() + metrics.get((quartile_2_idx.floor() - 1.0) as usize).unwrap().duration() / 2
     } else {
-      metrics
-        .get(quartile_2_idx.floor() as usize)
-        .unwrap()
-        .duration()
+      metrics.get(quartile_2_idx.floor() as usize).unwrap().duration()
     };
 
     let quartile3 = if quartile_3_idx.floor() == quartile_3_idx {
-      metrics
-        .get(quartile_3_idx.floor() as usize)
-        .unwrap()
-        .duration()
-        + metrics
-          .get((quartile_3_idx.floor() - 1.0) as usize)
-          .unwrap()
-          .duration()
-          / 2
+      metrics.get(quartile_3_idx.floor() as usize).unwrap().duration() + metrics.get((quartile_3_idx.floor() - 1.0) as usize).unwrap().duration() / 2
     } else {
-      metrics
-        .get(quartile_3_idx.floor() as usize)
-        .unwrap()
-        .duration()
+      metrics.get(quartile_3_idx.floor() as usize).unwrap().duration()
     };
 
     let mean = total_time / total_count as u32;
     let mut standard_deviation_sum = 0;
     for metric in metrics {
       let metric_duration = metric.duration();
-      standard_deviation_sum += (metric_duration.as_nanos() as i128 - mean.as_nanos() as i128)
-        * (metric_duration.as_nanos() as i128 - mean.as_nanos() as i128);
+      standard_deviation_sum += (metric_duration.as_nanos() as i128 - mean.as_nanos() as i128) * (metric_duration.as_nanos() as i128 - mean.as_nanos() as i128);
     }
-    let standard_deviation =
-      Duration::from_nanos(((standard_deviation_sum / total_count as i128) as f64).sqrt() as u64);
+    let standard_deviation = Duration::from_nanos(((standard_deviation_sum / total_count as i128) as f64).sqrt() as u64);
 
     Self {
       name: metric_name,
@@ -239,11 +196,7 @@ pub struct Metric {
 
 impl Metric {
   pub fn new() -> Self {
-    Self {
-      durations: Vec::new(),
-      current_instant: None,
-      is_paused: false,
-    }
+    Self { durations: Vec::new(), current_instant: None, is_paused: false }
   }
 
   pub fn start(&mut self) {

@@ -8,10 +8,7 @@ pub struct Exception {
 
 impl Exception {
   pub fn new(context: ExecutionContext, message: &str) -> Self {
-    Self {
-      context,
-      message: message.to_string(),
-    }
+    Self { context, message: message.to_string() }
   }
 
   pub fn print_stacktrace(&self) {

@@ -1,5 +1,5 @@
-use crate::hydro::function::Target;
 use super::value::Value;
+use crate::hydro::function::Target;
 use crate::hydro::value::Type;
 
 #[derive(Debug, Clone)]

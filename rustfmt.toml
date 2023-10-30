@@ -1,1 +1,9 @@
 tab_spaces = 2
+array_width = 500
+attr_fn_like_width = 500
+chain_width = 500
+fn_call_width = 500
+#fn_params_layout = "Compressed"
+#fn_single_line = true
+max_width = 500
+#merge_imports = true

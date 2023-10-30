@@ -31,10 +31,7 @@ impl ExecutionContext {
   }
 
   pub fn print_stacktrace(&self) {
-    println!(
-      "\tModule: '{}' Function: '{}' at PC: {}",
-      self.current_module, self.current_function, self.program_counter
-    );
+    println!("\tModule: '{}' Function: '{}' at PC: {}", self.current_module, self.current_function, self.program_counter);
     match &self.parent_execution_context {
       Some(next_context) => next_context.print_stacktrace(),
       None => {}
@@ -44,19 +41,10 @@ impl ExecutionContext {
   pub fn resolve(&self, value: Value) -> Result<Value, Exception> {
     match value {
       Value::Reference(base_reference) => match base_reference {
-        Reference::Variable(variable_reference) => {
-          match self.variables.get(variable_reference.name.clone().as_str()) {
-            Some(found_variable) => Ok(found_variable.clone()),
-            None => Err(Exception::new(
-              self.clone(),
-              format!(
-                "Could not find variable of name '{}'",
-                variable_reference.name
-              )
-              .as_str(),
-            )),
-          }
-        }
+        Reference::Variable(variable_reference) => match self.variables.get(variable_reference.name.clone().as_str()) {
+          Some(found_variable) => Ok(found_variable.clone()),
+          None => Err(Exception::new(self.clone(), format!("Could not find variable of name '{}'", variable_reference.name).as_str())),
+        },
         Reference::ArrayIndex(index_reference) => {
           let resolved = self.resolve(index_reference.reference.deref().clone())?;
           match (index_reference.index.deref(), resolved) {
@@ -70,10 +58,7 @@ impl ExecutionContext {
             (Value::Unsigned32(x), Value::Array(array)) => Ok(array.values[*x as usize].clone()),
             (Value::Unsigned64(x), Value::Array(array)) => Ok(array.values[*x as usize].clone()),
             (Value::Unsigned128(x), Value::Array(array)) => Ok(array.values[*x as usize].clone()),
-            _ => Err(Exception::new(
-              self.clone(),
-              "Value could not be indexed by the specified index",
-            )),
+            _ => Err(Exception::new(self.clone(), "Value could not be indexed by the specified index")),
           }
         }
         Reference::LayoutIndex(layout_reference) => {
@@ -81,15 +66,9 @@ impl ExecutionContext {
           match (layout_reference.index, resolved) {
             (x, Value::Layout(layout)) => match layout.values.get(x.as_str()) {
               Some(found_result) => Ok(found_result.clone()),
-              None => Err(Exception::new(
-                self.clone(),
-                format!("Could not find entry '{}' in layout.", x).as_str(),
-              )),
+              None => Err(Exception::new(self.clone(), format!("Could not find entry '{}' in layout.", x).as_str())),
             },
-            _ => Err(Exception::new(
-              self.clone(),
-              "Value could not be indexed by the specified index",
-            )),
+            _ => Err(Exception::new(self.clone(), "Value could not be indexed by the specified index")),
           }
         }
       },
@@ -101,19 +80,9 @@ impl ExecutionContext {
     let context_copy = self.copy();
     match reference_value {
       Value::Reference(reference) => match reference {
-        Reference::Variable(variable_reference) => match self
-          .variables
-          .get_mut(variable_reference.name.clone().as_str())
-        {
+        Reference::Variable(variable_reference) => match self.variables.get_mut(variable_reference.name.clone().as_str()) {
           Some(mutable_value) => Ok(mutable_value),
-          None => Err(Exception::new(
-            context_copy,
-            format!(
-              "Could not find variable '{}'",
-              variable_reference.name.clone()
-            )
-            .as_str(),
-          )),
+          None => Err(Exception::new(context_copy, format!("Could not find variable '{}'", variable_reference.name.clone()).as_str())),
         },
         Reference::ArrayIndex(index_reference) => {
           let mutable_value = self.get_value_reference(index_reference.reference.deref())?;
@@ -128,12 +97,7 @@ impl ExecutionContext {
             (Value::Unsigned32(x), Value::Array(array)) => Ok(&mut array.values[x as usize]),
             (Value::Unsigned64(x), Value::Array(array)) => Ok(&mut array.values[x as usize]),
             (Value::Unsigned128(x), Value::Array(array)) => Ok(&mut array.values[x as usize]),
-            _ => {
-              return Err(Exception::new(
-                context_copy,
-                "Value could not be indexed by the specified index",
-              ))
-            }
+            _ => return Err(Exception::new(context_copy, "Value could not be indexed by the specified index")),
           }
         }
         Reference::LayoutIndex(layout_index_ref) => {
@@ -141,57 +105,27 @@ impl ExecutionContext {
           match (layout_index_ref.index.clone(), mutable_value) {
             (x, Value::Layout(layout)) => match layout.values.get_mut(x.as_str()) {
               Some(mutable_layout_member) => Ok(mutable_layout_member),
-              None => {
-                return Err(Exception::new(
-                  context_copy,
-                  format!("Could not find entry '{}' in layout.", x).as_str(),
-                ))
-              }
+              None => return Err(Exception::new(context_copy, format!("Could not find entry '{}' in layout.", x).as_str())),
             },
-            _ => {
-              return Err(Exception::new(
-                context_copy,
-                "Value could not be indexed by the specified index",
-              ))
-            }
+            _ => return Err(Exception::new(context_copy, "Value could not be indexed by the specified index")),
           }
         }
       },
-      _ => Err(Exception::new(
-        context_copy,
-        "Cannot get mutable reference to non-reference value",
-      )),
+      _ => Err(Exception::new(context_copy, "Cannot get mutable reference to non-reference value")),
     }
   }
 
   pub fn init(&mut self, reference: &Reference, value: Value) -> Result<(), Exception> {
     match reference {
-      Reference::ArrayIndex(_) => Err(Exception::new(
-        self.clone(),
-        "Initializing memory with non-variable reference doesn't make sense",
-      )),
-      Reference::LayoutIndex(_) => Err(Exception::new(
-        self.clone(),
-        "Initializing memory with non-variable reference doesn't make sense",
-      )),
-      Reference::Variable(variable_reference) => {
-        match self.variables.get(&variable_reference.name.clone()) {
-          Some(_) => Err(Exception::new(
-            self.clone(),
-            format!(
-              "Variable '{}' already exists :(",
-              variable_reference.name.clone()
-            )
-            .as_str(),
-          )),
-          None => {
-            self
-              .variables
-              .insert(variable_reference.name.clone(), value.clone());
-            Ok(())
-          }
+      Reference::ArrayIndex(_) => Err(Exception::new(self.clone(), "Initializing memory with non-variable reference doesn't make sense")),
+      Reference::LayoutIndex(_) => Err(Exception::new(self.clone(), "Initializing memory with non-variable reference doesn't make sense")),
+      Reference::Variable(variable_reference) => match self.variables.get(&variable_reference.name.clone()) {
+        Some(_) => Err(Exception::new(self.clone(), format!("Variable '{}' already exists :(", variable_reference.name.clone()).as_str())),
+        None => {
+          self.variables.insert(variable_reference.name.clone(), value.clone());
+          Ok(())
         }
-      }
+      },
     }
   }
 
@@ -210,12 +144,7 @@ impl ExecutionContext {
           (Value::Unsigned32(x), Value::Array(array)) => array.values[x as usize] = value,
           (Value::Unsigned64(x), Value::Array(array)) => array.values[x as usize] = value,
           (Value::Unsigned128(x), Value::Array(array)) => array.values[x as usize] = value,
-          _ => {
-            return Err(Exception::new(
-              self.clone(),
-              "Value could not be indexed by the specified index",
-            ))
-          }
+          _ => return Err(Exception::new(self.clone(), "Value could not be indexed by the specified index")),
         }
       }
       Reference::LayoutIndex(layout_reference) => {
@@ -225,40 +154,17 @@ impl ExecutionContext {
             Some(_) => {
               layout.values.insert(x, value);
             }
-            None => {
-              return Err(Exception::new(
-                self.clone(),
-                format!("Could not find entry '{}' in layout.", x).as_str(),
-              ))
-            }
+            None => return Err(Exception::new(self.clone(), format!("Could not find entry '{}' in layout.", x).as_str())),
           },
-          _ => {
-            return Err(Exception::new(
-              self.clone(),
-              "Value could not be indexed by the specified index",
-            ))
-          }
+          _ => return Err(Exception::new(self.clone(), "Value could not be indexed by the specified index")),
         }
       }
-      Reference::Variable(variable_reference) => {
-        match self.variables.get(&variable_reference.name.clone()) {
-          Some(_) => {
-            self
-              .variables
-              .insert(variable_reference.name.clone(), value.clone());
-          }
-          None => {
-            return Err(Exception::new(
-              self.clone(),
-              format!(
-                "Variable '{}' does not exist :(",
-                variable_reference.name.clone()
-              )
-              .as_str(),
-            ))
-          }
+      Reference::Variable(variable_reference) => match self.variables.get(&variable_reference.name.clone()) {
+        Some(_) => {
+          self.variables.insert(variable_reference.name.clone(), value.clone());
         }
-      }
+        None => return Err(Exception::new(self.clone(), format!("Variable '{}' does not exist :(", variable_reference.name.clone()).as_str())),
+      },
     }
     Ok(())
   }
@@ -400,17 +306,19 @@ impl ExecutionContext {
   pub fn equal(&self, a_value: Value, b_value: Value) -> Value {
     match (a_value, b_value) {
       (Value::Boolean(a), Value::Boolean(b)) => Value::Boolean(a == b),
-      (Value::Array(a), Value::Array(b)) => if a.value_type == b.value_type && a.length == b.length {
-        let mut result = true;
-        for (left, right) in a.values.iter().zip(b.values.iter()) {
-          if !self.equal(left.clone(), right.clone()).to_bool().unwrap() {
-            result = false;
-            break;
+      (Value::Array(a), Value::Array(b)) => {
+        if a.value_type == b.value_type && a.length == b.length {
+          let mut result = true;
+          for (left, right) in a.values.iter().zip(b.values.iter()) {
+            if !self.equal(left.clone(), right.clone()).to_bool().unwrap() {
+              result = false;
+              break;
+            }
           }
+          Value::Boolean(result)
+        } else {
+          Value::Boolean(false)
         }
-        Value::Boolean(result)
-      } else {
-        Value::Boolean(false)
       }
       (a, b) => make_comparison_operations!(==),
     }

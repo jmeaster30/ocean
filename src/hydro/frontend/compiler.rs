@@ -14,12 +14,7 @@ pub enum HydroTranslateType {
 impl Hydro {
   pub fn compile(file_path: &str) -> io::Result<Module> {
     let path = Path::new(file_path);
-    println!(
-      "Compiling '{}' (absolute '{:?}' from '{:?}')",
-      path.display(),
-      fs::canonicalize(path),
-      std::env::current_dir()
-    );
+    println!("Compiling '{}' (absolute '{:?}' from '{:?}')", path.display(), fs::canonicalize(path), std::env::current_dir());
     let mut parser = Parser::new(path)?;
     let modules = parser.parse();
     // TODO this stinks
@@ -36,11 +31,7 @@ impl Hydro {
     }
   }
 
-  pub fn output(
-    translate_type: HydroTranslateType,
-    _module: &Module,
-    path: String,
-  ) -> Result<(), Error> {
+  pub fn output(translate_type: HydroTranslateType, _module: &Module, path: String) -> Result<(), Error> {
     let bytes = match translate_type {
       HydroTranslateType::Binary => {
         //TODO let mut mod_output = module.output(9);

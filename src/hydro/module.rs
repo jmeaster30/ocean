@@ -18,32 +18,16 @@ pub struct Module {
   pub intrinsics: HashMap<String, Intrinsic>,
 }
 
-impl Module {
-
-}
+impl Module {}
 
 impl Module {
-  pub fn new(
-    name: String,
-    modules: Vec<Module>,
-    layout_templates: Vec<LayoutTemplate>,
-    functions: Vec<Function>,
-  ) -> Self {
+  pub fn new(name: String, modules: Vec<Module>, layout_templates: Vec<LayoutTemplate>, functions: Vec<Function>) -> Self {
     Self {
       name,
       unresolved_modules: Vec::new(),
-      modules: modules
-        .iter()
-        .map(|x| (x.clone().name, x.clone()))
-        .collect::<HashMap<String, Module>>(),
-      layout_templates: layout_templates
-        .iter()
-        .map(|x| (x.clone().name, x.clone()))
-        .collect::<HashMap<String, LayoutTemplate>>(),
-      functions: functions
-        .iter()
-        .map(|x| (x.clone().name, x.clone()))
-        .collect::<HashMap<String, Function>>(),
+      modules: modules.iter().map(|x| (x.clone().name, x.clone())).collect::<HashMap<String, Module>>(),
+      layout_templates: layout_templates.iter().map(|x| (x.clone().name, x.clone())).collect::<HashMap<String, LayoutTemplate>>(),
+      functions: functions.iter().map(|x| (x.clone().name, x.clone())).collect::<HashMap<String, Function>>(),
       intrinsics: HashMap::new(),
     }
   }
@@ -86,37 +70,23 @@ impl Module {
 
   pub fn resolve(&mut self, reference_modules: &Vec<Module>) {
     for module_name in &self.unresolved_modules {
-      let found_module = reference_modules
-        .iter()
-        .find(|x| x.name == module_name.clone());
+      let found_module = reference_modules.iter().find(|x| x.name == module_name.clone());
       match found_module {
         Some(module) => {
           self.modules.insert(module_name.clone(), module.clone());
         }
-        None => panic!(
-          "Couldn't find module '{}' required by '{}'",
-          module_name, self.name
-        ),
+        None => panic!("Couldn't find module '{}' required by '{}'", module_name, self.name),
       }
     }
 
-    let unresolved_modules = self
-      .unresolved_modules
-      .iter()
-      .filter(|x| !self.modules.contains_key((*x).clone().as_str()))
-      .map(|x| x.clone())
-      .collect::<Vec<String>>();
+    let unresolved_modules = self.unresolved_modules.iter().filter(|x| !self.modules.contains_key((*x).clone().as_str())).map(|x| x.clone()).collect::<Vec<String>>();
     self.unresolved_modules = unresolved_modules;
     if self.unresolved_modules.len() != 0 {
       println!("Unable to resolve dependencies of module '{}'", self.name);
     }
   }
 
-  pub fn resolve_type(
-    &self,
-    type_to_resolve: Type,
-    context: &ExecutionContext,
-  ) -> Result<Type, Exception> {
+  pub fn resolve_type(&self, type_to_resolve: Type, context: &ExecutionContext) -> Result<Type, Exception> {
     match type_to_resolve {
       Type::Any => Ok(type_to_resolve),
       Type::Float32 => Ok(type_to_resolve),
@@ -141,55 +111,24 @@ impl Module {
         let resolved_subtype = self.resolve_type(*subtype, context)?;
         Ok(Type::Array(length, Box::new(resolved_subtype)))
       }
-      Type::Layout(module_name, layout_name, Some(subtype_map)) => {
-        Ok(Type::Layout(module_name, layout_name, Some(subtype_map)))
-      }
+      Type::Layout(module_name, layout_name, Some(subtype_map)) => Ok(Type::Layout(module_name, layout_name, Some(subtype_map))),
       Type::Layout(module_name, layout_name, None) => match module_name.clone().as_str() {
         "this" => match self.layout_templates.get(layout_name.as_str()) {
           Some(template) => Ok(template.to_type(module_name)),
-          None => {
-            return Err(Exception::new(
-              context.clone(),
-              format!(
-                "Layout '{}' not found in module '{}'",
-                layout_name, module_name
-              )
-              .as_str(),
-            ))
-          }
+          None => return Err(Exception::new(context.clone(), format!("Layout '{}' not found in module '{}'", layout_name, module_name).as_str())),
         },
         module_name => match self.modules.get(module_name) {
-          Some(template_module) => match template_module.layout_templates.get(layout_name.as_str())
-          {
+          Some(template_module) => match template_module.layout_templates.get(layout_name.as_str()) {
             Some(template) => Ok(template.to_type(module_name.to_string())),
-            None => {
-              return Err(Exception::new(
-                context.clone(),
-                format!(
-                  "Layout '{}' not found in module '{}'",
-                  layout_name, module_name
-                )
-                .as_str(),
-              ))
-            }
+            None => return Err(Exception::new(context.clone(), format!("Layout '{}' not found in module '{}'", layout_name, module_name).as_str())),
           },
-          None => {
-            return Err(Exception::new(
-              context.clone(),
-              format!("Module '{}' not found.", module_name).as_str(),
-            ))
-          }
+          None => return Err(Exception::new(context.clone(), format!("Module '{}' not found.", module_name).as_str())),
         },
       },
     }
   }
 
-  pub fn execute(
-    &self,
-    function_name: String,
-    arguments: Vec<Value>,
-    parent_context: Option<Box<ExecutionContext>>,
-  ) -> Result<Option<Value>, Exception> {
+  pub fn execute(&self, function_name: String, arguments: Vec<Value>, parent_context: Option<Box<ExecutionContext>>) -> Result<Option<Value>, Exception> {
     let mut context = ExecutionContext {
       parent_execution_context: parent_context,
       stack: Vec::new(),
@@ -225,13 +164,7 @@ impl Module {
     Ok(context.return_value.clone())
   }
 
-  pub fn debug(
-    &self,
-    function_name: String,
-    arguments: Vec<Value>,
-    parent_context: Option<Box<ExecutionContext>>,
-    debug_context: &mut DebugContext,
-  ) -> Result<Option<Value>, Exception> {
+  pub fn debug(&self, function_name: String, arguments: Vec<Value>, parent_context: Option<Box<ExecutionContext>>, debug_context: &mut DebugContext) -> Result<Option<Value>, Exception> {
     let mut context = ExecutionContext {
       parent_execution_context: parent_context.clone(),
       stack: Vec::new(),
@@ -248,7 +181,7 @@ impl Module {
       None => {
         match debug_context.console(self, &mut Some(&mut context), None) {
           Ok(_) => {}
-          Err(readline_error) => return Err(Exception::new(context, readline_error.to_string().as_str()))
+          Err(readline_error) => return Err(Exception::new(context, readline_error.to_string().as_str())),
         }
         // hacky way of letting the user step immediately when the program runs
         if debug_context.step.clone().is_some() {
@@ -257,12 +190,7 @@ impl Module {
       }
     }
 
-    debug_context.metric_tracker.start(format!(
-      "{}.{}.{}",
-      self.name.clone(),
-      function_name.clone(),
-      "total".to_string(),
-    ));
+    debug_context.metric_tracker.start(format!("{}.{}.{}", self.name.clone(), function_name.clone(), "total".to_string(),));
 
     let current_function = self.functions.get(&*function_name).unwrap();
 
@@ -270,12 +198,7 @@ impl Module {
       if Type::subset(&got_value.type_of(), expected_type) {
         context.stack.push(got_value);
       } else {
-        debug_context.metric_tracker.stop(format!(
-          "{}.{}.{}",
-          self.name.clone(),
-          function_name.clone(),
-          "total".to_string(),
-        ));
+        debug_context.metric_tracker.stop(format!("{}.{}.{}", self.name.clone(), function_name.clone(), "total".to_string(),));
         return Err(Exception::new(context, format!("Unexpected function parameter type found {:?} but expected {:?}", got_value.type_of(), expected_type).as_str()));
       }
     }
@@ -283,16 +206,10 @@ impl Module {
     while context.program_counter.clone() < current_function.body.len() {
       // check for break points
       let should_step_break = debug_context.update_step();
-      if should_step_break
-        || debug_context.is_break_point(
-          self.name.clone(),
-          function_name.clone(),
-          context.program_counter,
-        )
-      {
+      if should_step_break || debug_context.is_break_point(self.name.clone(), function_name.clone(), context.program_counter) {
         match debug_context.console(self, &mut Some(&mut context), None) {
           Ok(_) => {}
-          Err(readline_error) => return Err(Exception::new(context, readline_error.to_string().as_str()))
+          Err(readline_error) => return Err(Exception::new(context, readline_error.to_string().as_str())),
         }
       }
 
@@ -306,26 +223,16 @@ impl Module {
           exception.print_stacktrace();
           match debug_context.console(self, &mut Some(&mut context), None) {
             Ok(_) => {}
-            Err(readline_error) => return Err(Exception::new(context, readline_error.to_string().as_str()))
+            Err(readline_error) => return Err(Exception::new(context, readline_error.to_string().as_str())),
           }
-          debug_context.metric_tracker.stop(format!(
-            "{}.{}.{}",
-            self.name.clone(),
-            function_name.clone(),
-            "total".to_string(),
-          ));
+          debug_context.metric_tracker.stop(format!("{}.{}.{}", self.name.clone(), function_name.clone(), "total".to_string(),));
           return Err(exception);
         }
         _ => {}
       }
     }
 
-    debug_context.metric_tracker.stop(format!(
-      "{}.{}.{}",
-      self.name.clone(),
-      function_name.clone(),
-      "total".to_string(),
-    ));
+    debug_context.metric_tracker.stop(format!("{}.{}.{}", self.name.clone(), function_name.clone(), "total".to_string(),));
     Ok(context.return_value.clone())
   }
 }

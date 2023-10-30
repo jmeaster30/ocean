@@ -47,7 +47,9 @@ impl Type {
       Type::Signed128 => Value::Signed128(0),
       Type::Float32 => Value::Float32(0.0),
       Type::Float64 => Value::Float64(0.0),
-      Type::FunctionPointer(_, _) => todo!("default value for function pointer. Should this even be possible??"),
+      Type::FunctionPointer(_, _) => {
+        todo!("default value for function pointer. Should this even be possible??")
+      }
       Type::Array(length, subtype) => {
         let mut values = Vec::new();
         match length {
@@ -67,19 +69,17 @@ impl Type {
           values,
         })
       }
-    Type::Reference(_) => todo!("default value for reference. Should this even be possible??"),
+      Type::Reference(_) => todo!("default value for reference. Should this even be possible??"),
       Type::Layout(module_name, layout_name, Some(subtypes)) => {
         let mut values = HashMap::new();
         for (member_name, subtype) in subtypes {
           values.insert(member_name.clone(), subtype.default());
         }
-        Value::Layout(Layout::new(
-          module_name.clone(),
-          layout_name.clone(),
-          values,
-        ))
+        Value::Layout(Layout::new(module_name.clone(), layout_name.clone(), values))
       }
-      Type::Layout(module_name, layout_name, None) => panic!("Unresolved type :( {} {}", module_name, layout_name),
+      Type::Layout(module_name, layout_name, None) => {
+        panic!("Unresolved type :( {} {}", module_name, layout_name)
+      }
     }
   }
 
@@ -87,14 +87,16 @@ impl Type {
     // TODO type subsetting
     match (sub, sup) {
       (_, Type::Any) => true,
-      (Type::Array(left_size, left_subtype), Type::Array(right_size, right_subtype)) => if Type::subset(left_subtype, right_subtype) {
-        match (left_size, right_size) {
-          (_, None) => true,
-          (None, _) => true,
-          (Some(left_size), Some(right_size)) => *left_size == *right_size, // TODO this could do subsetting as well
+      (Type::Array(left_size, left_subtype), Type::Array(right_size, right_subtype)) => {
+        if Type::subset(left_subtype, right_subtype) {
+          match (left_size, right_size) {
+            (_, None) => true,
+            (None, _) => true,
+            (Some(left_size), Some(right_size)) => *left_size == *right_size, // TODO this could do subsetting as well
+          }
+        } else {
+          false
         }
-      } else {
-        false
       }
       (Type::Boolean, Type::Boolean) => true,
       (Type::Unsigned8, Type::Unsigned8) => true,
@@ -172,7 +174,7 @@ impl Value {
         }))
       }
       (a, b) if a == b => Ok(self.clone()),
-      _ => Err(format!("Cast from {:?} to {:?} is invalid", self.type_of(), to_type))
+      _ => Err(format!("Cast from {:?} to {:?} is invalid", self.type_of(), to_type)),
     }
   }
 
@@ -211,20 +213,22 @@ impl Value {
   pub fn to_string(&self) -> String {
     match self {
       Value::Boolean(value) => if *value { "true" } else { "false" }.to_string(),
-      Value::Array(array) => if Type::subset(&array.value_type, &Type::Unsigned8) {
-        String::from_utf8(array.values.iter().map(|x| x.to_u8().unwrap()).collect()).unwrap()
-      } else {
-        let mut result = "[".to_string();
-        for idx in 0..array.values.len() {
-          let value = array.values[idx].clone();
-          result += value.to_string().as_str();
-          if idx != array.values.len() - 1 {
-            result += ", "
+      Value::Array(array) => {
+        if Type::subset(&array.value_type, &Type::Unsigned8) {
+          String::from_utf8(array.values.iter().map(|x| x.to_u8().unwrap()).collect()).unwrap()
+        } else {
+          let mut result = "[".to_string();
+          for idx in 0..array.values.len() {
+            let value = array.values[idx].clone();
+            result += value.to_string().as_str();
+            if idx != array.values.len() - 1 {
+              result += ", "
+            }
           }
-        }
 
-        result + "]"
-      },
+          result + "]"
+        }
+      }
       Value::Layout(layout) => {
         let mut result = format!("{}.{}{{", layout.module_name, layout.layout_name);
         for idx in 0..layout.values.keys().len() {
@@ -237,8 +241,10 @@ impl Value {
         }
 
         result + "}"
-      },
-      Value::FunctionPointer(pointer) => format!("function {:?} {}", pointer.module, pointer.function),
+      }
+      Value::FunctionPointer(pointer) => {
+        format!("function {:?} {}", pointer.module, pointer.function)
+      }
       Value::Reference(refer) => format!("{:?}", refer),
       Value::Unsigned8(x) => x.to_string(),
       Value::Unsigned16(x) => x.to_string(),
@@ -257,27 +263,31 @@ impl Value {
 
   pub fn index(&self, index: u64) -> Result<Value, String> {
     match self {
-      Value::Array(array) => if (index as usize) < array.values.len() {
-        Ok(array.values[index as usize].clone())
-      } else {
-        Err(format!("Array index out of bounds. Tried to index array of length {:?} with index {}", *array.length, index))
-      },
+      Value::Array(array) => {
+        if (index as usize) < array.values.len() {
+          Ok(array.values[index as usize].clone())
+        } else {
+          Err(format!("Array index out of bounds. Tried to index array of length {:?} with index {}", *array.length, index))
+        }
+      }
       _ => Err(format!("Cannot index a {:?} :(", self.type_of())),
     }
   }
 
   pub fn set_index(&mut self, index: u64, value: Value) -> Result<(), String> {
     match self {
-      Value::Array(array) => if (index as usize) < array.values.len() {
-        if Type::subset(&value.type_of(), &array.value_type) {
-          array.values[index as usize] = value.clone();
-          Ok(())
+      Value::Array(array) => {
+        if (index as usize) < array.values.len() {
+          if Type::subset(&value.type_of(), &array.value_type) {
+            array.values[index as usize] = value.clone();
+            Ok(())
+          } else {
+            Err(format!("Cannot insert value {:?} of type {:?} into array of type {:?}", value, value.type_of(), array.value_type))
+          }
         } else {
-          Err(format!("Cannot insert value {:?} of type {:?} into array of type {:?}", value, value.type_of(), array.value_type))
+          Err(format!("Array index out of bounds. Tried to index array of length {:?} with index {}", *array.length, index))
         }
-      } else {
-        Err(format!("Array index out of bounds. Tried to index array of length {:?} with index {}", *array.length, index))
-      },
+      }
       _ => Err(format!("Cannot index a {:?} :(", self.type_of())),
     }
   }
@@ -287,11 +297,13 @@ impl Value {
       Value::Layout(layout) => match layout.values.get(member.as_str()) {
         Some(value) => Ok(value.clone()),
         None => Err(format!("{:?} does not have the member '{}'", layout, member)),
-      }
-      Value::Array(array) => if member.as_str() == "length" {
-        Ok(*array.length.clone())
-      } else {
-        Err(format!("{:?} does not have the member '{}'", array, member))
+      },
+      Value::Array(array) => {
+        if member.as_str() == "length" {
+          Ok(*array.length.clone())
+        } else {
+          Err(format!("{:?} does not have the member '{}'", array, member))
+        }
       }
       _ => Err(format!("{:?} does not have any member variables", self.type_of())),
     }
@@ -299,11 +311,13 @@ impl Value {
 
   pub fn set_member(&mut self, member: String, value: Value) -> Result<(), String> {
     match self {
-      Value::Layout(layout) => if layout.values.contains_key(member.as_str()) {
-        layout.values.insert(member, value);
-        Ok(())
-      } else {
-        Err(format!("{:?} does not have the member '{}'", layout, member))
+      Value::Layout(layout) => {
+        if layout.values.contains_key(member.as_str()) {
+          layout.values.insert(member, value);
+          Ok(())
+        } else {
+          Err(format!("{:?} does not have the member '{}'", layout, member))
+        }
       }
       Value::Array(_) => Err(format!("{:?} has no modifiable member variables", self.type_of())),
       _ => Err(format!("{:?} does not have any member variables", self.type_of())),
@@ -374,11 +388,7 @@ pub struct Array {
 
 impl Array {
   pub fn new(value_type: Type, length: Box<Value>) -> Self {
-    Self {
-      value_type,
-      length,
-      values: Vec::new(),
-    }
+    Self { value_type, length, values: Vec::new() }
   }
 
   pub fn create(value_type: Type, length: Box<Value>, values: Vec<Value>) -> Self {
@@ -395,11 +405,7 @@ pub struct Layout {
 
 impl Layout {
   pub fn new(module_name: String, layout_name: String, values: HashMap<String, Value>) -> Self {
-    Self {
-      module_name,
-      layout_name,
-      values,
-    }
+    Self { module_name, layout_name, values }
   }
 }
 

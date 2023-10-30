@@ -1,18 +1,16 @@
-use std::collections::HashMap;
 use crate::hydro::frontend::token::{Token, TokenType};
 use crate::hydro::function::{Function, Target};
 use crate::hydro::instruction::*;
+use crate::hydro::intrinsic::Intrinsic;
 use crate::hydro::layouttemplate::LayoutTemplate;
 use crate::hydro::module::Module;
-use crate::hydro::value::{
-  Array, FunctionPointer, LayoutIndexRef, Reference, Type, Value, VariableRef,
-};
+use crate::hydro::value::{Array, FunctionPointer, LayoutIndexRef, Reference, Type, Value, VariableRef};
 use crate::util::tokentrait::TokenTrait;
 use regex::Regex;
+use std::collections::HashMap;
 use std::fs::File;
 use std::io;
 use std::io::Read;
-use crate::hydro::intrinsic::Intrinsic;
 
 pub struct Parser {
   file_contents: Vec<char>,
@@ -80,9 +78,7 @@ impl Parser {
         TokenType::Module => {
           break;
         }
-        _ => panic!(
-          "Unexpected token in module statement. Expected 'using', 'layout', 'intrinsic', 'main', or 'function'"
-        ),
+        _ => panic!("Unexpected token in module statement. Expected 'using', 'layout', 'intrinsic', 'main', or 'function'"),
       }
     }
 
@@ -106,15 +102,12 @@ impl Parser {
 
     let mut parameter_types = Vec::new();
     loop {
-      let id_token = self.expect_one_of(vec![TokenType::Type,
-                                             TokenType::Identifier,
-                                             TokenType::This,
-                                             TokenType::Number, TokenType::Body]);
+      let id_token = self.expect_one_of(vec![TokenType::Type, TokenType::Identifier, TokenType::This, TokenType::Number, TokenType::Body]);
       match id_token.token_type {
         TokenType::Identifier | TokenType::Type | TokenType::Number | TokenType::This => {
           let param_type = self.parse_type();
           parameter_types.push(param_type);
-        },
+        }
         TokenType::Body => break,
         _ => {}
       }
@@ -130,7 +123,7 @@ impl Parser {
       match target_token.token_type {
         TokenType::Target => self.consume(),
         TokenType::Intrinsic | TokenType::Function | TokenType::Module | TokenType::Using | TokenType::Main => break,
-        _ => panic!("Uh oh this shouldn't have been hit")
+        _ => panic!("Uh oh this shouldn't have been hit"),
       };
 
       let identifier = self.expect_token_type(TokenType::Identifier);
@@ -157,16 +150,12 @@ impl Parser {
     let mut function = Function::build(identifier_token.lexeme.as_str());
     // parse params
     loop {
-      let id_token = self.expect_one_of(vec![TokenType::Type,
-                                             TokenType::Identifier,
-                                             TokenType::This,
-                                             TokenType::Array,
-                                             TokenType::Body]);
+      let id_token = self.expect_one_of(vec![TokenType::Type, TokenType::Identifier, TokenType::This, TokenType::Array, TokenType::Body]);
       match id_token.token_type {
         TokenType::Identifier | TokenType::Type | TokenType::Array | TokenType::This => {
           let param_type = self.parse_type();
           function = function.parameter(param_type);
-        },
+        }
         TokenType::Body => break,
         _ => {}
       }
@@ -226,16 +215,8 @@ impl Parser {
           self.consume();
           function.add_label(target_name_token.lexeme, function.body.len());
         }
-        TokenType::Module
-        | TokenType::Function
-        | TokenType::Layout
-        | TokenType::Using
-        | TokenType::Main
-        | TokenType::Intrinsic => break,
-        _ => panic!(
-          "Expected to have an instruction here but read {:?} :(",
-          inst_token
-        ),
+        TokenType::Module | TokenType::Function | TokenType::Layout | TokenType::Using | TokenType::Main | TokenType::Intrinsic => break,
+        _ => panic!("Expected to have an instruction here but read {:?} :(", inst_token),
       }
     }
 
@@ -246,12 +227,7 @@ impl Parser {
     // <type> -> type
     // <id> <id> -> layout
     // <number> <Type>
-    let start_token = self.expect_one_of(vec![
-      TokenType::Type,
-      TokenType::Identifier,
-      TokenType::This,
-      TokenType::Array,
-    ]);
+    let start_token = self.expect_one_of(vec![TokenType::Type, TokenType::Identifier, TokenType::This, TokenType::Array]);
     self.consume();
 
     match start_token.token_type {
@@ -284,7 +260,7 @@ impl Parser {
             self.consume();
             Some(length.lexeme.parse::<u64>().unwrap())
           }
-          None => None
+          None => None,
         };
 
         let subtype = self.parse_type();
@@ -300,34 +276,26 @@ impl Parser {
     self.consume();
 
     match inst_token.token_type {
-      TokenType::Alloc => {
-        match self.optional_token_type(TokenType::Array) {
-          Some(_) => {
-            self.consume();
-            match self.optional_token_type(TokenType::Number) {
-              Some(array_size ) => {
-                self.consume();
-                let array_sub_type = self.parse_type();
-                Instruction::AllocateArray(AllocateArray {
-                  array_size: Some(array_size.lexeme.parse::<u64>().unwrap()),
-                  array_sub_type
-                })
-              }
-              None => {
-                let array_sub_type = self.parse_type();
-                Instruction::AllocateArray(AllocateArray {
-                  array_size: None,
-                  array_sub_type
-                })
-              }
+      TokenType::Alloc => match self.optional_token_type(TokenType::Array) {
+        Some(_) => {
+          self.consume();
+          match self.optional_token_type(TokenType::Number) {
+            Some(array_size) => {
+              self.consume();
+              let array_sub_type = self.parse_type();
+              Instruction::AllocateArray(AllocateArray { array_size: Some(array_size.lexeme.parse::<u64>().unwrap()), array_sub_type })
+            }
+            None => {
+              let array_sub_type = self.parse_type();
+              Instruction::AllocateArray(AllocateArray { array_size: None, array_sub_type })
             }
           }
-          None => {
-            let allocated_type = self.parse_type();
-            Instruction::Allocate(Allocate { allocated_type })
-          }
         }
-      }
+        None => {
+          let allocated_type = self.parse_type();
+          Instruction::Allocate(Allocate { allocated_type })
+        }
+      },
       TokenType::Cast => {
         let parsed_type = self.parse_type();
         Instruction::Cast(Cast { to_type: parsed_type })
@@ -348,10 +316,7 @@ impl Parser {
           value: match value_token.token_type {
             TokenType::Number | TokenType::String => {
               self.consume();
-              match Parser::create_value_from_type_string(
-                type_token.lexeme,
-                value_token.lexeme.clone(),
-              ) {
+              match Parser::create_value_from_type_string(type_token.lexeme, value_token.lexeme.clone()) {
                 Ok(value) => value,
                 Err(message) => panic!("{}", message),
               }
@@ -364,9 +329,7 @@ impl Parser {
               self.consume();
               Value::Boolean(false)
             }
-            TokenType::VariableRef | TokenType::IndexRef => {
-              Value::Reference(self.parse_reference())
-            }
+            TokenType::VariableRef | TokenType::IndexRef => Value::Reference(self.parse_reference()),
             TokenType::FunctionPointer => {
               self.consume();
 
@@ -399,14 +362,12 @@ impl Parser {
           None => 0,
         };
         Instruction::Duplicate(Duplicate { offset })
-      },
+      }
       TokenType::Swap => Instruction::Swap(Swap {}),
       TokenType::Rotate => {
         let size_token = self.expect_token_type(TokenType::Number);
         self.consume();
-        Instruction::Rotate(Rotate {
-          size: size_token.lexeme.parse::<usize>().unwrap(),
-        })
+        Instruction::Rotate(Rotate { size: size_token.lexeme.parse::<usize>().unwrap() })
       }
       TokenType::Add => Instruction::Add(Add {}),
       TokenType::Subtract => Instruction::Subtract(Subtract {}),
@@ -436,12 +397,10 @@ impl Parser {
         let target = match target_token.token_type {
           TokenType::Number => Target::Index(target_token.lexeme.parse::<usize>().unwrap()),
           TokenType::Identifier => Target::Label(target_token.lexeme),
-          _ => panic!("Should not have been hit :)")
+          _ => panic!("Should not have been hit :)"),
         };
 
-        Instruction::Jump(Jump {
-          target
-        })
+        Instruction::Jump(Jump { target })
       }
       TokenType::Branch => {
         let true_target_token = self.expect_one_of(vec![TokenType::Number, TokenType::Identifier]);
@@ -450,7 +409,7 @@ impl Parser {
         let true_target = match true_target_token.token_type {
           TokenType::Number => Target::Index(true_target_token.lexeme.parse::<usize>().unwrap()),
           TokenType::Identifier => Target::Label(true_target_token.lexeme),
-          _ => panic!("Should not have been hit :)")
+          _ => panic!("Should not have been hit :)"),
         };
 
         let false_target_token = self.expect_one_of(vec![TokenType::Number, TokenType::Identifier]);
@@ -459,13 +418,10 @@ impl Parser {
         let false_target = match false_target_token.token_type {
           TokenType::Number => Target::Index(false_target_token.lexeme.parse::<usize>().unwrap()),
           TokenType::Identifier => Target::Label(false_target_token.lexeme),
-          _ => panic!("Should not have been hit :)")
+          _ => panic!("Should not have been hit :)"),
         };
 
-        Instruction::Branch(Branch {
-          true_target,
-          false_target,
-        })
+        Instruction::Branch(Branch { true_target, false_target })
       }
       TokenType::Call => Instruction::Call(Call {}),
       TokenType::Return => Instruction::Return(Return {}),
@@ -476,9 +432,7 @@ impl Parser {
         match optional_id {
           Some(token) => {
             self.consume();
-            Instruction::GetLayoutIndex(GetLayoutIndex {
-              member: token.lexeme,
-            })
+            Instruction::GetLayoutIndex(GetLayoutIndex { member: token.lexeme })
           }
           None => Instruction::GetArrayIndex(GetArrayIndex {}),
         }
@@ -488,9 +442,7 @@ impl Parser {
         match optional_id {
           Some(token) => {
             self.consume();
-            Instruction::SetLayoutIndex(SetLayoutIndex {
-              member: token.lexeme,
-            })
+            Instruction::SetLayoutIndex(SetLayoutIndex { member: token.lexeme })
           }
           None => Instruction::SetArrayIndex(SetArrayIndex {}),
         }
@@ -508,9 +460,7 @@ impl Parser {
         let id_token = self.expect_token_type(TokenType::Identifier);
         self.consume();
 
-        Reference::Variable(VariableRef {
-          name: id_token.lexeme,
-        })
+        Reference::Variable(VariableRef { name: id_token.lexeme })
       }
       TokenType::IndexRef => {
         let reference = self.parse_reference();
@@ -518,10 +468,7 @@ impl Parser {
         let id_token = self.expect_token_type(TokenType::Identifier);
         self.consume();
 
-        Reference::LayoutIndex(LayoutIndexRef {
-          reference: Box::new(Value::Reference(reference)),
-          index: id_token.lexeme.clone(),
-        })
+        Reference::LayoutIndex(LayoutIndexRef { reference: Box::new(Value::Reference(reference)), index: id_token.lexeme.clone() })
       }
       _ => panic!("Unexpected token here :("),
     }
@@ -547,10 +494,7 @@ impl Parser {
       let identifier_token = self.expect_token_type(TokenType::Identifier);
       self.consume();
 
-      layout_template = layout_template.member(
-        identifier_token.lexeme.as_str(),
-        Parser::create_default_value_from_type_string(type_token.lexeme),
-      )
+      layout_template = layout_template.member(identifier_token.lexeme.as_str(), Parser::create_default_value_from_type_string(type_token.lexeme))
     }
 
     layout_template
@@ -576,10 +520,7 @@ impl Parser {
     }
   }
 
-  pub fn create_value_from_type_string(
-    type_lexeme: String,
-    value_lexeme: String,
-  ) -> Result<Value, String> {
+  pub fn create_value_from_type_string(type_lexeme: String, value_lexeme: String) -> Result<Value, String> {
     match type_lexeme.as_str() {
       "bool" => match value_lexeme.to_lowercase().as_str() {
         "true" => Ok(Value::Boolean(true)),
@@ -587,19 +528,8 @@ impl Parser {
         _ => Err("Unexpected value for boolean type".to_string()),
       },
       "string" => {
-        let bytes = value_lexeme
-          .clone()
-          .into_bytes()
-          .iter()
-          .skip(1)
-          .take(value_lexeme.len() - 2)
-          .map(|x| Value::Unsigned8(*x))
-          .collect::<Vec<Value>>();
-        Ok(Value::Array(Array::create(
-          Type::Unsigned8,
-          Box::new(Value::Unsigned64((value_lexeme.len() - 2) as u64)),
-          bytes,
-        )))
+        let bytes = value_lexeme.clone().into_bytes().iter().skip(1).take(value_lexeme.len() - 2).map(|x| Value::Unsigned8(*x)).collect::<Vec<Value>>();
+        Ok(Value::Array(Array::create(Type::Unsigned8, Box::new(Value::Unsigned64((value_lexeme.len() - 2) as u64)), bytes)))
       }
       "u8" => match value_lexeme.parse::<u8>() {
         Ok(value) => Ok(Value::Unsigned8(value)),
@@ -847,13 +777,7 @@ impl Parser {
             self.token(); // skip comments
           }
           _ => {
-            self.current_token = Some(Token::new(
-              lexeme,
-              token_type,
-              (start_index, final_index),
-              (start_line, final_line),
-              (start_column, final_column),
-            ));
+            self.current_token = Some(Token::new(lexeme, token_type, (start_index, final_index), (start_line, final_line), (start_column, final_column)));
           }
         }
 
@@ -875,10 +799,7 @@ impl Parser {
         if token.is_token_type(token_type) {
           token
         } else {
-          panic!(
-            "Expected token type {:?} but got {:?}",
-            token_type, token
-          );
+          panic!("Expected token type {:?} but got {:?}", token_type, token);
         }
       }
       None => panic!("Expected some token here :("),
@@ -904,10 +825,7 @@ impl Parser {
         if token_types.contains(&token.token_type) {
           token
         } else {
-          panic!(
-            "Expected one of {:?} but got {:?}",
-            token_types, token
-          );
+          panic!("Expected one of {:?} but got {:?}", token_types, token);
         }
       }
       None => panic!("Expected some token here :("),

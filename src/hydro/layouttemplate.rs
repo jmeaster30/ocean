@@ -13,10 +13,7 @@ impl LayoutTemplate {
   }
 
   pub fn build(name: &str) -> Self {
-    Self {
-      name: name.to_string(),
-      members: HashMap::new(),
-    }
+    Self { name: name.to_string(), members: HashMap::new() }
   }
 
   pub fn member(mut self, name: &str, value: Value) -> Self {
@@ -25,11 +22,7 @@ impl LayoutTemplate {
   }
 
   pub fn create_value(&self, module_name: String) -> Value {
-    Value::Layout(Layout::new(
-      module_name,
-      self.name.clone(),
-      self.members.clone(),
-    ))
+    Value::Layout(Layout::new(module_name, self.name.clone(), self.members.clone()))
   }
 
   pub fn to_type(&self, module_name: String) -> Type {

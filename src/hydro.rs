@@ -7,10 +7,10 @@ mod executioncontext;
 pub mod frontend;
 pub mod function;
 mod instruction;
+mod intrinsic;
 pub mod layouttemplate;
 pub mod module;
 pub mod value;
-mod intrinsic;
 mod visualizer;
 
 pub struct Hydro {}

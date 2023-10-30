@@ -68,16 +68,8 @@ impl Argument {
         }
       }
       None => {
-        println!(
-          "    Short Name: {}{}",
-          self.short_tag,
-          if self.takes_value { " <value>" } else { "" }
-        );
-        println!(
-          "    Long Name: {}{}",
-          self.long_tag,
-          if self.takes_value { " <value>" } else { "" }
-        );
+        println!("    Short Name: {}{}", self.short_tag, if self.takes_value { " <value>" } else { "" });
+        println!("    Long Name: {}{}", self.long_tag, if self.takes_value { " <value>" } else { "" });
       }
     }
     match &self.default_value {
@@ -151,11 +143,7 @@ pub struct Command {
 
 impl Command {
   pub fn new(command_name: &str) -> Self {
-    Self {
-      command_name: command_name.to_string(),
-      description: "".to_string(),
-      arguments: Vec::new(),
-    }
+    Self { command_name: command_name.to_string(), description: "".to_string(), arguments: Vec::new() }
   }
 
   pub fn description(mut self, description: &str) -> Self {
@@ -206,16 +194,7 @@ impl ArgsParser {
 
     let opt_command = self.commands.get(&*args[0].clone());
     if opt_command.is_none() {
-      return Err(format!(
-        "Unknown command {} expected one of [{}].",
-        args[0],
-        self
-          .commands
-          .iter()
-          .map(|x| x.0.clone())
-          .collect::<Vec<String>>()
-          .join(", ")
-      ));
+      return Err(format!("Unknown command {} expected one of [{}].", args[0], self.commands.iter().map(|x| x.0.clone()).collect::<Vec<String>>().join(", ")));
     }
     let command = opt_command.unwrap();
 
@@ -241,12 +220,12 @@ impl ArgsParser {
               if arg_schema.possible_values.is_empty() {
                 args_map.insert(arg_schema.arg_name.clone(), value_text.clone());
                 if index < clargs.len() {
-                  clargs.remove(index);
+                  clargs.remove(index - 1);
                 }
               } else if arg_schema.possible_values.contains(value_text) {
                 args_map.insert(arg_schema.arg_name.clone(), value_text.clone());
                 if index < clargs.len() {
-                  clargs.remove(index);
+                  clargs.remove(index - 1);
                 }
               } else if arg_schema.default_value.is_some() {
                 args_map.insert(
@@ -257,20 +236,10 @@ impl ArgsParser {
                   },
                 );
               } else {
-                return Err(format!(
-                  "Value '{}' is not valid for '{}' argument. The valid values are: {}",
-                  value.unwrap(),
-                  arg_schema.arg_name,
-                  arg_schema.possible_values.join(", ")
-                ));
+                return Err(format!("Value '{}' is not valid for '{}' argument. The valid values are: {}", value.unwrap(), arg_schema.arg_name, arg_schema.possible_values.join(", ")));
               }
             }
-            None => {
-              return Err(format!(
-                "Could not find positional value '{}'",
-                arg_schema.arg_name
-              ))
-            }
+            None => return Err(format!("Could not find positional value '{}'", arg_schema.arg_name)),
           }
         }
         _ => {
@@ -353,12 +322,11 @@ impl ArgsParser {
 
   pub fn print_usage(&self) {
     println!("\nUSAGE:");
-    println!(
-      "\t{} [COMMAND] [OPTIONS] [SOURCE FILE]\n",
-      self.program_name.to_lowercase()
-    );
+    println!("\t{} [COMMAND] [OPTIONS] [SOURCE FILE]\n", self.program_name.to_lowercase());
     println!("Commands:");
-    for (_, command) in &self.commands {
+    let mut commands = self.commands.iter().map(|x| x.1).collect::<Vec<&Command>>();
+    commands.sort_by(|x, y| x.command_name.partial_cmp(&y.command_name).unwrap());
+    for command in commands {
       command.print();
       println!();
     }

@@ -85,19 +85,7 @@ impl TokenTrait<TokenType> for Token {
 }
 
 impl Token {
-  pub fn new(
-    lexeme: String,
-    token_type: TokenType,
-    offset: (usize, usize),
-    line: (usize, usize),
-    column: (usize, usize),
-  ) -> Self {
-    Self {
-      lexeme,
-      token_type,
-      offset,
-      line,
-      column,
-    }
+  pub fn new(lexeme: String, token_type: TokenType, offset: (usize, usize), line: (usize, usize), column: (usize, usize)) -> Self {
+    Self { lexeme, token_type, offset, line, column }
   }
 }
