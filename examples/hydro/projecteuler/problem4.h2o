@@ -3,9 +3,7 @@
 % 9009 = 91 * 99.
 % Find the largest palindrome made from the product of two 3-digit numbers.
 
-
-% loop from 999 to 100
-%
+% TODO This is very slow it would be nice to optimize it some day
 
 module main
 main body
@@ -21,55 +19,57 @@ main body
     push u32 999 %b
     label innerloopstart
     % stack top > b > a > result
-    duplicate 1 swap duplicate 1
-    % stack top > a > b > a > b > result
-    greaterthanequal
-    branch innerloopcheck2 innerloopfinish
-    label innerloopcheck2
-    % stack a > b > result
-    swap
     duplicate
     push u32 100
     lessthan
     branch innerloopfinish innerloopbody
     label innerloopbody
-    % stack a > b > result
+    % stack b > a > result
     duplicate 1 swap duplicate 1
-    % stack b > a > b > a > result
-    multiply
-    duplicate
-    cast string
-    duplicate
-    push funcp this reverse
-    call
-    equal
+    % stack a > b > a > b > result
+    multiply % stack b*a > a > b > result
+    duplicate % stack b*a > b*a > a > b > result
+    cast string % stack str b*a > b*a > a > b > result
+    duplicate % stack str b*a > str b*a > b*a > a > b > result
+    push funcp this reverse % stack funcp > str b*a > str b*a > b*a > a > b > result
+    call % stack rev str b*a > str b*a > b*a > a > b > result
+    equal % stack bool > b*a > a > b > result
+    label here
     branch checkifnewresult innerloopfix
     label checkifnewresult
-    % stack a*b > b > a > result
+    % stack a*b > a > b > result
     rotate 4
+    % stack result > a*b > a > b
     duplicate 1 swap duplicate 1
-    % stack a*b > result > a*b > result > b > a
+    % stack a*b > result > a*b > result > a > b
     lessthan
     branch newresult sameresult
     label newresult
-    % stack a*b > result > b > a
+    % stack a*b > result > a > b
     swap
+    pop
+    rotate 3
+    rotate 3
+    jump innerloopend
     label sameresult
+    % stack a*b > result > a > b
     pop
     rotate 3
     rotate 3
     jump innerloopend
     label innerloopfix
+    % stack b*a > a > b > result
     pop
     label innerloopend
-    % stack b > a > result
+    % stack a > b > result
+    swap
     push u32 1
     subtract
     jump innerloopstart
 
     label innerloopfinish
-    % stack top > a > b > result
-    swap pop
+    % stack top > b > a > result
+    pop
     push u32 1
     subtract
     jump outerloopstart
