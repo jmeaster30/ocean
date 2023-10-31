@@ -59,7 +59,10 @@ fn main() -> std::io::Result<()> {
           arg_parser.print_version_info();
         }
         "hydro-build" => {
-          let compiled_module = Hydro::compile(arguments.get("Source File").unwrap().as_str())?;
+          let compiled_module = match Hydro::compile(arguments.get("Source File").unwrap().as_str()){
+            Ok(module) => module,
+            Err(errors) => panic!("ERRORS\n{:#?}", errors),
+          };
           Hydro::output(
             match arguments.get("Output Format").unwrap().as_str() {
               "binary" => HydroTranslateType::Binary,
@@ -70,7 +73,10 @@ fn main() -> std::io::Result<()> {
           )?;
         }
         "hydro-run" => {
-          let module = Hydro::compile(arguments.get("Source File").unwrap().as_str())?;
+          let module = match Hydro::compile(arguments.get("Source File").unwrap().as_str()) {
+            Ok(module) => module,
+            Err(errors) => panic!("ERRORS\n{:#?}", errors),
+          };
           let return_value = module.execute("main".to_string(), vec![Value::Unsigned32(69)], None);
 
           match return_value {
@@ -82,7 +88,10 @@ fn main() -> std::io::Result<()> {
           }
         }
         "hydro-debug" => {
-          let module = Hydro::compile(arguments.get("Source File").unwrap().as_str())?;
+          let module = match Hydro::compile(arguments.get("Source File").unwrap().as_str()) {
+            Ok(module) => module,
+            Err(errors) => panic!("ERRORS\n{:#?}", errors),
+          };
           let mut debug_context = DebugContext::new();
 
           let return_value = module.debug("main".to_string(), vec![Value::Unsigned32(69)], None, &mut debug_context);

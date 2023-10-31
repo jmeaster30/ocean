@@ -1,10 +1,9 @@
 module main
+using std.io.print
 main body
 % I don't like how we need a variable here to allocate an array.
 % I think we need the ability to create an array/layout directly on the stack
-    push vref myarray
-    alloc 5 u8
-    load
+    alloc array 5 u8
     push u32 0
     push u8 66
     setindex
@@ -20,4 +19,5 @@ main body
     push u32 4
     push u8 65
     setindex
-    return
+    push funcp std.io.print println
+    call
