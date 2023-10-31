@@ -7,7 +7,6 @@ use std::io::{Error, Write};
 use std::path::Path;
 use std::{env, fs};
 use std::time::Instant;
-use crate::util::dependencygraph::DependencyGraph;
 
 pub enum HydroTranslateType {
   Binary,
@@ -30,18 +29,18 @@ impl Hydro {
       Ok(found_modules) => match found_modules.iter().find(|x| x.name == "main") {
         Some(module) => {
           let new_now = Instant::now();
-          println!("Compiled in: {:?}", new_now.duration_since(now));
+          println!("Compilation Completed In: {:?}", new_now.duration_since(now));
           Ok(module.clone())
         },
         None => {
           let new_now = Instant::now();
-          println!("Compiled in: {:?}", new_now.duration_since(now));
+          println!("Compilation Completed In: {:?}", new_now.duration_since(now));
           Err(vec!["Main module not found :(".to_string()])
         },
       }
       Err((_, errors)) => {
         let new_now = Instant::now();
-        println!("Compiled in: {:?}", new_now.duration_since(now));
+        println!("Compilation Completed In: {:?}", new_now.duration_since(now));
         Err(errors)
       },
     }
