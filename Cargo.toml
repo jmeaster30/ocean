@@ -4,12 +4,14 @@ version = "0.1.0"
 edition = "2021"
 exclude = ["./ocean-language-support/*"]
 
+[profile.release]
+debug = true
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 graphviz-rust = "0.6.6"
 lazy_static = "1.4.0"
 ocean_helpers = { path = "ocean_helpers" }
-regex = "1.9.3"
 rustyline = "12.0.0"
-which = "4.4.2"
+which = "5.0.0"

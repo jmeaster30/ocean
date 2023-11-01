@@ -6,7 +6,6 @@ use crate::hydro::layouttemplate::LayoutTemplate;
 use crate::hydro::module::Module;
 use crate::hydro::value::{Array, FunctionPointer, LayoutIndexRef, Reference, Type, Value, VariableRef};
 use crate::util::tokentrait::TokenTrait;
-use regex::Regex;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io;
@@ -693,11 +692,6 @@ impl Parser {
           }
         }
 
-        let number_re = Regex::new(r"^-?(([0-9]+)|([0-9]*\.[0-9]+))$").unwrap();
-        let comment_re = Regex::new(r"^%.*$").unwrap();
-        let identifier_re = Regex::new(r"^[0-9a-zA-Z.\-_\\/]+$").unwrap();
-        let string_re = Regex::new(r#"^['"].*['"]$"#).unwrap();
-
         let token_type = match lexeme.to_lowercase().as_str() {
           "u8" | "u16" | "u32" | "u64" | "u128" => TokenType::Type,
           "s8" | "s16" | "s32" | "s64" | "s128" => TokenType::Type,
@@ -758,13 +752,13 @@ impl Parser {
           "setindex" => TokenType::SetIndex,
           "cast" => TokenType::Cast,
           _ => {
-            if number_re.is_match(lexeme.as_str()) {
+            if Parser::is_number(&lexeme) {
               TokenType::Number
-            } else if comment_re.is_match(lexeme.as_str()) {
+            } else if lexeme.starts_with('%') {
               TokenType::Comment
-            } else if identifier_re.is_match(lexeme.as_str()) {
+            } else if Parser::is_identifier(&lexeme) {
               TokenType::Identifier
-            } else if string_re.is_match(lexeme.as_str()) {
+            } else if lexeme.starts_with(&['\'', '"'][..]) && lexeme.ends_with(&['\'', '"'][..]) {
               TokenType::String
             } else {
               TokenType::Error
@@ -784,6 +778,43 @@ impl Parser {
         self.current_token.clone()
       }
     }
+  }
+
+  fn is_number(lexeme: &String) -> bool {
+    if lexeme.len() == 0 {
+      return false;
+    }
+    //let number_re = Regex::new(r"^-?(([0-9]+)|([0-9]*\.[0-9]+))$").unwrap();
+    let chars;
+    let rest = lexeme[1..].to_string();
+    if lexeme.starts_with('-') {
+      chars = rest.chars();
+    } else {
+      chars = lexeme.chars();
+    };
+    let mut found_decimal = false;
+    for c in chars {
+      if c == '.' {
+        if found_decimal {
+          return false;
+        } else {
+          found_decimal = true;
+        }
+      } else if !c.is_numeric() {
+        return false;
+      }
+    }
+
+    true
+  }
+
+  fn is_identifier(lexeme: &String) -> bool {
+    //let identifier_re = Regex::new(r"^[0-9a-zA-Z.\-_\\/]+$").unwrap();
+    if Parser::is_number(lexeme) {
+      return false;
+    }
+
+    lexeme.chars().all(|c| c.is_alphanumeric() || c == '.' || c == '-' || c == '_' || c == '\\' || c == '/')
   }
 
   fn expect_token(&mut self) -> Token {
