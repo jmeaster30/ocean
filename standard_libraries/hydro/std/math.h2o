@@ -1,0 +1,72 @@
+module std.math
+function isqrt u128 body
+    % if we are equal to 0 or 1 then return that value
+    duplicate
+    push u128 0
+    equal
+    branch earlyreturn check1
+    label earlyreturn
+    return
+    label check1
+    duplicate
+    push u128 1
+    equal
+    branch earlyreturn complicated
+    label complicated
+    duplicate % end
+    push u128 0 % start
+    label loopstart
+    % stack is top > start > end > target
+    duplicate 1 swap duplicate 1
+    % stack is top > end > start > end > start > target
+    lessthanequal
+    branch loopbody endloop
+    label loopbody
+    % stack is top > end > start > target
+    duplicate 1 swap duplicate 1
+    % stack is top > start > end > start > end > target
+    add
+    push u128 2
+    divide
+    % stack is top > mid > start > end > target
+    duplicate duplicate
+    multiply
+    % stack is top > mid*mid > mid > start > end > target
+    rotate 5
+    duplicate 4
+    % stack is top > target > mid*mid > mid > start > end > target
+    duplicate 1 swap duplicate 1
+    equal
+    branch earlyreturnfoundsquare comparelessthansquare
+    label earlyreturnfoundsquare
+    pop
+    pop
+    return
+    label comparelessthansquare
+    % stack is top > mid*mid > target > mid > start > end > target
+    greaterthanequal
+    branch buildans buildend
+    label buildans
+    % stack is top > mid > start > end > target
+    swap pop
+    duplicate
+    push u128 1
+    add
+    % stack is top > mid+1 > mid > end > target
+    swap
+    rotate 4
+    rotate 4
+    rotate 4 % hmmmm?? potentially a negative rotate? or some other way to encode the direction of the rotation
+    jump loopstart
+    label buildend
+    % stack is top > mid > start > end > target
+    push u128 1
+    subtract
+    % stack is top > mid-1 > start > end > target
+    rotate 3
+    pop
+    swap
+    jump loopstart
+    label endloop
+    pop pop pop
+    return
