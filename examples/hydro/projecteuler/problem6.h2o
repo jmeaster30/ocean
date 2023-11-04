@@ -1,0 +1,44 @@
+% Sum Square Difference
+% The sum of the squares of the first ten natural numbers is 1^2 + 2^2 + ... + 10^2 = 385.
+% The square of the sum of the first ten natural numbers is (1 + 2 + ... + 10)^2 = 55^2 = 3025.
+% Hence the difference between the sum of the squares of the first ten natural numbers and the square of the sum is 3025 - 385 = 2640.
+% Find the difference between the som of the squares of the first on hundred natural numbers and the square of the sum.
+
+module main
+main body
+    push u128 0
+    push u128 0
+    push u128 1
+    % stack > index > sum of squares > sum
+    label loopstart
+    duplicate
+    push u128 100
+    lessthanequal
+    branch loopbody loopend
+    label loopbody
+    % stack > index > sum of squares > sum
+    duplicate
+    duplicate
+    duplicate
+    multiply
+    % stack > a*a > a > index > sum of squares > sum
+    swap
+    rotate 5
+    add
+    % stack > sum > a*a > index > sum of squares
+    rotate -4
+    rotate 3
+    add
+    swap
+    push u128 1
+    add
+    jump loopstart
+    label loopend
+    % stack index > sum of squares > sum
+    pop
+    swap
+    duplicate
+    multiply
+    swap
+    subtract
+    return

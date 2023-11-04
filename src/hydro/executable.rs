@@ -107,7 +107,7 @@ impl Executable for Swap {
 
 impl Executable for Rotate {
   fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
-    if context.stack.len() < self.size {
+    if context.stack.len() < self.size.abs() as usize {
       return Err(Exception::new(context.clone(), format!("Unexpected number of stack values. Expected at least {} but got {}.", self.size, context.stack.len()).as_str()));
     }
 
@@ -116,8 +116,13 @@ impl Executable for Rotate {
       return Ok(true);
     }
 
-    let value = context.stack.remove(context.stack.len() - self.size);
-    context.stack.push(value);
+    if self.size >= 0 {
+       let value = context.stack.remove(context.stack.len() - (self.size as usize));
+      context.stack.push(value);
+    } else {
+       let value = context.stack.pop().unwrap();
+      context.stack.insert(context.stack.len() - ((self.size.abs() as usize) - 1), value);
+    }
 
     context.program_counter += 1;
     Ok(true)

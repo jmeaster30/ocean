@@ -71,7 +71,7 @@ pub struct Swap {}
 
 #[derive(Debug, Clone)]
 pub struct Rotate {
-  pub size: usize,
+  pub size: i64,
 }
 
 #[derive(Debug, Clone)]

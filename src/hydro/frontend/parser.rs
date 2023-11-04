@@ -366,7 +366,7 @@ impl Parser {
       TokenType::Rotate => {
         let size_token = self.expect_token_type(TokenType::Number);
         self.consume();
-        Instruction::Rotate(Rotate { size: size_token.lexeme.parse::<usize>().unwrap() })
+        Instruction::Rotate(Rotate { size: size_token.lexeme.parse::<i64>().unwrap() })
       }
       TokenType::Add => Instruction::Add(Add {}),
       TokenType::Subtract => Instruction::Subtract(Subtract {}),
