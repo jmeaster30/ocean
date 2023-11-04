@@ -1,6 +1,13 @@
+use ocean_helpers::Debuggable;
 use super::value::Value;
 use crate::hydro::function::Target;
 use crate::hydro::value::Type;
+use crate::hydro::executable::Executable;
+use crate::hydro::debuggable::Debuggable;
+use crate::hydro::debugcontext::DebugContext;
+use crate::hydro::exception::Exception;
+use crate::hydro::executioncontext::ExecutionContext;
+use crate::hydro::module::Module;
 
 #[derive(Debug, Clone)]
 pub enum Instruction {
@@ -53,96 +60,96 @@ pub enum Instruction {
   AllocateArray(AllocateArray),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Debuggable)]
 pub struct PushValue {
   pub value: Value,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Debuggable)]
 pub struct PopValue {}
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Debuggable)]
 pub struct Duplicate {
   pub offset: usize,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Debuggable)]
 pub struct Swap {}
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Debuggable)]
 pub struct Rotate {
   pub size: i64,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Debuggable)]
 pub struct Add {}
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Debuggable)]
 pub struct Subtract {}
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Debuggable)]
 pub struct Multiply {}
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Debuggable)]
 pub struct Divide {}
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Debuggable)]
 pub struct Modulo {}
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Debuggable)]
 pub struct LeftShift {}
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Debuggable)]
 pub struct RightShift {}
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Debuggable)]
 pub struct BitwiseAnd {}
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Debuggable)]
 pub struct BitwiseOr {}
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Debuggable)]
 pub struct BitwiseXor {}
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Debuggable)]
 pub struct BitwiseNot {}
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Debuggable)]
 pub struct And {}
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Debuggable)]
 pub struct Or {}
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Debuggable)]
 pub struct Xor {}
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Debuggable)]
 pub struct Not {}
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Debuggable)]
 pub struct Equal {}
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Debuggable)]
 pub struct NotEqual {}
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Debuggable)]
 pub struct LessThan {}
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Debuggable)]
 pub struct GreaterThan {}
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Debuggable)]
 pub struct LessThanEqual {}
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Debuggable)]
 pub struct GreaterThanEqual {}
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Debuggable)]
 pub struct Jump {
   pub target: Target,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Debuggable)]
 pub struct Branch {
   pub true_target: Target,
   pub false_target: Target,
@@ -151,42 +158,42 @@ pub struct Branch {
 #[derive(Debug, Clone)]
 pub struct Call {}
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Debuggable)]
 pub struct Return {}
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Debuggable)]
 pub struct Load {}
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Debuggable)]
 pub struct Store {}
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Debuggable)]
 pub struct SetArrayIndex {}
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Debuggable)]
 pub struct GetArrayIndex {}
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Debuggable)]
 pub struct SetLayoutIndex {
   pub member: String,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Debuggable)]
 pub struct GetLayoutIndex {
   pub member: String,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Debuggable)]
 pub struct Cast {
   pub to_type: Type,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Debuggable)]
 pub struct Allocate {
   pub allocated_type: Type,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Debuggable)]
 pub struct AllocateArray {
   pub array_size: Option<u64>,
   pub array_sub_type: Type,

@@ -2,6 +2,33 @@ extern crate proc_macro;
 use proc_macro::TokenStream;
 use std::cmp::min;
 use std::str::FromStr;
+use quote::quote;
+
+#[proc_macro_derive(Debuggable)]
+pub fn debuggable_macro_dervice(input: TokenStream) -> TokenStream {
+  // Construct a representation of Rust code as a syntax tree
+  // that we can manipulate
+  let ast = syn::parse(input).unwrap();
+
+  // Build the trait implementation
+  impl_debuggable_macro(&ast)
+}
+
+fn impl_debuggable_macro(ast: &syn::DeriveInput) -> TokenStream {
+  let name = &ast.ident;
+  let gen = quote! {
+        impl Debuggable for #name {
+            fn debug(&self, module: &Module, context: &mut ExecutionContext, debug_context: &mut DebugContext) -> Result<bool, Exception> {
+              let metric_name = stringify!(#name).to_lowercase();
+              debug_context.metric_tracker.start(format!("{}.{}.{}", context.current_module.clone(), context.current_function.clone(), metric_name.clone(),));
+              let result = self.execute(module, context);
+              debug_context.metric_tracker.stop(format!("{}.{}.{}", context.current_module.clone(), context.current_function.clone(), metric_name.clone(),));
+              return result;
+            }
+        }
+    };
+  gen.into()
+}
 
 // TODO I need to think much more deeply about if I want wrapping behavior for these operations
 #[proc_macro]
