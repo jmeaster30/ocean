@@ -2,8 +2,8 @@ use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
 pub struct MetricTracker {
-  current_metrics: HashMap<String, Vec<Metric>>,
-  finished_metrics: HashMap<String, Vec<Metric>>,
+  current_metrics: HashMap<(Vec<String>, String), Vec<Metric>>,
+  finished_metrics: HashMap<(Vec<String>, String), Vec<Metric>>,
 }
 
 impl MetricTracker {
@@ -11,17 +11,17 @@ impl MetricTracker {
     Self { current_metrics: HashMap::new(), finished_metrics: HashMap::new() }
   }
 
-  pub fn start(&mut self, metric_name: String) {
+  pub fn start(&mut self, stack: Vec<String>, metric_name: String) {
     let mut new_metric = Metric::new();
 
-    match self.current_metrics.get_mut(metric_name.as_str()) {
+    match self.current_metrics.get_mut(&(stack.clone(), metric_name.clone())) {
       Some(metric_stack) => {
         new_metric.start();
         metric_stack.push(new_metric);
       }
       None => {
         new_metric.start();
-        self.current_metrics.insert(metric_name, vec![new_metric]);
+        self.current_metrics.insert((stack, metric_name), vec![new_metric]);
       }
     }
   }
@@ -34,17 +34,17 @@ impl MetricTracker {
     }
   }
 
-  pub fn stop(&mut self, metric_name: String) {
-    match self.current_metrics.get_mut(metric_name.as_str()) {
+  pub fn stop(&mut self, stack: Vec<String>, metric_name: String) {
+    match self.current_metrics.get_mut(&(stack.clone(), metric_name.clone())) {
       Some(metric_stack) => match metric_stack.pop() {
         Some(mut metric) => {
           metric.stop();
-          match self.finished_metrics.get_mut(metric_name.as_str()) {
+          match self.finished_metrics.get_mut(&(stack.clone(), metric_name.clone())) {
             Some(finished_metric_stack) => {
               finished_metric_stack.push(metric);
             }
             None => {
-              self.finished_metrics.insert(metric_name, vec![metric]);
+              self.finished_metrics.insert((stack, metric_name), vec![metric]);
             }
           }
         }
@@ -76,8 +76,8 @@ impl MetricTracker {
     self.current_metrics.clear();
   }
 
-  pub fn pause(&mut self, metric_name: String) {
-    match self.current_metrics.get_mut(metric_name.as_str()) {
+  pub fn pause(&mut self, stack: Vec<String>, metric_name: String) {
+    match self.current_metrics.get_mut(&(stack.clone(), metric_name.clone())) {
       Some(metric_stack) => match metric_stack.last_mut() {
         Some(metric) => {
           metric.pause();
@@ -89,19 +89,19 @@ impl MetricTracker {
   }
 
   pub fn pause_all(&mut self) {
-    for (metric_name, _) in self.current_metrics.clone() {
-      self.pause(metric_name.clone())
+    for ((stack, metric_name), _) in self.current_metrics.clone() {
+      self.pause(stack.clone(), metric_name.clone())
     }
   }
 
-  pub fn get_result(&self, metric_name: String) -> Option<MetricResults> {
-    self.finished_metrics.get(&metric_name).and_then(|metric_list| Some(MetricResults::new(metric_name, metric_list.clone())))
+  pub fn get_result(&self, stack: Vec<String>, metric_name: String) -> Option<MetricResults> {
+    self.finished_metrics.get(&(stack.clone(), metric_name.clone())).and_then(|metric_list| Some(MetricResults::new(stack, metric_name, metric_list.clone())))
   }
 
   pub fn get_results(&self) -> Vec<MetricResults> {
     let mut results = Vec::new();
-    for (metric_name, metric_list) in &self.finished_metrics {
-      results.push(MetricResults::new(metric_name.clone(), metric_list.clone()));
+    for ((stack, metric_name), metric_list) in &self.finished_metrics {
+      results.push(MetricResults::new(stack.clone(), metric_name.clone(), metric_list.clone()));
     }
     results.sort_by(|x, y| x.name.partial_cmp(&y.name).unwrap());
     results
@@ -109,6 +109,7 @@ impl MetricTracker {
 }
 
 pub struct MetricResults {
+  pub stack: Vec<String>,
   pub name: String,
   pub total_count: usize,
   pub total_time: Duration,
@@ -122,7 +123,7 @@ pub struct MetricResults {
 }
 
 impl MetricResults {
-  pub fn new(metric_name: String, mut metrics: Vec<Metric>) -> Self {
+  pub fn new(stack: Vec<String>, metric_name: String, mut metrics: Vec<Metric>) -> Self {
     let total_count = metrics.len();
     metrics.sort_by(|x, y| x.duration().partial_cmp(&y.duration()).unwrap());
 
@@ -172,6 +173,7 @@ impl MetricResults {
     let standard_deviation = Duration::from_nanos(((standard_deviation_sum / total_count as i128) as f64).sqrt() as u64);
 
     Self {
+      stack,
       name: metric_name,
       total_count,
       total_time,

@@ -190,7 +190,7 @@ impl Module {
       }
     }
 
-    debug_context.metric_tracker.start(format!("{}.{}.{}", self.name.clone(), function_name.clone(), "total".to_string(),));
+    debug_context.metric_tracker.start(context.get_call_stack(), "total".to_string());
 
     let current_function = self.functions.get(&*function_name).unwrap();
 
@@ -198,7 +198,7 @@ impl Module {
       if Type::subset(&got_value.type_of(), expected_type) {
         context.stack.push(got_value);
       } else {
-        debug_context.metric_tracker.stop(format!("{}.{}.{}", self.name.clone(), function_name.clone(), "total".to_string(),));
+        debug_context.metric_tracker.stop(context.get_call_stack(), "total".to_string());
         return Err(Exception::new(context, format!("Unexpected function parameter type found {:?} but expected {:?}", got_value.type_of(), expected_type).as_str()));
       }
     }
@@ -225,14 +225,14 @@ impl Module {
             Ok(_) => {}
             Err(readline_error) => return Err(Exception::new(context, readline_error.to_string().as_str())),
           }
-          debug_context.metric_tracker.stop(format!("{}.{}.{}", self.name.clone(), function_name.clone(), "total".to_string(),));
+          debug_context.metric_tracker.stop(context.get_call_stack(), "total".to_string());
           return Err(exception);
         }
         _ => {}
       }
     }
 
-    debug_context.metric_tracker.stop(format!("{}.{}.{}", self.name.clone(), function_name.clone(), "total".to_string(),));
+    debug_context.metric_tracker.stop(context.get_call_stack(), "total".to_string());
     Ok(context.return_value.clone())
   }
 }

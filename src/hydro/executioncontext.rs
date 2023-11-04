@@ -30,6 +30,19 @@ impl ExecutionContext {
     }
   }
 
+  pub fn get_call_stack(&self) -> Vec<String> {
+    let mut results = Vec::new();
+    match &self.parent_execution_context {
+      Some(next_context) => {
+        let mut call_stack = next_context.get_call_stack();
+        results.append(&mut call_stack);
+      },
+      None => {}
+    }
+    results.push(format!("{}.{}", self.current_module, self.current_function));
+    results
+  }
+
   pub fn print_stacktrace(&self) {
     println!("\tModule: '{}' Function: '{}' at PC: {}", self.current_module, self.current_function, self.program_counter);
     match &self.parent_execution_context {

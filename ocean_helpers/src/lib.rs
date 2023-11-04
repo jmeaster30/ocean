@@ -6,11 +6,7 @@ use quote::quote;
 
 #[proc_macro_derive(Debuggable)]
 pub fn debuggable_macro_dervice(input: TokenStream) -> TokenStream {
-  // Construct a representation of Rust code as a syntax tree
-  // that we can manipulate
   let ast = syn::parse(input).unwrap();
-
-  // Build the trait implementation
   impl_debuggable_macro(&ast)
 }
 
@@ -20,9 +16,9 @@ fn impl_debuggable_macro(ast: &syn::DeriveInput) -> TokenStream {
         impl Debuggable for #name {
             fn debug(&self, module: &Module, context: &mut ExecutionContext, debug_context: &mut DebugContext) -> Result<bool, Exception> {
               let metric_name = stringify!(#name).to_lowercase();
-              debug_context.metric_tracker.start(format!("{}.{}.{}", context.current_module.clone(), context.current_function.clone(), metric_name.clone(),));
+              debug_context.metric_tracker.start(context.get_call_stack(), metric_name.clone());
               let result = self.execute(module, context);
-              debug_context.metric_tracker.stop(format!("{}.{}.{}", context.current_module.clone(), context.current_function.clone(), metric_name.clone(),));
+              debug_context.metric_tracker.stop(context.get_call_stack(), metric_name);
               return result;
             }
         }

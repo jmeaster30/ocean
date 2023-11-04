@@ -405,9 +405,10 @@ impl DebugContext {
   }
 
   fn print_metric(result: &MetricResults, unit: String) {
+    let metric_name = result.stack.iter().fold("".to_string(), |a, b| if a == "" { b.clone() } else { a + " > " + b }) + " > " + result.name.as_str();
     match unit.as_str() {
       "sec" => {
-        println!("Metric: {}", result.name);
+        println!("Metric: {}", metric_name);
         println!("  Total Time: {}s", result.total_time.as_secs());
         println!("  Total Count: {}", result.total_count);
         println!("  Min: {}s", result.min.as_secs());
@@ -419,7 +420,7 @@ impl DebugContext {
         println!("  Standard Deviation: {}s", result.standard_deviation.as_secs());
       }
       "milli" => {
-        println!("Metric: {}", result.name);
+        println!("Metric: {}", metric_name);
         println!("  Total Time: {}ms", result.total_time.as_millis());
         println!("  Total Count: {}", result.total_count);
         println!("  Min: {}ms", result.min.as_millis());
@@ -431,7 +432,7 @@ impl DebugContext {
         println!("  Standard Deviation: {}ms", result.standard_deviation.as_millis());
       }
       "micro" => {
-        println!("Metric: {}", result.name);
+        println!("Metric: {}", metric_name);
         println!("  Total Time: {}us", result.total_time.as_micros());
         println!("  Total Count: {}", result.total_count);
         println!("  Min: {}us", result.min.as_micros());
@@ -443,7 +444,7 @@ impl DebugContext {
         println!("  Standard Deviation: {}us", result.standard_deviation.as_micros());
       }
       "nano" => {
-        println!("Metric: {}", result.name);
+        println!("Metric: {}", metric_name);
         println!("  Total Time: {}ns", result.total_time.as_nanos());
         println!("  Total Count: {}", result.total_count);
         println!("  Min: {}ns", result.min.as_nanos());
@@ -455,7 +456,7 @@ impl DebugContext {
         println!("  Standard Deviation: {}ns", result.standard_deviation.as_nanos());
       }
       _ => {
-        println!("Metric: {}", result.name);
+        println!("Metric: {}", metric_name);
         println!("  Total Time: {}us", result.total_time.as_micros());
         println!("  Total Count: {}", result.total_count);
         println!("  Min: {}us", result.min.as_micros());
@@ -470,17 +471,17 @@ impl DebugContext {
   }
 
   pub fn print_summarized_core_metric(&self, module_name: String, function_name: String, metric_name: String) {
-    match self.metric_tracker.get_result(format!("{}.{}.{}", module_name, function_name, metric_name)) {
+    match self.metric_tracker.get_result(vec![format!("{}.{}", module_name, function_name)], metric_name) {
       Some(results) => Self::print_metric(&results, "millis".to_string()),
       None => {}
     }
   }
 
-  pub fn start_custom_metric(&mut self, module_name: String, function_name: String, metric_name: String) {
-    self.metric_tracker.start(format!("{}.{}.{}", module_name, function_name, metric_name));
+  pub fn start_custom_metric(&mut self, stack: Vec<String>, metric_name: String) {
+    self.metric_tracker.start(stack, metric_name);
   }
 
-  pub fn stop_custom_metric(&mut self, module_name: String, function_name: String, metric_name: String) {
-    self.metric_tracker.stop(format!("{}.{}.{}", module_name, function_name, metric_name));
+  pub fn stop_custom_metric(&mut self, stack: Vec<String>, metric_name: String) {
+    self.metric_tracker.stop(stack, metric_name);
   }
 }

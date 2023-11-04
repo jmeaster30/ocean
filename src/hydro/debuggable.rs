@@ -60,10 +60,10 @@ impl Instruction {
 impl Debuggable for Call {
   fn debug(&self, module: &Module, context: &mut ExecutionContext, debug_context: &mut DebugContext) -> Result<bool, Exception> {
     let metric_name = "call".to_string();
-    debug_context.metric_tracker.start(format!("{}.{}.{}", context.current_module.clone(), context.current_function.clone(), metric_name.clone(),));
+    debug_context.metric_tracker.start(context.get_call_stack(), metric_name.clone());
 
     if context.stack.len() < 1 {
-      debug_context.metric_tracker.stop(format!("{}.{}.{}", context.current_module.clone(), context.current_function.clone(), metric_name.clone(),));
+      debug_context.metric_tracker.stop(context.get_call_stack(), metric_name.clone());
       return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 1 and got none."));
     }
 
@@ -78,7 +78,7 @@ impl Debuggable for Call {
               if module.name == module_name {
                 module
               } else {
-                debug_context.metric_tracker.stop(format!("{}.{}.{}", context.current_module.clone(), context.current_function.clone(), metric_name.clone(),));
+                debug_context.metric_tracker.stop(context.get_call_stack(), metric_name.clone());
                 return Err(Exception::new(context.clone(), format!("Could not find module '{}'", module_name).as_str()));
               }
             }
@@ -89,7 +89,7 @@ impl Debuggable for Call {
         match target_module.functions.get(func_pointer.function.clone().as_str()) {
           Some(target_function) => {
             if context.stack.len() < target_function.parameters.len() {
-              debug_context.metric_tracker.stop(format!("{}.{}.{}", context.current_module.clone(), context.current_function.clone(), metric_name.clone(),));
+              debug_context.metric_tracker.stop(context.get_call_stack(), metric_name.clone());
               return Err(Exception::new(context.clone(), format!("Unexpected number of stack values. Expected {} and got {}.", target_function.parameters.len(), context.stack.len()).as_str()));
             }
 
@@ -106,7 +106,7 @@ impl Debuggable for Call {
                 None => {}
               },
               Err(e) => {
-                debug_context.metric_tracker.stop(format!("{}.{}.{}", context.current_module.clone(), context.current_function.clone(), metric_name.clone(),));
+                debug_context.metric_tracker.stop(context.get_call_stack(), metric_name.clone());
                 return Err(e);
               }
             }
@@ -114,7 +114,7 @@ impl Debuggable for Call {
           None => match target_module.intrinsics.get(func_pointer.function.clone().as_str()) {
             Some(target_intrinsic) => {
               if context.stack.len() < target_intrinsic.parameters.len() {
-                debug_context.metric_tracker.stop(format!("{}.{}.{}", context.current_module.clone(), context.current_function.clone(), metric_name.clone(),));
+                debug_context.metric_tracker.stop(context.get_call_stack(), metric_name.clone());
                 return Err(Exception::new(context.clone(), format!("Unexpected number of stack values. Expected {} and got {}.", target_intrinsic.parameters.len(), context.stack.len()).as_str()));
               }
 
@@ -127,7 +127,7 @@ impl Debuggable for Call {
               let code = match target_intrinsic.get_intrinsic_code("vm".to_string()) {
                 Ok(code) => code,
                 Err(message) => {
-                  debug_context.metric_tracker.stop(format!("{}.{}.{}", context.current_module.clone(), context.current_function.clone(), metric_name.clone(),));
+                  debug_context.metric_tracker.stop(context.get_call_stack(), metric_name.clone());
                   return Err(Exception::new(context.clone(), message.as_str()));
                 }
               };
@@ -136,26 +136,26 @@ impl Debuggable for Call {
               match return_value {
                 Ok(mut values) => context.stack.append(&mut values),
                 Err(e) => {
-                  debug_context.metric_tracker.stop(format!("{}.{}.{}", context.current_module.clone(), context.current_function.clone(), metric_name.clone(),));
+                  debug_context.metric_tracker.stop(context.get_call_stack(), metric_name.clone());
                   return Err(e);
                 }
               }
             }
             None => {
-              debug_context.metric_tracker.stop(format!("{}.{}.{}", context.current_module.clone(), context.current_function.clone(), metric_name.clone(),));
+              debug_context.metric_tracker.stop(context.get_call_stack(), metric_name.clone());
               return Err(Exception::new(context.clone(), format!("Could not find function '{}' in module '{}'", func_pointer.function.clone().as_str(), target_module.name).as_str()));
             }
           },
         };
       }
       _ => {
-        debug_context.metric_tracker.stop(format!("{}.{}.{}", context.current_module.clone(), context.current_function.clone(), metric_name.clone(),));
+        debug_context.metric_tracker.stop(context.get_call_stack(), metric_name.clone());
         return Err(Exception::new(context.clone(), "Non-invokable value was attempted to be invoked"));
       }
     }
 
     context.program_counter += 1;
-    debug_context.metric_tracker.stop(format!("{}.{}.{}", context.current_module.clone(), context.current_function.clone(), metric_name.clone(),));
+    debug_context.metric_tracker.stop(context.get_call_stack(), metric_name.clone());
     Ok(true)
   }
 }
