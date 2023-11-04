@@ -51,17 +51,17 @@ impl Function {
   }
 
   pub fn var_ref(mut self, variable_name: &str) -> Self {
-    self.body.push(Instruction::PushValue(PushValue { value: Value::Reference(Reference::Variable(VariableRef::new(variable_name.to_string()))) }));
+    self.body.push(Instruction::PushValue(Push { value: Value::Reference(Reference::Variable(VariableRef::new(variable_name.to_string()))) }));
     self
   }
 
   pub fn push_value(mut self, value: Value) -> Self {
-    self.body.push(Instruction::PushValue(PushValue { value }));
+    self.body.push(Instruction::PushValue(Push { value }));
     self
   }
 
   pub fn pop_value(mut self) -> Self {
-    self.body.push(Instruction::PopValue(PopValue {}));
+    self.body.push(Instruction::PopValue(Pop {}));
     self
   }
 

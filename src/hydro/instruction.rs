@@ -11,8 +11,8 @@ use crate::hydro::module::Module;
 
 #[derive(Debug, Clone)]
 pub enum Instruction {
-  PushValue(PushValue),
-  PopValue(PopValue),
+  PushValue(Push),
+  PopValue(Pop),
   Duplicate(Duplicate),
   Swap(Swap),
   Rotate(Rotate),
@@ -61,12 +61,12 @@ pub enum Instruction {
 }
 
 #[derive(Debug, Clone, Debuggable)]
-pub struct PushValue {
+pub struct Push {
   pub value: Value,
 }
 
 #[derive(Debug, Clone, Debuggable)]
-pub struct PopValue {}
+pub struct Pop {}
 
 #[derive(Debug, Clone, Debuggable)]
 pub struct Duplicate {

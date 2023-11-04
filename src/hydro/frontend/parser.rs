@@ -311,7 +311,7 @@ impl Parser {
         }
 
         let value_token = self.expect_token();
-        Instruction::PushValue(PushValue {
+        Instruction::PushValue(Push {
           value: match value_token.token_type {
             TokenType::Number | TokenType::String => {
               self.consume();
@@ -351,7 +351,7 @@ impl Parser {
           },
         })
       }
-      TokenType::Pop => Instruction::PopValue(PopValue {}),
+      TokenType::Pop => Instruction::PopValue(Pop {}),
       TokenType::Duplicate => {
         let offset = match self.optional_token_type(TokenType::Number) {
           Some(token) => {

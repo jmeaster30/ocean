@@ -55,7 +55,7 @@ impl Instruction {
   }
 }
 
-impl Executable for PushValue {
+impl Executable for Push {
   fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
     context.stack.push(self.value.clone());
     context.program_counter += 1;
@@ -63,7 +63,7 @@ impl Executable for PushValue {
   }
 }
 
-impl Executable for PopValue {
+impl Executable for Pop {
   fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.pop().is_none() {
       return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 1 and got none."));
