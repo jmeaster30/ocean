@@ -4,7 +4,13 @@ use crate::hydro::value::{Type, Value};
 
 #[test]
 fn test_push_return() {
-  let module = Module::build("main").function(Function::build("main").push_value(Value::Unsigned32(420)).ret());
+  #[rustfmt::skip]
+  let module = {
+    Module::build("main")
+      .function(Function::build("main")
+        .push_value(Value::Unsigned32(420))
+        .ret())
+  };
 
   let return_value = module.execute("main".to_string(), Vec::new(), None);
 
@@ -13,7 +19,12 @@ fn test_push_return() {
 
 #[test]
 fn test_push_no_return() {
-  let module = Module::build("main").function(Function::build("main").push_value(Value::Unsigned32(420)));
+  #[rustfmt::skip]
+  let module = {
+    Module::build("main")
+      .function(Function::build("main")
+        .push_value(Value::Unsigned32(420)))
+  };
 
   let return_value = module.execute("main".to_string(), Vec::new(), None);
 
@@ -22,7 +33,15 @@ fn test_push_no_return() {
 
 #[test]
 fn test_add() {
-  let module = Module::build("main").function(Function::build("main").push_value(Value::Unsigned32(420)).push_value(Value::Unsigned32(69)).add().ret());
+  #[rustfmt::skip]
+  let module =  {
+    Module::build("main")
+      .function(Function::build("main")
+        .push_value(Value::Unsigned32(420))
+        .push_value(Value::Unsigned32(69))
+        .add()
+        .ret())
+  };
 
   let return_value = module.execute("main".to_string(), Vec::new(), None);
 
@@ -30,8 +49,16 @@ fn test_add() {
 }
 
 #[test]
-fn test_add_with_variable() {
-  let module = Module::build("main").function(Function::build("main").parameter(Type::Unsigned32).var_ref("coolNumber").load().push_value(Value::Unsigned32(69)).add().ret());
+fn test_add_with_main_parameter() {
+  #[rustfmt::skip]
+  let module = {
+    Module::build("main")
+      .function(Function::build("main")
+        .parameter(Type::Unsigned32)
+        .push_value(Value::Unsigned32(69))
+        .add()
+        .ret())
+  };
 
   let return_value = module.execute("main".to_string(), vec![Value::Unsigned32(420)], None);
 
