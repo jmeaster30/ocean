@@ -9,11 +9,7 @@ pub struct DependencyGraph<T: Hash + Eq + Clone> {
 
 impl<T: Hash + Eq + Clone> DependencyGraph<T> {
   pub fn new() -> Self {
-    Self {
-      all_values: Vec::new(),
-      level_map: HashMap::new(),
-      levels: Vec::new(),
-    }
+    Self { all_values: Vec::new(), level_map: HashMap::new(), levels: Vec::new() }
   }
 
   pub fn add(&mut self, value: T, dependencies: Vec<T>) {

@@ -117,10 +117,10 @@ impl Executable for Rotate {
     }
 
     if self.size >= 0 {
-       let value = context.stack.remove(context.stack.len() - (self.size as usize));
+      let value = context.stack.remove(context.stack.len() - (self.size as usize));
       context.stack.push(value);
     } else {
-       let value = context.stack.pop().unwrap();
+      let value = context.stack.pop().unwrap();
       context.stack.insert(context.stack.len() - ((self.size.abs() as usize) - 1), value);
     }
 

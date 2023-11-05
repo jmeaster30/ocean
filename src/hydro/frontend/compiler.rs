@@ -5,8 +5,8 @@ use crate::hydro::Hydro;
 use std::fs::File;
 use std::io::{Error, Write};
 use std::path::Path;
-use std::{env, fs};
 use std::time::Instant;
+use std::{env, fs};
 
 pub enum HydroTranslateType {
   Binary,
@@ -31,18 +31,18 @@ impl Hydro {
           let new_now = Instant::now();
           println!("Compilation Completed In: {:?}", new_now.duration_since(now));
           Ok(module.clone())
-        },
+        }
         None => {
           let new_now = Instant::now();
           println!("Compilation Completed In: {:?}", new_now.duration_since(now));
           Err(vec!["Main module not found :(".to_string()])
-        },
-      }
+        }
+      },
       Err((_, errors)) => {
         let new_now = Instant::now();
         println!("Compilation Completed In: {:?}", new_now.duration_since(now));
         Err(errors)
-      },
+      }
     }
   }
 
@@ -96,17 +96,23 @@ impl Hydro {
         match Hydro::internal_compile(path.as_str(), project_root, std_root.clone()) {
           Ok(found_modules) => {
             for module in found_modules {
-              if module.name == "main" { continue; }
-              if module.name == module_name { target_module = Some(module.clone()); }
+              if module.name == "main" {
+                continue;
+              }
+              if module.name == module_name {
+                target_module = Some(module.clone());
+              }
               new_found_modules.push(module);
             }
             break;
           }
-          Err((found_source_file, mut new_errors)) => if found_source_file {
-            errors.append(&mut new_errors);
-            break;
-          } else {
-            continue;
+          Err((found_source_file, mut new_errors)) => {
+            if found_source_file {
+              errors.append(&mut new_errors);
+              break;
+            } else {
+              continue;
+            }
           }
         }
       }
@@ -135,7 +141,8 @@ impl Hydro {
         },
         "src" => project_root.to_string(),
         _ => ".".to_string(),
-      }.as_str();
+      }
+      .as_str();
       path += "/";
       for j in 0..=i {
         path += components[j];

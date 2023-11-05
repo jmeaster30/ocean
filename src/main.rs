@@ -59,7 +59,7 @@ fn main() -> std::io::Result<()> {
           arg_parser.print_version_info();
         }
         "hydro-build" => {
-          let compiled_module = match Hydro::compile(arguments.get("Source File").unwrap().as_str()){
+          let compiled_module = match Hydro::compile(arguments.get("Source File").unwrap().as_str()) {
             Ok(module) => module,
             Err(errors) => panic!("ERRORS\n{:#?}", errors),
           };

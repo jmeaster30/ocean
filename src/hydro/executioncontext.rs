@@ -36,7 +36,7 @@ impl ExecutionContext {
       Some(next_context) => {
         let mut call_stack = next_context.get_call_stack();
         results.append(&mut call_stack);
-      },
+      }
       None => {}
     }
     results.push(format!("{}.{}", self.current_module, self.current_function));

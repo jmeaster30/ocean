@@ -1,11 +1,12 @@
-use ocean_helpers::Debuggable;
 use super::value::Value;
 use crate::hydro::function::Target;
 use crate::hydro::value::Type;
-use crate::hydro::executable::Executable;
-use crate::hydro::debuggable::Debuggable;
+use ocean_helpers::Debuggable;
+// Intellij thinks these are unused but they are used by the Debuggable derive macro
 use crate::hydro::debugcontext::DebugContext;
+use crate::hydro::debuggable::Debuggable;
 use crate::hydro::exception::Exception;
+use crate::hydro::executable::Executable;
 use crate::hydro::executioncontext::ExecutionContext;
 use crate::hydro::module::Module;
 
