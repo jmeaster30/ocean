@@ -184,6 +184,11 @@ impl Executable for Divide {
     }
 
     let b = context.stack.pop().unwrap();
+    match b.to_u64() {
+      Ok(0) => return Err(Exception::new(context.clone(), "Attempt to divide by zero :(")),
+      Ok(_) => {}
+      Err(message) => return Err(Exception::new(context.clone(), message.as_str())),
+    }
     let a = context.stack.pop().unwrap();
 
     context.stack.push(context.div(a, b));

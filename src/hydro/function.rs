@@ -90,6 +90,31 @@ impl Function {
     self
   }
 
+  pub fn multiply(mut self) -> Self {
+    self.body.push(Instruction::Multiply(Multiply {}));
+    self
+  }
+
+  pub fn divide(mut self) -> Self {
+    self.body.push(Instruction::Divide(Divide {}));
+    self
+  }
+
+  pub fn modulo(mut self) -> Self {
+    self.body.push(Instruction::Modulo(Modulo {}));
+    self
+  }
+
+  pub fn leftshift(mut self) -> Self {
+    self.body.push(Instruction::LeftShift(LeftShift {}));
+    self
+  }
+
+  pub fn rightshift(mut self) -> Self {
+    self.body.push(Instruction::RightShift(RightShift {}));
+    self
+  }
+
   pub fn ret(mut self) -> Self {
     self.body.push(Instruction::Return(Return {}));
     self
