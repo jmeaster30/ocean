@@ -55,13 +55,38 @@ impl Function {
     self
   }
 
-  pub fn push_value(mut self, value: Value) -> Self {
+  pub fn push(mut self, value: Value) -> Self {
     self.body.push(Instruction::PushValue(Push { value }));
     self
   }
 
-  pub fn pop_value(mut self) -> Self {
+  pub fn pop(mut self) -> Self {
     self.body.push(Instruction::PopValue(Pop {}));
+    self
+  }
+
+  pub fn duplicate(mut self, offset: usize) -> Self {
+    self.body.push(Instruction::Duplicate(Duplicate { offset }));
+    self
+  }
+
+  pub fn swap(mut self) -> Self {
+    self.body.push(Instruction::Swap(Swap {}));
+    self
+  }
+
+  pub fn rotate(mut self, size: i64) -> Self {
+    self.body.push(Instruction::Rotate(Rotate { size }));
+    self
+  }
+
+  pub fn add(mut self) -> Self {
+    self.body.push(Instruction::Add(Add {}));
+    self
+  }
+
+  pub fn subtract(mut self) -> Self {
+    self.body.push(Instruction::Subtract(Subtract {}));
     self
   }
 
@@ -85,8 +110,5 @@ impl Function {
     self
   }
 
-  pub fn add(mut self) -> Self {
-    self.body.push(Instruction::Add(Add {}));
-    self
-  }
+
 }
