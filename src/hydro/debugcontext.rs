@@ -86,10 +86,18 @@ impl DebugContext {
             .position(2))
           .arg(Argument::new("Program Counter")
             .position(3)))
+        .command(Command::new("callgraph")
+          .description("Prints the call graph of the previously executed instructions")
+          .arg(Argument::new("Time Scale")
+            .position(1)
+            .default("micro")
+            .possible_values(vec!["sec", "milli", "micro", "nano"])))
         .command(Command::new("continue")
           .description("Starts/continues execution"))
         .command(Command::new("exit")
           .description("Exits the program"))
+        .command(Command::new("hotpath"))
+          .description("Gives the hotpath for the previously executed instructions")
         .command(Command::new("instruction")
           .description("Prints the currently executing instruction"))
         .command(Command::new("metric")
@@ -197,11 +205,26 @@ impl DebugContext {
                       Err(message) => Err(message),
                     }
                   }
+                  "callgraph" => {
+                    // TODO add a filter for the stack to the debug console args
+                    let flamegraph = self.metric_tracker.get_flamegraph(Vec::new());
+
+                    match flamegraph {
+                      Some(graph) => graph.print(arguments.get("Time Scale").unwrap().clone()),
+                      None => println!("No graph :(")
+                    }
+
+                    Ok(ContinueConsole)
+                  }
                   "continue" => match &execution_context {
                     Some(_) => Ok(StartResumeExecution),
                     None => Err("Not in a continuable context :(".to_string()),
                   },
                   "exit" => Ok(ExitProgram),
+                  "hotpath" => {
+                    todo!("I was going to implement this but then I didn't :(");
+                    //Ok(ContinueConsole)
+                  }
                   "instruction" => match &execution_context {
                     Some(context) => {
                       println!("Module: '{}' Function: '{}' at PC: {}", context.current_module, context.current_function, context.program_counter);

@@ -23,7 +23,7 @@ function fibonacci any body
 
 
 main body
-    push u128 20
+    push u128 8
     push funcp main fibonacci
     call
     return

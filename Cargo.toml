@@ -11,6 +11,7 @@ debug = true
 
 [dependencies]
 graphviz-rust = "0.6.6"
+itertools = "0.11.0"
 lazy_static = "1.4.0"
 ocean_helpers = { path = "ocean_helpers" }
 rustyline = "12.0.0"
