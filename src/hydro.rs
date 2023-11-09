@@ -12,5 +12,6 @@ pub mod layouttemplate;
 pub mod module;
 pub mod value;
 mod visualizer;
+mod compilationunit;
 
 pub struct Hydro {}

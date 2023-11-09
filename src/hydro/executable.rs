@@ -1,62 +1,62 @@
+use crate::hydro::compilationunit::CompilationUnit;
 use super::{executioncontext::ExecutionContext, instruction::*, value::Value};
 use crate::hydro::exception::Exception;
 use crate::hydro::intrinsic::intrinsicmanager::INTRINSIC_MANAGER;
 
-use crate::hydro::module::Module;
 use crate::hydro::value::Type;
 
 pub trait Executable {
-  fn execute(&self, module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception>;
+  fn execute(&self, compilation_unit: &CompilationUnit, context: &mut ExecutionContext) -> Result<bool, Exception>;
 }
 
 impl Instruction {
-  pub fn execute(&self, module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
+  pub fn execute(&self, compilation_unit: &CompilationUnit, context: &mut ExecutionContext) -> Result<bool, Exception> {
     match self {
-      Instruction::PushValue(x) => x.execute(module, context),
-      Instruction::PopValue(x) => x.execute(module, context),
-      Instruction::Duplicate(x) => x.execute(module, context),
-      Instruction::Swap(x) => x.execute(module, context),
-      Instruction::Rotate(x) => x.execute(module, context),
-      Instruction::Add(x) => x.execute(module, context),
-      Instruction::Subtract(x) => x.execute(module, context),
-      Instruction::Multiply(x) => x.execute(module, context),
-      Instruction::Divide(x) => x.execute(module, context),
-      Instruction::Modulo(x) => x.execute(module, context),
-      Instruction::LeftShift(x) => x.execute(module, context),
-      Instruction::RightShift(x) => x.execute(module, context),
-      Instruction::BitwiseAnd(x) => x.execute(module, context),
-      Instruction::BitwiseOr(x) => x.execute(module, context),
-      Instruction::BitwiseXor(x) => x.execute(module, context),
-      Instruction::BitwiseNot(x) => x.execute(module, context),
-      Instruction::And(x) => x.execute(module, context),
-      Instruction::Or(x) => x.execute(module, context),
-      Instruction::Xor(x) => x.execute(module, context),
-      Instruction::Not(x) => x.execute(module, context),
-      Instruction::Equal(x) => x.execute(module, context),
-      Instruction::NotEqual(x) => x.execute(module, context),
-      Instruction::LessThan(x) => x.execute(module, context),
-      Instruction::GreaterThan(x) => x.execute(module, context),
-      Instruction::LessThanEqual(x) => x.execute(module, context),
-      Instruction::GreaterThanEqual(x) => x.execute(module, context),
-      Instruction::Jump(x) => x.execute(module, context),
-      Instruction::Branch(x) => x.execute(module, context),
-      Instruction::Call(x) => x.execute(module, context),
-      Instruction::Return(x) => x.execute(module, context),
-      Instruction::Load(x) => x.execute(module, context),
-      Instruction::Store(x) => x.execute(module, context),
-      Instruction::Allocate(x) => x.execute(module, context),
-      Instruction::AllocateArray(x) => x.execute(module, context),
-      Instruction::GetArrayIndex(x) => x.execute(module, context),
-      Instruction::SetArrayIndex(x) => x.execute(module, context),
-      Instruction::GetLayoutIndex(x) => x.execute(module, context),
-      Instruction::SetLayoutIndex(x) => x.execute(module, context),
-      Instruction::Cast(x) => x.execute(module, context),
+      Instruction::PushValue(x) => x.execute(compilation_unit, context),
+      Instruction::PopValue(x) => x.execute(compilation_unit, context),
+      Instruction::Duplicate(x) => x.execute(compilation_unit, context),
+      Instruction::Swap(x) => x.execute(compilation_unit, context),
+      Instruction::Rotate(x) => x.execute(compilation_unit, context),
+      Instruction::Add(x) => x.execute(compilation_unit, context),
+      Instruction::Subtract(x) => x.execute(compilation_unit, context),
+      Instruction::Multiply(x) => x.execute(compilation_unit, context),
+      Instruction::Divide(x) => x.execute(compilation_unit, context),
+      Instruction::Modulo(x) => x.execute(compilation_unit, context),
+      Instruction::LeftShift(x) => x.execute(compilation_unit, context),
+      Instruction::RightShift(x) => x.execute(compilation_unit, context),
+      Instruction::BitwiseAnd(x) => x.execute(compilation_unit, context),
+      Instruction::BitwiseOr(x) => x.execute(compilation_unit, context),
+      Instruction::BitwiseXor(x) => x.execute(compilation_unit, context),
+      Instruction::BitwiseNot(x) => x.execute(compilation_unit, context),
+      Instruction::And(x) => x.execute(compilation_unit, context),
+      Instruction::Or(x) => x.execute(compilation_unit, context),
+      Instruction::Xor(x) => x.execute(compilation_unit, context),
+      Instruction::Not(x) => x.execute(compilation_unit, context),
+      Instruction::Equal(x) => x.execute(compilation_unit, context),
+      Instruction::NotEqual(x) => x.execute(compilation_unit, context),
+      Instruction::LessThan(x) => x.execute(compilation_unit, context),
+      Instruction::GreaterThan(x) => x.execute(compilation_unit, context),
+      Instruction::LessThanEqual(x) => x.execute(compilation_unit, context),
+      Instruction::GreaterThanEqual(x) => x.execute(compilation_unit, context),
+      Instruction::Jump(x) => x.execute(compilation_unit, context),
+      Instruction::Branch(x) => x.execute(compilation_unit, context),
+      Instruction::Call(x) => x.execute(compilation_unit, context),
+      Instruction::Return(x) => x.execute(compilation_unit, context),
+      Instruction::Load(x) => x.execute(compilation_unit, context),
+      Instruction::Store(x) => x.execute(compilation_unit, context),
+      Instruction::Allocate(x) => x.execute(compilation_unit, context),
+      Instruction::AllocateArray(x) => x.execute(compilation_unit, context),
+      Instruction::GetArrayIndex(x) => x.execute(compilation_unit, context),
+      Instruction::SetArrayIndex(x) => x.execute(compilation_unit, context),
+      Instruction::GetLayoutIndex(x) => x.execute(compilation_unit, context),
+      Instruction::SetLayoutIndex(x) => x.execute(compilation_unit, context),
+      Instruction::Cast(x) => x.execute(compilation_unit, context),
     }
   }
 }
 
 impl Executable for Push {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
+  fn execute(&self, _compilation_unit: &CompilationUnit, context: &mut ExecutionContext) -> Result<bool, Exception> {
     context.stack.push(self.value.clone());
     context.program_counter += 1;
     Ok(true)
@@ -64,7 +64,7 @@ impl Executable for Push {
 }
 
 impl Executable for Pop {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
+  fn execute(&self, _compilation_unit: &CompilationUnit, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.pop().is_none() {
       return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 1 and got none."));
     }
@@ -74,7 +74,7 @@ impl Executable for Pop {
 }
 
 impl Executable for Duplicate {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
+  fn execute(&self, _compilation_unit: &CompilationUnit, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 1 + self.offset {
       return Err(Exception::new(context.clone(), format!("Unexpected number of stack values. Expected 1 + {} but got {}.", self.offset, context.stack.len()).as_str()));
     }
@@ -90,7 +90,7 @@ impl Executable for Duplicate {
 }
 
 impl Executable for Swap {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
+  fn execute(&self, _compilation_unit: &CompilationUnit, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 2 {
       return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 2 but got 1."));
     }
@@ -106,7 +106,7 @@ impl Executable for Swap {
 }
 
 impl Executable for Rotate {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
+  fn execute(&self, _compilation_unit: &CompilationUnit, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < self.size.abs() as usize {
       return Err(Exception::new(context.clone(), format!("Unexpected number of stack values. Expected at least {} but got {}.", self.size, context.stack.len()).as_str()));
     }
@@ -130,7 +130,7 @@ impl Executable for Rotate {
 }
 
 impl Executable for Add {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
+  fn execute(&self, _compilation_unit: &CompilationUnit, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 2 {
       return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 2 and got 1."));
     }
@@ -146,7 +146,7 @@ impl Executable for Add {
 }
 
 impl Executable for Subtract {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
+  fn execute(&self, _compilation_unit: &CompilationUnit, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 2 {
       return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 2 and got 1."));
     }
@@ -162,7 +162,7 @@ impl Executable for Subtract {
 }
 
 impl Executable for Multiply {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
+  fn execute(&self, _compilation_unit: &CompilationUnit, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 2 {
       return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 2 and got 1."));
     }
@@ -178,7 +178,7 @@ impl Executable for Multiply {
 }
 
 impl Executable for Divide {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
+  fn execute(&self, _compilation_unit: &CompilationUnit, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 2 {
       return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 2 and got 1."));
     }
@@ -199,7 +199,7 @@ impl Executable for Divide {
 }
 
 impl Executable for Modulo {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
+  fn execute(&self, _compilation_unit: &CompilationUnit, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 2 {
       return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 2 and got 1."));
     }
@@ -215,7 +215,7 @@ impl Executable for Modulo {
 }
 
 impl Executable for LeftShift {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
+  fn execute(&self, _compilation_unit: &CompilationUnit, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 2 {
       return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 2 and got 1."));
     }
@@ -231,7 +231,7 @@ impl Executable for LeftShift {
 }
 
 impl Executable for RightShift {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
+  fn execute(&self, _compilation_unit: &CompilationUnit, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 2 {
       return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 2 and got 1."));
     }
@@ -247,7 +247,7 @@ impl Executable for RightShift {
 }
 
 impl Executable for BitwiseAnd {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
+  fn execute(&self, _compilation_unit: &CompilationUnit, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 2 {
       return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 2 and got 1."));
     }
@@ -263,7 +263,7 @@ impl Executable for BitwiseAnd {
 }
 
 impl Executable for BitwiseOr {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
+  fn execute(&self, _compilation_unit: &CompilationUnit, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 2 {
       return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 2 and got 1."));
     }
@@ -279,7 +279,7 @@ impl Executable for BitwiseOr {
 }
 
 impl Executable for BitwiseXor {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
+  fn execute(&self, _compilation_unit: &CompilationUnit, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 2 {
       return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 2 and got 1."));
     }
@@ -295,7 +295,7 @@ impl Executable for BitwiseXor {
 }
 
 impl Executable for BitwiseNot {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
+  fn execute(&self, _compilation_unit: &CompilationUnit, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 1 {
       return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 1 and got none."));
     }
@@ -310,7 +310,7 @@ impl Executable for BitwiseNot {
 }
 
 impl Executable for And {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
+  fn execute(&self, _compilation_unit: &CompilationUnit, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 2 {
       return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 2 and got 1."));
     }
@@ -326,7 +326,7 @@ impl Executable for And {
 }
 
 impl Executable for Or {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
+  fn execute(&self, _compilation_unit: &CompilationUnit, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 2 {
       return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 2 and got 1."));
     }
@@ -342,7 +342,7 @@ impl Executable for Or {
 }
 
 impl Executable for Xor {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
+  fn execute(&self, _compilation_unit: &CompilationUnit, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 2 {
       return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 2 and got 1."));
     }
@@ -358,7 +358,7 @@ impl Executable for Xor {
 }
 
 impl Executable for Not {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
+  fn execute(&self, _compilation_unit: &CompilationUnit, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 2 {
       return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 2 and got 1."));
     }
@@ -373,7 +373,7 @@ impl Executable for Not {
 }
 
 impl Executable for Equal {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
+  fn execute(&self, _compilation_unit: &CompilationUnit, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 2 {
       return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 2 and got 1."));
     }
@@ -389,7 +389,7 @@ impl Executable for Equal {
 }
 
 impl Executable for NotEqual {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
+  fn execute(&self, _compilation_unit: &CompilationUnit, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 2 {
       return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 2 and got 1."));
     }
@@ -405,7 +405,7 @@ impl Executable for NotEqual {
 }
 
 impl Executable for LessThan {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
+  fn execute(&self, _compilation_unit: &CompilationUnit, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 2 {
       return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 2 and got 1."));
     }
@@ -421,7 +421,7 @@ impl Executable for LessThan {
 }
 
 impl Executable for GreaterThan {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
+  fn execute(&self, _compilation_unit: &CompilationUnit, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 2 {
       return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 2 and got 1."));
     }
@@ -437,7 +437,7 @@ impl Executable for GreaterThan {
 }
 
 impl Executable for LessThanEqual {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
+  fn execute(&self, _compilation_unit: &CompilationUnit, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 2 {
       return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 2 and got 1."));
     }
@@ -453,7 +453,7 @@ impl Executable for LessThanEqual {
 }
 
 impl Executable for GreaterThanEqual {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
+  fn execute(&self, _compilation_unit: &CompilationUnit, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 2 {
       return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 2 and got 1."));
     }
@@ -469,8 +469,8 @@ impl Executable for GreaterThanEqual {
 }
 
 impl Executable for Jump {
-  fn execute(&self, module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
-    let current_function = module.functions.get(context.current_function.as_str()).unwrap();
+  fn execute(&self, compilation_unit: &CompilationUnit, context: &mut ExecutionContext) -> Result<bool, Exception> {
+    let current_function = compilation_unit.get_module(context.current_module.as_str()).unwrap().functions.get(context.current_function.as_str()).unwrap();
     match current_function.get_target_pointer(self.target.clone()) {
       Ok(index) => context.program_counter = index,
       Err(message) => return Err(Exception::new(context.clone(), message.as_str())),
@@ -480,7 +480,7 @@ impl Executable for Jump {
 }
 
 impl Executable for Branch {
-  fn execute(&self, module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
+  fn execute(&self, compilation_unit: &CompilationUnit, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 1 {
       return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 1 and got none."));
     }
@@ -491,7 +491,7 @@ impl Executable for Branch {
       Err(message) => return Err(Exception::new(context.clone(), message.as_str())),
     };
 
-    let current_function = module.functions.get(context.current_function.as_str()).unwrap();
+    let current_function = compilation_unit.get_module(context.current_module.as_str()).unwrap().functions.get(context.current_function.as_str()).unwrap();
 
     if result {
       match current_function.get_target_pointer(self.true_target.clone()) {
@@ -509,7 +509,7 @@ impl Executable for Branch {
 }
 
 impl Executable for Call {
-  fn execute(&self, module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
+  fn execute(&self, compilation_unit: &CompilationUnit, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 1 {
       return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 1 and got none."));
     }
@@ -518,18 +518,12 @@ impl Executable for Call {
     let func = context.stack.pop().unwrap();
     match func {
       Value::FunctionPointer(func_pointer) => {
-        let target_module = match func_pointer.module {
-          Some(module_name) => match module.modules.get(&module_name) {
+        let target_module = match func_pointer.module.clone() {
+          Some(module_name) => match compilation_unit.get_module(module_name.as_str()) {
             Some(modu) => modu,
-            None => {
-              if module.name == module_name {
-                module
-              } else {
-                return Err(Exception::new(context.clone(), format!("Could not find module '{}'", module_name).as_str()));
-              }
-            }
+            None => return Err(Exception::new(context.clone(), format!("Could not find module '{}'", module_name).as_str()))
           },
-          None => module,
+          None => compilation_unit.get_module(context.current_module.as_str()).unwrap(),
         };
 
         match target_module.functions.get(func_pointer.function.clone().as_str()) {
@@ -544,7 +538,10 @@ impl Executable for Call {
               arguments.insert(0, param_value);
             }
 
-            let return_value = target_module.execute(func_pointer.function, arguments, Some(Box::new(context.clone())));
+            let return_value = compilation_unit.execute(match func_pointer.module.clone() {
+              Some(module_name) => module_name,
+              None => context.current_module.clone(),
+            }, func_pointer.function, arguments, Some(Box::new(context.clone())));
             match return_value {
               Ok(optional_return) => match optional_return {
                 Some(value) => context.stack.push(value),
@@ -589,7 +586,7 @@ impl Executable for Call {
 }
 
 impl Executable for Return {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
+  fn execute(&self, _compilation_unit: &CompilationUnit, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 1 {
       return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 1 and got none."));
     }
@@ -603,7 +600,7 @@ impl Executable for Return {
 }
 
 impl Executable for Load {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
+  fn execute(&self, _compilation_unit: &CompilationUnit, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 1 {
       return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 1 and got none."));
     }
@@ -621,7 +618,7 @@ impl Executable for Load {
 }
 
 impl Executable for Store {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
+  fn execute(&self, _compilation_unit: &CompilationUnit, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 2 {
       return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 2 and got 1."));
     }
@@ -642,7 +639,7 @@ impl Executable for Store {
 }
 
 impl Executable for GetArrayIndex {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
+  fn execute(&self, _compilation_unit: &CompilationUnit, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 2 {
       return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 2 and got 1."));
     }
@@ -667,7 +664,7 @@ impl Executable for GetArrayIndex {
 }
 
 impl Executable for SetArrayIndex {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
+  fn execute(&self, _compilation_unit: &CompilationUnit, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 3 {
       return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 3 and got less."));
     }
@@ -690,7 +687,7 @@ impl Executable for SetArrayIndex {
 }
 
 impl Executable for GetLayoutIndex {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
+  fn execute(&self, _compilation_unit: &CompilationUnit, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 1 {
       return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 1 and got 0."));
     }
@@ -711,7 +708,7 @@ impl Executable for GetLayoutIndex {
 }
 
 impl Executable for SetLayoutIndex {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
+  fn execute(&self, _compilation_unit: &CompilationUnit, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 2 {
       return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 2 and got less."));
     }
@@ -730,12 +727,12 @@ impl Executable for SetLayoutIndex {
 }
 
 impl Executable for Allocate {
-  fn execute(&self, module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
+  fn execute(&self, compilation_unit: &CompilationUnit, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 1 {
       return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 1 and got 0."));
     }
 
-    let allocated = module.resolve_type(self.allocated_type.clone(), context)?.default();
+    let allocated = compilation_unit.resolve_type(self.allocated_type.clone(), context)?.default();
     let value_reference = context.stack.pop().unwrap();
     match &value_reference {
       Value::Reference(reference) => context.init(reference, allocated)?,
@@ -750,7 +747,7 @@ impl Executable for Allocate {
 }
 
 impl Executable for AllocateArray {
-  fn execute(&self, module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
+  fn execute(&self, compilation_unit: &CompilationUnit, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < (if self.array_size.is_none() { 1 } else { 0 }) {
       return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 1 and got 0."));
     }
@@ -763,7 +760,7 @@ impl Executable for AllocateArray {
       },
     };
 
-    let allocated = module.resolve_type(Type::Array(Some(array_size), Box::new(self.array_sub_type.clone())), context)?.default();
+    let allocated = compilation_unit.resolve_type(Type::Array(Some(array_size), Box::new(self.array_sub_type.clone())), context)?.default();
 
     context.stack.push(allocated);
 
@@ -773,7 +770,7 @@ impl Executable for AllocateArray {
 }
 
 impl Executable for Cast {
-  fn execute(&self, _module: &Module, context: &mut ExecutionContext) -> Result<bool, Exception> {
+  fn execute(&self, _compilation_unit: &CompilationUnit, context: &mut ExecutionContext) -> Result<bool, Exception> {
     if context.stack.len() < 1 {
       return Err(Exception::new(context.clone(), "Unexpected number of stack values. Expected 1 and got 0."));
     }

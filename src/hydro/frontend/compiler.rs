@@ -7,13 +7,14 @@ use std::io::{Error, Write};
 use std::path::Path;
 use std::time::Instant;
 use std::{env, fs};
+use crate::hydro::compilationunit::CompilationUnit;
 
 pub enum HydroTranslateType {
   Binary,
 }
 
 impl Hydro {
-  pub fn compile(file_path: &str) -> Result<Module, Vec<String>> {
+  pub fn compile(file_path: &str) -> Result<CompilationUnit, Vec<String>> {
     let now = Instant::now();
     let path = Path::new(file_path);
     let project_root = path.parent().unwrap().to_str().unwrap();
@@ -26,17 +27,14 @@ impl Hydro {
     println!("STD ROOT: {:?}", std_root);
 
     match Hydro::internal_compile(file_path, project_root, std_root) {
-      Ok(found_modules) => match found_modules.iter().find(|x| x.name == "main") {
-        Some(module) => {
-          let new_now = Instant::now();
-          println!("Compilation Completed In: {:?}", new_now.duration_since(now));
-          Ok(module.clone())
-        }
-        None => {
-          let new_now = Instant::now();
-          println!("Compilation Completed In: {:?}", new_now.duration_since(now));
-          Err(vec!["Main module not found :(".to_string()])
-        }
+      Ok(found_modules) => if found_modules.contains_module("main") {
+        let new_now = Instant::now();
+        println!("Compilation Completed In: {:?}", new_now.duration_since(now));
+        Ok(found_modules)
+      } else {
+        let new_now = Instant::now();
+        println!("Compilation Completed In: {:?}", new_now.duration_since(now));
+        Err(vec!["Main module not found :(".to_string()])
       },
       Err((_, errors)) => {
         let new_now = Instant::now();
@@ -46,7 +44,7 @@ impl Hydro {
     }
   }
 
-  fn internal_compile(file_path: &str, project_root: &str, std_root: Option<String>) -> Result<Vec<Module>, (bool, Vec<String>)> {
+  fn internal_compile(file_path: &str, project_root: &str, std_root: Option<String>) -> Result<CompilationUnit, (bool, Vec<String>)> {
     let path = Path::new(file_path);
     println!("Compiling '{}' (absolute '{:?}' from '{:?}')", path.display(), fs::canonicalize(path), env::current_dir());
     let parser = Parser::new(path);
@@ -55,24 +53,24 @@ impl Hydro {
     }
 
     let mut errors = Vec::new();
+    let mut resolved = CompilationUnit::new();
 
     let mut modules = parser.unwrap().parse();
-    let mut resolved = Vec::new();
     for mut module in &mut modules {
       for unresolved_module in &module.unresolved_modules {
         match Hydro::resolve_module(unresolved_module.as_str(), &resolved, project_root, std_root.clone(), module.name.clone()) {
           Ok((target_module, mut new_found_modules)) => {
-            module.modules.insert(unresolved_module.clone(), target_module.clone());
-            resolved.append(&mut new_found_modules);
+            module.modules.push(target_module.name.clone());
+            resolved.merge(&mut new_found_modules);
           }
           Err(mut new_errors) => errors.append(&mut new_errors),
         }
       }
-      module.unresolved_modules = module.unresolved_modules.iter().filter(|x| !module.modules.contains_key((*x).clone().as_str())).map(|x| x.clone()).collect::<Vec<String>>();
+      module.unresolved_modules = module.unresolved_modules.iter().filter(|x| !module.modules.contains(x)).map(|x| x.clone()).collect::<Vec<String>>();
       if module.unresolved_modules.len() != 0 {
         errors.push(format!("Unable to resolve all of the dependencies for '{}'", module.name));
       }
-      resolved.push(module.clone());
+      resolved.add_module(module);
     }
 
     if errors.len() == 0 {
@@ -82,28 +80,27 @@ impl Hydro {
     }
   }
 
-  fn resolve_module(module_name: &str, reference_modules: &Vec<Module>, project_root: &str, std_root: Option<String>, dependent_module_name: String) -> Result<(Module, Vec<Module>), Vec<String>> {
-    let mut target_module = match reference_modules.iter().find(|x| x.name == module_name.clone()) {
+  fn resolve_module(module_name: &str, reference_modules: &CompilationUnit, project_root: &str, std_root: Option<String>, dependent_module_name: String) -> Result<(Module, CompilationUnit), Vec<String>> {
+    let mut target_module = match reference_modules.get_module(module_name) {
       Some(module) => Some(module.clone()),
       None => None,
     };
-    let mut new_found_modules = Vec::new();
+    let mut new_compilation_unit = CompilationUnit::new();
     let mut errors = Vec::new();
 
     if target_module.is_none() {
       let search_paths = Hydro::get_possible_files(module_name, project_root, std_root.clone());
       for path in search_paths {
         match Hydro::internal_compile(path.as_str(), project_root, std_root.clone()) {
-          Ok(found_modules) => {
-            for module in found_modules {
-              if module.name == "main" {
-                continue;
+          Ok(mut compilation_unit) => {
+            compilation_unit.remove_module("main".to_string());
+            match compilation_unit.get_module(module_name) {
+              Some(new_target_module) => {
+                target_module = Some(new_target_module.clone());
               }
-              if module.name == module_name {
-                target_module = Some(module.clone());
-              }
-              new_found_modules.push(module);
+              None => { }
             }
+            new_compilation_unit.merge(&compilation_unit);
             break;
           }
           Err((found_source_file, mut new_errors)) => {
@@ -119,7 +116,7 @@ impl Hydro {
     }
 
     match target_module {
-      Some(module) => Ok((module.clone(), new_found_modules)),
+      Some(module) => Ok((module.clone(), new_compilation_unit)),
       None => {
         errors.push(format!("Could not find module '{}' which is a dependency of '{}'", module_name, dependent_module_name));
         Err(errors)
@@ -154,7 +151,7 @@ impl Hydro {
     paths
   }
 
-  pub fn output(translate_type: HydroTranslateType, _module: &Module, path: String) -> Result<(), Error> {
+  pub fn output(translate_type: HydroTranslateType, _compilation_unit: &CompilationUnit, path: String) -> Result<(), Error> {
     let bytes = match translate_type {
       HydroTranslateType::Binary => {
         //TODO let mut mod_output = module.output(9);

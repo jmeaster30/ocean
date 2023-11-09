@@ -73,11 +73,11 @@ fn main() -> std::io::Result<()> {
           )?;
         }
         "hydro-run" => {
-          let module = match Hydro::compile(arguments.get("Source File").unwrap().as_str()) {
-            Ok(module) => module,
+          let compilation_unit = match Hydro::compile(arguments.get("Source File").unwrap().as_str()) {
+            Ok(compilation_unit) => compilation_unit,
             Err(errors) => panic!("ERRORS\n{:#?}", errors),
           };
-          let return_value = module.execute("main".to_string(), vec![Value::Unsigned32(69)], None);
+          let return_value = compilation_unit.execute("main".to_string(), "main".to_string(), vec![Value::Unsigned32(69)], None);
 
           match return_value {
             Ok(result) => match result {
@@ -88,16 +88,16 @@ fn main() -> std::io::Result<()> {
           }
         }
         "hydro-debug" => {
-          let module = match Hydro::compile(arguments.get("Source File").unwrap().as_str()) {
-            Ok(module) => module,
+          let compilation_unit = match Hydro::compile(arguments.get("Source File").unwrap().as_str()) {
+            Ok(compilation_unit) => compilation_unit,
             Err(errors) => panic!("ERRORS\n{:#?}", errors),
           };
           let mut debug_context = DebugContext::new();
 
-          let return_value = module.debug("main".to_string(), vec![Value::Unsigned32(69)], None, &mut debug_context);
+          let return_value = compilation_unit.debug("main".to_string(), "main".to_string(), vec![Value::Unsigned32(69)], None, &mut debug_context);
 
           match return_value {
-            Ok(result) => debug_context.console(&module, &mut None, result).unwrap(),
+            Ok(result) => debug_context.console(&compilation_unit, &"main".to_string(), &mut None, result).unwrap(),
             Err(e) => e.print_stacktrace(),
           }
         }

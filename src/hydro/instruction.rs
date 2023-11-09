@@ -8,7 +8,7 @@ use crate::hydro::debuggable::Debuggable;
 use crate::hydro::exception::Exception;
 use crate::hydro::executable::Executable;
 use crate::hydro::executioncontext::ExecutionContext;
-use crate::hydro::module::Module;
+use crate::hydro::compilationunit::CompilationUnit;
 
 #[derive(Debug, Clone)]
 pub enum Instruction {

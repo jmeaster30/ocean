@@ -1,7 +1,6 @@
 use crate::hydro::debugcontext::DebugConsoleCommandState::{ContinueConsole, ExitProgram, StartResumeExecution};
 use crate::hydro::executioncontext::ExecutionContext;
 use crate::hydro::frontend::parser::Parser;
-use crate::hydro::module::Module;
 use crate::hydro::value::Value;
 use crate::hydro::visualizer::moduledependencyvisualization::ModuleDependencyVisualization;
 use crate::util::argsparser::{ArgsParser, Argument, Command};
@@ -9,6 +8,7 @@ use crate::util::metrictracker::{MetricResults, MetricTracker};
 use rustyline::error::ReadlineError;
 use rustyline::{DefaultEditor, Result};
 use std::collections::HashMap;
+use crate::hydro::compilationunit::CompilationUnit;
 
 pub enum DebugConsoleCommandState {
   ContinueConsole,
@@ -50,7 +50,7 @@ impl DebugContext {
     }
   }
 
-  pub fn console(&mut self, module: &Module, execution_context: &mut Option<&mut ExecutionContext>, final_return_value: Option<Value>) -> Result<()> {
+  pub fn console(&mut self, compilation_unit: &CompilationUnit, module: &String, execution_context: &mut Option<&mut ExecutionContext>, final_return_value: Option<Value>) -> Result<()> {
     self.metric_tracker.pause_all();
     println!("{}Entering the Hydro Debugger!!{}", DebugContext::ansi_color_code("red"), DebugContext::ansi_color_code("cyan"));
     println!("{}Type 'help' to get a list of debugger commands :){}", DebugContext::ansi_color_code("red"), DebugContext::ansi_color_code("cyan"));
@@ -180,7 +180,7 @@ impl DebugContext {
                     let module_name = arguments.get("Module").unwrap().clone();
                     let function_name = arguments.get("Function").unwrap().clone();
                     let program_counter = arguments.get("Program Counter").unwrap().clone();
-                    let target_module = if module.name == module_name { Some(module) } else { module.modules.get(module_name.as_str()) };
+                    let target_module = compilation_unit.get_module(module_name.as_str());
 
                     let value = match target_module {
                       Some(module) => match module.functions.get(function_name.as_str()) {
@@ -228,7 +228,7 @@ impl DebugContext {
                   "instruction" => match &execution_context {
                     Some(context) => {
                       println!("Module: '{}' Function: '{}' at PC: {}", context.current_module, context.current_function, context.program_counter);
-                      println!("{:?}", module.functions.get(context.current_function.as_str()).unwrap().body[context.program_counter]);
+                      println!("{:?}", compilation_unit.get_module(module).unwrap().functions.get(context.current_function.as_str()).unwrap().body[context.program_counter]);
                       Ok(ContinueConsole)
                     }
                     None => Err("We are not in an execution context so there are no current isntructions :(".to_string()),
@@ -330,7 +330,7 @@ impl DebugContext {
                   "viz" => match which::which("dot") {
                     Ok(_) => match arguments.get("Visualization Name").unwrap().as_str() {
                       "moddep" => {
-                        let viz = ModuleDependencyVisualization::create(module);
+                        let viz = ModuleDependencyVisualization::create(compilation_unit, module);
                         match arguments.get("Output Format").unwrap().as_str() {
                           "png" => viz.png(arguments.get("Output File Name").unwrap().clone()),
                           "svg" => viz.svg(arguments.get("Output File Name").unwrap().clone()),
