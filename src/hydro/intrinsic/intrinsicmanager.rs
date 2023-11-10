@@ -3,6 +3,9 @@ use crate::hydro::executioncontext::ExecutionContext;
 use crate::hydro::value::Value;
 use lazy_static::lazy_static;
 use std::collections::HashMap;
+use std::error::Error;
+use std::io;
+use std::io::Write;
 
 // TODO This way kinda sucks a lot and the name implies it would handle code output for non-vm intrinsic functions
 
@@ -22,6 +25,8 @@ impl IntrinsicManager {
 
     manager.add_map("print", print);
     manager.add_map("println", println);
+    manager.add_map("flush", flush);
+    manager.add_map("readline", readline);
 
     manager
   }
@@ -31,7 +36,11 @@ impl IntrinsicManager {
   }
 
   pub fn call(&self, intrinsic_name: String, execution_context: &ExecutionContext, arguments: Vec<Value>) -> Result<Vec<Value>, Exception> {
-    self.mapping[&intrinsic_name](execution_context, arguments)
+    if self.mapping.contains_key(&intrinsic_name) {
+      self.mapping[&intrinsic_name](execution_context, arguments)
+    } else {
+      Err(Exception::new(execution_context.clone(), format!("Intrinsic '{}' is undefined :(", intrinsic_name).as_str()))
+    }
   }
 }
 
@@ -50,5 +59,28 @@ fn println(context: &ExecutionContext, args: Vec<Value>) -> Result<Vec<Value>, E
   } else {
     println!("{}", args[0].to_string());
     Ok(Vec::new())
+  }
+}
+
+fn flush(context: &ExecutionContext, args: Vec<Value>) -> Result<Vec<Value>, Exception> {
+  if args.len() != 0 {
+    Err(Exception::new(context.clone(), format!("Expected 0 arguments for readline but got {}", args.len()).as_str()))
+  } else {
+    match io::stdout().flush() {
+      Ok(()) => Ok(Vec::new()),
+      Err(io_error) => Err(Exception::new(context.clone(), io_error.to_string().as_str()))
+    }
+  }
+}
+
+fn readline(context: &ExecutionContext, args: Vec<Value>) -> Result<Vec<Value>, Exception> {
+  if args.len() != 0 {
+    Err(Exception::new(context.clone(), format!("Expected 0 arguments for readline but got {}", args.len()).as_str()))
+  } else {
+    let mut input = String::new();
+    match io::stdin().read_line(&mut input) {
+      Ok(_) => Ok(vec![Value::string(input)]),
+      Err(io_error) => Err(Exception::new(context.clone(), io_error.to_string().as_str()))
+    }
   }
 }

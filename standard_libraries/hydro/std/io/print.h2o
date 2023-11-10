@@ -5,6 +5,9 @@ intrinsic print any body
 intrinsic println any body
     target vm "println"
 
+intrinsic flush body
+    target vm "flush"
+
 module main
 using std.io.print
 main body

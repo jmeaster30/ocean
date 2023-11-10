@@ -1,0 +1,8 @@
+module main
+using std.io.read
+main body
+    push string "prompt > "
+    push funcp std.io.read prompt
+    call
+    push funcp std.io.print println
+    call

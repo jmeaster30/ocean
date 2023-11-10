@@ -1,0 +1,16 @@
+module std.io.read
+using std.io.print
+intrinsic readchar body
+    target vm "readchar"
+
+intrinsic readline body
+    target vm "readline"
+
+function prompt string body
+    push funcp std.io.print print
+    call
+    push funcp std.io.print flush
+    call
+    push funcp this readline
+    call
+    return

@@ -527,8 +527,7 @@ impl Parser {
         _ => Err("Unexpected value for boolean type".to_string()),
       },
       "string" => {
-        let bytes = value_lexeme.clone().into_bytes().iter().skip(1).take(value_lexeme.len() - 2).map(|x| Value::Unsigned8(*x)).collect::<Vec<Value>>();
-        Ok(Value::Array(Array::create(Type::Unsigned8, Box::new(Value::Unsigned64((value_lexeme.len() - 2) as u64)), bytes)))
+        Ok(Value::string(value_lexeme[1..(value_lexeme.len()-1)].to_string()))
       }
       "u8" => match value_lexeme.parse::<u8>() {
         Ok(value) => Ok(Value::Unsigned8(value)),

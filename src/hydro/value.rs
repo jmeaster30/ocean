@@ -141,6 +141,11 @@ pub enum Value {
 }
 
 impl Value {
+  pub fn string(value: String) -> Value {
+    let bytes = value.clone().into_bytes().iter().map(|x| Value::Unsigned8(*x)).collect::<Vec<Value>>();
+    Value::Array(Array::create(Type::Unsigned8, Box::new(Value::Unsigned64(value.len() as u64)), bytes))
+  }
+
   pub fn type_of(&self) -> Type {
     match self {
       Value::Boolean(_) => Type::Boolean,
