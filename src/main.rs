@@ -2,6 +2,7 @@ pub mod hydro;
 #[cfg(test)]
 mod tests;
 pub mod util;
+mod ocean;
 
 use crate::hydro::debugcontext::DebugContext;
 use crate::hydro::frontend::compiler::HydroTranslateType;
@@ -10,6 +11,7 @@ use crate::hydro::Hydro;
 use crate::util::argsparser::Command;
 use std::env;
 use util::argsparser::{ArgsParser, Argument};
+use crate::ocean::Ocean;
 
 fn main() -> std::io::Result<()> {
   let args: Vec<String> = env::args().collect();
@@ -23,6 +25,11 @@ fn main() -> std::io::Result<()> {
         .description("Print this help message"))
       .command(Command::new("version")
         .description("Print version information"))
+      .command(Command::new("run")
+        .arg(Argument::new("Source File")
+          .last()
+          .default("main.sea")
+          .help("The main source file to compile")))
       .command(Command::new("hydro-build")
         .arg(Argument::new("Output File")
           .default("main.h2o.bin")
@@ -100,6 +107,9 @@ fn main() -> std::io::Result<()> {
             Ok(result) => debug_context.console(&compilation_unit, &"main".to_string(), &mut None, result).unwrap(),
             Err(e) => e.print_stacktrace(),
           }
+        }
+        "run" => {
+          Ocean::compile(arguments.get("Source File").unwrap().as_str()).unwrap();
         }
         _ => todo!("Unimplemented command :("),
       },

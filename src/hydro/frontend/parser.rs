@@ -1,19 +1,19 @@
-use crate::hydro::frontend::token::{Token, TokenType};
+use crate::hydro::frontend::tokentype::TokenType;
 use crate::hydro::function::{Function, Target};
 use crate::hydro::instruction::*;
 use crate::hydro::intrinsic::Intrinsic;
 use crate::hydro::layouttemplate::LayoutTemplate;
 use crate::hydro::module::Module;
 use crate::hydro::value::{Array, FunctionPointer, LayoutIndexRef, Reference, Type, Value, VariableRef};
-use crate::util::tokentrait::TokenTrait;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io;
 use std::io::Read;
+use crate::util::token::{Token, TokenTrait};
 
 pub struct Parser {
   file_contents: Vec<char>,
-  current_token: Option<Token>,
+  current_token: Option<Token<TokenType>>,
   current_index: usize,
   current_line: usize,
   current_column: usize,
@@ -215,7 +215,7 @@ impl Parser {
           function.add_label(target_name_token.lexeme, function.body.len());
         }
         TokenType::Module | TokenType::Function | TokenType::Layout | TokenType::Using | TokenType::Main | TokenType::Intrinsic => break,
-        _ => panic!("Expected to have an instruction here but read {:?} :(", inst_token),
+        _ => panic!("Expected to have an instruction here but read {} :(", inst_token),
       }
     }
 
@@ -347,7 +347,7 @@ impl Parser {
                 function: function_token.lexeme,
               })
             }
-            _ => panic!("Expected to have a value token here :( {:?}", value_token),
+            _ => panic!("Expected to have a value token here :( {}", value_token),
           },
         })
       }
@@ -589,7 +589,7 @@ impl Parser {
     !self.is_not_done()
   }
 
-  fn token(&mut self) -> Option<Token> {
+  fn token(&mut self) -> Option<Token<TokenType>> {
     match &self.current_token {
       Some(current_token) => Some(current_token.clone()),
       None => {
@@ -816,27 +816,27 @@ impl Parser {
     lexeme.chars().all(|c| c.is_alphanumeric() || c == '.' || c == '-' || c == '_' || c == '\\' || c == '/')
   }
 
-  fn expect_token(&mut self) -> Token {
+  fn expect_token(&mut self) -> Token<TokenType> {
     match self.token() {
       Some(token) => token,
       None => panic!("Expected a token here!"),
     }
   }
 
-  fn expect_token_type(&mut self, token_type: TokenType) -> Token {
+  fn expect_token_type(&mut self, token_type: TokenType) -> Token<TokenType> {
     match self.token() {
       Some(token) => {
         if token.is_token_type(token_type) {
           token
         } else {
-          panic!("Expected token type {:?} but got {:?}", token_type, token);
+          panic!("Expected token type {:?} but got {}", token_type, token);
         }
       }
       None => panic!("Expected some token here :("),
     }
   }
 
-  fn optional_token_type(&mut self, token_type: TokenType) -> Option<Token> {
+  fn optional_token_type(&mut self, token_type: TokenType) -> Option<Token<TokenType>> {
     match self.token() {
       Some(token) => {
         if token.is_token_type(token_type) {
@@ -849,13 +849,13 @@ impl Parser {
     }
   }
 
-  fn expect_one_of(&mut self, token_types: Vec<TokenType>) -> Token {
+  fn expect_one_of(&mut self, token_types: Vec<TokenType>) -> Token<TokenType> {
     match self.token() {
       Some(token) => {
         if token_types.contains(&token.token_type) {
           token
         } else {
-          panic!("Expected one of {:?} but got {:?}", token_types, token);
+          panic!("Expected one of {:?} but got {}", token_types, token);
         }
       }
       None => panic!("Expected some token here :("),

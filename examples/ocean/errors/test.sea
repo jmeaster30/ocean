@@ -1,4 +1,4 @@
-let hello = func() -> ():{
+function hello() -> () {
   while true {
     continue
   }

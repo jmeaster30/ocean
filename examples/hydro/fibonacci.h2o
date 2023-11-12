@@ -1,6 +1,6 @@
 module main
 
-function fibonacci any body
+function fibonacci u128 body
     duplicate
     duplicate
     push u128 1

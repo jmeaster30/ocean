@@ -40,9 +40,15 @@ It would be cool if we can have this language compile to several targets such as
 - Java bytecode
 
 ### Static Analysis
-I would like to be able to have the compiler understand what values certain variables can be at any given point in the program so we can check for things like unhandled cases, dead code, and out-of-bounds accesses at compile time. There are many more things I would want to check for but I don't know what I don't know.
+I would like to be able to have the compiler understand what values certain variables can be at any given point in the program so we can check for things like unhandled cases, dead code, and out-of-bounds accesses at compile time. 
+There are many more things I would want to check for but I don't know what I don't know.
 ### Neat Generic System
-I want to have generics determined by the operators and functions that are being used on the generic variables. This would provide some pretty neat functionality I feel but I haven't gotten to that point yet to really play with it.
+I want to have generics determined by the operators and functions that are being used on the generic variables.
+This would provide some pretty neat functionality I feel but I haven't gotten to that point yet to really play with it.
 ### Generic Operator Overloading
-I don't think I would be able to implement this but I would like to add in the ability to override any symbol and provide the user with the ability to add their own operators and define the precedence and associativity of those operators. I tried writing out the parse for this and it proved to be really difficult so I am not sure if I will be able to get to this. Some things I noted was (especially with the type system I wanted (see Neat Generics System)) it would require a parser pass without parsing the expressions and then a type checking pass and then another parser pass to parse the expressions. Also, dealing with parsing conflicts when the user could potentially add an operator using the same symbol but the operator works on different types and have a different precedence order. Maybe this will be a different project.
-
+My idea for this would involve parsing occurring in multiple steps with some type checking to figure out what functions exist and what annotations are on those functions. 
+In that type checking pass, we can figure out what operators we are adding and at what precedence level.
+At this point, we can figure out if there are any issues with the declared operators.
+The operator's function can have generic types because we are just generating the operator precedence table based on number of arguments and info in the annotation solely. The type info comes in the last type checking pass when we have already converted those operator expression nodes into function call nodes.
+Then we can probably work out the macros here as well but I think that would be better done after the expression parsing pass in case there are any code replacements needed.
+Then the next parsing pass will parse all the expression statements in the ast from the first pass. Since we will be walking the ast, we will have both recursive operators and scoped overloaded operators.

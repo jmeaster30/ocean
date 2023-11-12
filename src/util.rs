@@ -1,5 +1,6 @@
 pub mod argsparser;
 pub mod dependencygraph;
 pub mod metrictracker;
-pub mod tokentrait;
+pub mod span;
+pub mod token;
 //pub mod errors;

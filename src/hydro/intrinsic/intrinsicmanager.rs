@@ -3,7 +3,6 @@ use crate::hydro::executioncontext::ExecutionContext;
 use crate::hydro::value::Value;
 use lazy_static::lazy_static;
 use std::collections::HashMap;
-use std::error::Error;
 use std::io;
 use std::io::Write;
 

@@ -2,9 +2,18 @@
 # Really not sure about the creating new arrays or the appending to arrays
 # will need to think about that more
 
-op _>._ func (arr: auto T[], f: func(T, T : T)) -> (result: T):{
-  result = []
+@Operator {arr} >. {f}
+function map(arr: auto T[], f: function(T, T) -> T) -> (result: T[]) {
   for val in arr {
     result.push(val.f())
+  }
+}
+
+@Operator {cond} ? {left} : {right}
+function ternary(cond: bool, left: lazy auto T, right: lazy T) -> (result: T) {
+  if cond {
+    result = left
+  } else {
+    result = right
   }
 }

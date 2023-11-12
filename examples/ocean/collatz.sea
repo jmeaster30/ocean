@@ -1,8 +1,8 @@
-let isEven = func (x: i64) -> (result: bool = x % 2 == 0)
+function isEven (x: i64) -> (result: bool = x % 2 == 0)
 
-let isEmpty = func (x: string) -> (result: bool = x == "")
+function isEmpty (x: string) -> (result: bool = x.length)
 
-let collatz = func (input: i64) -> (path: i64[]):{
+function collatz (input: i64) -> (path: i64[]) {
   while input != 1 {
     path.append(input)
     if !input.isEven() {

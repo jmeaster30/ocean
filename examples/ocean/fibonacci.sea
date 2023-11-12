@@ -1,12 +1,15 @@
-let fib = func (input: i64) -> (result: i64):{
-  if input == 0 {
-    result = 0
+using std.annotation.memoize
+using std.annotation.trace
+
+@Trace
+@Memoize
+function fib (input: i64) -> (result: i64) {
+  if input <= 1 {
+    result = input
   } else {
-    result = input + self(input - 1)
+    result = fib(input - 1) + fib(input - 2)
   }
 }
 
-#println(9.fib)
-#println(fib(10))
-
-let result = fib(10)
+println(9.fib)
+println(fib(10))

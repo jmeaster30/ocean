@@ -1,4 +1,4 @@
-use crate::hydro::frontend::token::{Token, TokenType};
+use crate::hydro::frontend::tokentype::{Token, TokenType};
 use crate::util::tokentrait::TokenTrait;
 
 #[test]
