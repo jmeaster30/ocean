@@ -3,7 +3,7 @@ pub enum TokenType {
   EndOfInput,
   Error,
   Newline,
-  //Comment,
+  Comment,
   Annotation,
   String,
   InterpolatedString,
@@ -26,7 +26,7 @@ pub enum TokenType {
   Continue,
   Break,
   Return,
-  Use,
+  Using,
   As,
   Let,
 

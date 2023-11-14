@@ -13,3 +13,4 @@ function fib (input: i64) -> (result: i64) {
 
 println(9.fib)
 println(fib(10))
+a

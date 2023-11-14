@@ -46,7 +46,7 @@ pub fn lex(input: String) -> Vec<Token<TokenType>> {
           "for" => TokenType::For,
           "in" => TokenType::In,
           "as" => TokenType::As,
-          "use" => TokenType::Use,
+          "using" => TokenType::Using,
           "match" => TokenType::Match,
           "true" => TokenType::True,
           "false" => TokenType::False,
@@ -142,7 +142,7 @@ pub fn lex(input: String) -> Vec<Token<TokenType>> {
           while index < input_length {
             let n = input_chars[index];
             match n {
-              '\n' => break,
+              '\r' | '\n' => break,
               _ => lexeme.push_str(&n.to_string()),
             }
             index += 1;
@@ -262,7 +262,7 @@ pub fn lex(input: String) -> Vec<Token<TokenType>> {
             index += 1;
             let n = input_chars[index];
             match n {
-              '\n' => {
+              '\r' | '\n' => {
                 index -= 1;
                 break;
               }
@@ -270,6 +270,15 @@ pub fn lex(input: String) -> Vec<Token<TokenType>> {
             }
           }
         }
+
+        tokens.push(Token::new(
+          lexeme.clone(),
+          TokenType::Comment,
+          (start_index, index),
+          (line_start, line_end),
+          (column_start, column_end)
+        ));
+
         lexeme.clear();
       }
       '.' | ':' | '~' | '+' | '-' | '>' | '<' | '?' | '/' | '=' | '^' | '&' | '|' | '*' | '!' | '%' => {
@@ -311,13 +320,33 @@ pub fn lex(input: String) -> Vec<Token<TokenType>> {
         (line_start, line_end),
         (column_start, column_end)
       )),
-      '\n' => tokens.push(Token::new(
-        "\n".to_string(),
-        TokenType::Newline,
-        (start_index, index),
-        (line_start, line_end),
-        (column_start, column_end)
-      )),
+      '\r' | '\n' => {
+        lexeme.push_str(&input_chars[index].to_string());
+        index += 1;
+        while index < input_length {
+          let n = input_chars[index];
+          match n {
+            '\r' | '\n' => {
+              lexeme.push_str(&n.to_string());
+            }
+            _ => {
+              index -= 1;
+              break
+            },
+          }
+          index += 1;
+        }
+
+        tokens.push(Token::new(
+          lexeme.clone(),
+          TokenType::Newline,
+          (start_index, index),
+          (line_start, line_end),
+          (column_start, column_end)
+        ));
+        lexeme.clear();
+
+      },
       '(' => tokens.push(Token::new(
         "(".to_string(),
         TokenType::LeftParen,
@@ -360,7 +389,7 @@ pub fn lex(input: String) -> Vec<Token<TokenType>> {
         (line_start, line_end),
         (column_start, column_end)
       )),
-      ' ' | '\t' | '\r' => {}
+      ' ' | '\t' => {}
       _ => tokens.push(Token::new(
         input_chars[index].to_string(),
         TokenType::Error,
