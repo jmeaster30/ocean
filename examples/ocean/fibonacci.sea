@@ -1,4 +1,5 @@
 using std.annotation.memoize
+# imports the trace annotation
 using std.annotation.trace
 
 @Trace

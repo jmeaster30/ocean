@@ -14,6 +14,7 @@ pub enum  AstSymbol {
   OptToken(Option<Token<TokenType>>),
 }
 
+#[derive(Debug)]
 pub struct AstSymbolStack {
   stack: Vec<AstSymbol>,
 }
@@ -43,11 +44,11 @@ impl AstSymbolStack {
     }
   }
 
-  pub fn pop_panic(&mut self) -> Option<AstSymbol> {
+  pub fn pop_panic(&mut self) -> AstSymbol {
     if self.stack.is_empty() {
       panic!("Ah crap I tried to pop an empty stack :(");
     }
-    self.stack.pop()
+    self.stack.pop().unwrap()
   }
 
   pub fn size(&self) -> usize {
@@ -55,10 +56,9 @@ impl AstSymbolStack {
   }
 
   pub fn print(&self) {
-    print!("AST STACK:   ");
+    println!("AST STACK:   ");
     for entry in &self.stack {
-      print!("{:?} | ", entry);
+      println!("{:?}", entry);
     }
-    print!("\n");
   }
 }

@@ -304,10 +304,22 @@ pub struct Using {
   pub path: Vec<UsingPathEntry>,
 }
 
+impl Using {
+  pub fn new(using_token: Token<TokenType>, path: Vec<UsingPathEntry>) -> Self {
+    Self { using_token, path }
+  }
+}
+
 #[derive(Clone, Debug)]
 pub struct UsingPathEntry {
   pub identifier: Token<TokenType>,
   pub dot_token: Option<Token<TokenType>>,
+}
+
+impl UsingPathEntry {
+  pub fn new(identifier: Token<TokenType>, dot_token: Option<Token<TokenType>>) -> Self {
+    Self { identifier, dot_token }
+  }
 }
 
 // This may result in multiple sub expressions

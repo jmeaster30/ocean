@@ -62,14 +62,59 @@ pub fn parse_phase_one(tokens: &Vec<Token<TokenType>>) -> Program {
       }
       (Some(ParseState::Statement), Some(AstSymbol::StatementData(_)), TokenType::Using) => {
         ast_stack.push(AstSymbol::Token(current_token.clone()));
+        ast_stack.push(AstSymbol::UsingPathEntries(Vec::new()));
         token_index += 1;
         parser_state_stack.goto(ParseState::UsingPathIdentifier);
       }
 
+      (Some(ParseState::UsingPathIdentifier), Some(AstSymbol::UsingPathEntries(_)), TokenType::Identifier) => {
+        ast_stack.push(AstSymbol::Token(current_token.clone()));
+        token_index += 1;
+        parser_state_stack.push(ParseState::UsingPathOptionalDot);
+      }
+      (Some(ParseState::UsingPathIdentifier), Some(AstSymbol::UsingPathEntries(entries)), TokenType::Newline) |
+      (Some(ParseState::UsingPathIdentifier), Some(AstSymbol::UsingPathEntries(entries)), TokenType::EndOfInput)=> {
+        ast_stack.pop();
+        let using_token = ast_stack.pop_panic();
+        match using_token {
+          AstSymbol::Token(using_token) => {
+            ast_stack.push(AstSymbol::OptStatement(Some(Statement::Using(Using::new(using_token, entries.clone())))));
+            parser_state_stack.goto(ParseState::StatementFinalize);
+          }
+          _ => panic!("Invalid state")
+        }
+      }
+
+      (Some(ParseState::UsingPathOptionalDot), Some(AstSymbol::Token(identifier)), TokenType::Dot) => {
+        ast_stack.pop();
+        let path_entries = ast_stack.pop_panic();
+        match path_entries {
+          AstSymbol::UsingPathEntries(mut entries) => {
+            entries.push(UsingPathEntry::new(identifier, Some(current_token.clone())));
+            ast_stack.push(AstSymbol::UsingPathEntries(entries));
+            token_index += 1;
+            parser_state_stack.pop();
+          }
+          _ => panic!("Invalid state")
+        }
+      }
+      (Some(ParseState::UsingPathOptionalDot), Some(AstSymbol::Token(identifier)), _) => {
+        ast_stack.pop();
+        let path_entries = ast_stack.pop_panic();
+        match path_entries {
+          AstSymbol::UsingPathEntries(mut entries) => {
+            entries.push(UsingPathEntry::new(identifier, None));
+            ast_stack.push(AstSymbol::UsingPathEntries(entries));
+            parser_state_stack.pop();
+          }
+          _ => panic!("Invalid state")
+        }
+      }
+
       (Some(ParseState::StatementFinalize), Some(AstSymbol::OptStatement(optional_statement)), _) => {
         ast_stack.pop();
-        let statement_data = ast_stack.pop_panic().unwrap();
-        let statements = ast_stack.pop_panic().unwrap();
+        let statement_data = ast_stack.pop_panic();
+        let statements = ast_stack.pop_panic();
         match (statement_data, statements) {
           (AstSymbol::StatementData(data), AstSymbol::StatementList(mut statements)) => {
             statements.push(StatementNode::new(data, optional_statement));
@@ -80,7 +125,10 @@ pub fn parse_phase_one(tokens: &Vec<Token<TokenType>>) -> Program {
         }
       }
       (Some(ParseState::StatementFinalize), _, _) => panic!("Invalid state :("),
-      (a, b, c) => panic!("Unexpected state {:?} {:?} {:?}", a, b, c),
+      (a, b, c) => {
+        ast_stack.print();
+        panic!("Unexpected state {:?} {:?} {:?}", a, b, c)
+      },
     }
   }
 
@@ -89,9 +137,17 @@ pub fn parse_phase_one(tokens: &Vec<Token<TokenType>>) -> Program {
   }
 
   match ast_stack.pop_panic() {
-    Some(AstSymbol::StatementList(statements)) => Program { statements },
+    AstSymbol::StatementList(statements) => Program { statements },
     _ => panic!("Unexpected ast stack symbol"),
   }
 
 
+}
+
+fn consume_newline(tokens: &Vec<Token<TokenType>>, current_index: usize) -> usize {
+  let mut result = current_index;
+  while tokens[result].token_type == TokenType::Newline {
+    result += 1;
+  }
+  result
 }
