@@ -10,6 +10,10 @@ pub enum  AstSymbol {
 
   UsingPathEntries(Vec<UsingPathEntry>),
 
+  LetTarget(LetTarget),
+  Identifier(Identifier),
+  Type(Type),
+
   Token(Token<TokenType>),
   OptToken(Option<Token<TokenType>>),
 }

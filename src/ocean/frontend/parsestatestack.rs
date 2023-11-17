@@ -7,6 +7,17 @@ pub enum ParseState {
 
   UsingPathIdentifier,
   UsingPathOptionalDot,
+
+  LetAssignment,
+  LetAssignmentEqual,
+  LetAssignmentRightHandSide,
+  LetAssignmentFinal,
+
+  IdentifierStart,
+  IdentifierOptionalColon,
+  IdentifierEnd,
+
+  Type,
 }
 
 pub struct ParseStateStack {

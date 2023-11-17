@@ -66,7 +66,15 @@ pub fn parse_phase_one(tokens: &Vec<Token<TokenType>>) -> Program {
         token_index += 1;
         parser_state_stack.goto(ParseState::UsingPathIdentifier);
       }
+      (Some(ParseState::Statement), Some(AstSymbol::StatementData(_)), TokenType::Let) => {
+        ast_stack.push(AstSymbol::Token(current_token.clone()));
+        token_index += 1;
+        parser_state_stack.goto(ParseState::LetAssignment);
+        parser_state_stack.push(ParseState::IdentifierStart);
+      }
 
+
+      //<editor-fold desc="> Using Statement">
       (Some(ParseState::UsingPathIdentifier), Some(AstSymbol::UsingPathEntries(_)), TokenType::Identifier) => {
         ast_stack.push(AstSymbol::Token(current_token.clone()));
         token_index += 1;
@@ -84,7 +92,6 @@ pub fn parse_phase_one(tokens: &Vec<Token<TokenType>>) -> Program {
           _ => panic!("Invalid state")
         }
       }
-
       (Some(ParseState::UsingPathOptionalDot), Some(AstSymbol::Token(identifier)), TokenType::Dot) => {
         ast_stack.pop();
         let path_entries = ast_stack.pop_panic();
@@ -108,6 +115,36 @@ pub fn parse_phase_one(tokens: &Vec<Token<TokenType>>) -> Program {
             parser_state_stack.pop();
           }
           _ => panic!("Invalid state")
+        }
+      }
+      //</editor-fold>
+
+      (Some(ParseState::IdentifierStart), _, TokenType::Identifier) => {
+        ast_stack.push(AstSymbol::Token(current_token.clone()));
+        token_index += 1;
+        parser_state_stack.goto(ParseState::IdentifierOptionalColon);
+      }
+      (Some(ParseState::IdentifierOptionalColon), Some(AstSymbol::Token(_)), TokenType::Colon) => {
+        ast_stack.push(AstSymbol::OptToken(Some(current_token.clone())));
+        token_index += 1;
+        parser_state_stack.goto(ParseState::IdentifierEnd);
+        parser_state_stack.push(ParseState::Type)
+      }
+      (Some(ParseState::IdentifierOptionalColon), Some(AstSymbol::Token(identifier)), _) => {
+        ast_stack.pop();
+        ast_stack.push(AstSymbol::Identifier(Identifier::new(identifier, None, None)));
+        parser_state_stack.pop();
+      }
+      (Some(ParseState::IdentifierEnd), Some(AstSymbol::Type(identifier_type)), _) => {
+        ast_stack.pop();
+        let opt_colon_sym = ast_stack.pop_panic();
+        let identifier_sym = ast_stack.pop_panic();
+        match (identifier_sym, opt_colon_sym) {
+          (AstSymbol::Token(identifier), AstSymbol::OptToken(opt_colon)) => {
+            ast_stack.push(AstSymbol::Identifier(Identifier::new(identifier, opt_colon, Some(identifier_type))));
+            parser_state_stack.pop();
+          }
+          _ => panic!("Invalid state :("),
         }
       }
 

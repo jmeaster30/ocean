@@ -133,8 +133,7 @@ pub struct MatchCase {
 
 #[derive(Clone, Debug)]
 pub struct Assignment {
-  pub let_token: Option<Token<TokenType>>,
-  pub left_expression: ExpressionNode, // This expression node must result in 1 left expression
+  pub left_expression: Either<LetTarget, ExpressionNode>, // This expression node must result in 1 left expression
   pub equal_token: Token<TokenType>,
   pub right_expression: ExpressionNode,
 }
@@ -150,6 +149,12 @@ pub struct Identifier {
   pub identifier: Token<TokenType>,
   pub colon: Option<Token<TokenType>>,
   pub optional_type: Option<Type>,
+}
+
+impl Identifier {
+  pub fn new(identifier: Token<TokenType>, colon: Option<Token<TokenType>>, optional_type: Option<Type>) -> Self {
+    Self { identifier, colon, optional_type }
+  }
 }
 
 #[derive(Clone, Debug)]
