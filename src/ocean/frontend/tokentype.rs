@@ -12,6 +12,7 @@ pub enum TokenType {
   True,
   False,
   Type,
+  TypePrefix,
 
   Pack,
   Union,

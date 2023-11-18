@@ -119,6 +119,7 @@ pub fn parse_phase_one(tokens: &Vec<Token<TokenType>>) -> Program {
       }
       //</editor-fold>
 
+      //<editor-fold desc="> Identifier">
       (Some(ParseState::IdentifierStart), _, TokenType::Identifier) => {
         ast_stack.push(AstSymbol::Token(current_token.clone()));
         token_index += 1;
@@ -147,6 +148,127 @@ pub fn parse_phase_one(tokens: &Vec<Token<TokenType>>) -> Program {
           _ => panic!("Invalid state :("),
         }
       }
+      //</editor-fold>
+
+      //<editor-fold desc="> Type">
+      (Some(ParseState::Type), Some(_), TokenType::Type) => {
+        parser_state_stack.pop();
+        ast_stack.push(AstSymbol::Type(Type::Base(BaseType::new(current_token.clone()))));
+        token_index += 1;
+      }
+      (Some(ParseState::Type), Some(_), TokenType::RightSquare) => {
+        parser_state_stack.pop();
+      }
+      (Some(ParseState::Type), Some(_), TokenType::TypePrefix) => {
+        ast_stack.push(AstSymbol::Token(current_token.clone()));
+        token_index += 1;
+        parser_state_stack.goto(ParseState::TypeArray);
+        match current_token.lexeme.as_str() {
+          "auto" => {
+            parser_state_stack.push(ParseState::TypeAuto);
+            parser_state_stack.push(ParseState::TypeIdentifier);
+          },
+          "lazy" => {
+            parser_state_stack.push(ParseState::TypeLazy);
+            parser_state_stack.push(ParseState::Type);
+          },
+          "ref" => {
+            parser_state_stack.push(ParseState::TypeRef);
+            parser_state_stack.push(ParseState::Type);
+          },
+          "mut" => {
+            parser_state_stack.push(ParseState::TypeMut);
+            parser_state_stack.push(ParseState::Type);
+          },
+          _ => panic!("Unexpected type prefix"),
+        }
+      }
+      (Some(ParseState::TypeIdentifier), Some(_), TokenType::Identifier) => {
+        token_index += 1;
+        ast_stack.push(AstSymbol::Token(current_token.clone()));
+        parser_state_stack.pop();
+      }
+      (Some(ParseState::TypeAuto), Some(AstSymbol::Token(identifier_token)), _) => {
+        ast_stack.pop();
+        let auto_token_sym = ast_stack.pop_panic();
+        match auto_token_sym {
+          AstSymbol::Token(auto_token) => {
+            ast_stack.push(AstSymbol::Type(Type::Auto(AutoType::new(auto_token, identifier_token))));
+          }
+          _ => panic!("Unexpected state :("),
+        }
+        parser_state_stack.pop();
+      }
+      (Some(ParseState::TypeLazy), Some(AstSymbol::Type(subtype)), _) => {
+        ast_stack.pop();
+        let lazy_token_sym = ast_stack.pop_panic();
+        match lazy_token_sym {
+          AstSymbol::Token(lazy_token) => {
+            ast_stack.push(AstSymbol::Type(Type::Lazy(LazyType::new(lazy_token, Box::new(subtype)))));
+          }
+          _ => panic!("Unexpected state :("),
+        }
+        parser_state_stack.pop();
+      }
+      (Some(ParseState::TypeRef), Some(AstSymbol::Type(subtype)), _) => {
+        ast_stack.pop();
+        let ref_token_sym = ast_stack.pop_panic();
+        match ref_token_sym {
+          AstSymbol::Token(ref_token) => {
+            ast_stack.push(AstSymbol::Type(Type::Ref(RefType::new(ref_token, Box::new(subtype)))));
+          }
+          _ => panic!("Unexpected state :("),
+        }
+        parser_state_stack.pop();
+      }
+      (Some(ParseState::TypeMut), Some(AstSymbol::Type(subtype)), _) => {
+        ast_stack.pop();
+        let mut_token_sym = ast_stack.pop_panic();
+        match mut_token_sym {
+          AstSymbol::Token(mut_token) => {
+            ast_stack.push(AstSymbol::Type(Type::Mutable(MutType::new(mut_token, Box::new(subtype)))));
+          }
+          _ => panic!("Unexpected state :("),
+        }
+        parser_state_stack.pop();
+      }
+      (Some(ParseState::TypeArray), Some(_), TokenType::LeftSquare) => {
+        ast_stack.push(AstSymbol::Token(current_token.clone()));
+        token_index += 1;
+        parser_state_stack.goto(ParseState::TypeArrayEnd);
+        parser_state_stack.push(ParseState::Type);
+      }
+      (Some(ParseState::TypeArray), Some(_), _) => {
+        parser_state_stack.pop();
+      }
+      (Some(ParseState::TypeArrayEnd), Some(AstSymbol::Type(subtype)), TokenType::RightSquare) => {
+        ast_stack.pop();
+        let left_square_sym = ast_stack.pop_panic();
+        let main_type_sym = ast_stack.pop_panic();
+        parser_state_stack.pop();
+        token_index += 1;
+        match (main_type_sym, left_square_sym) {
+          (AstSymbol::Type(main_type), AstSymbol::Token(left_square)) => {
+            ast_stack.push(AstSymbol::Type(Type::Array(ArrayType::new(Box::new(main_type), left_square, Some(Box::new(subtype)), current_token.clone()))));
+          }
+          _ => panic!("Unexpected stack state :(")
+        }
+      }
+      (Some(ParseState::TypeArrayEnd), Some(AstSymbol::Token(left_square)), TokenType::RightSquare) => {
+        ast_stack.pop();
+        let main_type_sym = ast_stack.pop_panic();
+        parser_state_stack.pop();
+        token_index += 1;
+        match main_type_sym {
+          AstSymbol::Type(main_type) => {
+            ast_stack.push(AstSymbol::Type(Type::Array(ArrayType::new(Box::new(main_type), left_square, None, current_token.clone()))));
+          }
+          _ => panic!("Unexpected stack state :(")
+        }
+      }
+      //</editor-fold>
+
+
 
       (Some(ParseState::StatementFinalize), Some(AstSymbol::OptStatement(optional_statement)), _) => {
         ast_stack.pop();

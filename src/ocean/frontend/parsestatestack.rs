@@ -18,6 +18,15 @@ pub enum ParseState {
   IdentifierEnd,
 
   Type,
+  TypeIdentifier,
+  TypeAuto,
+  TypeLazy,
+  TypeRef,
+  TypeMut,
+  TypeArray,
+  TypeArrayEnd,
+  TypeEndParen,
+  TypeEnd,
 }
 
 pub struct ParseStateStack {

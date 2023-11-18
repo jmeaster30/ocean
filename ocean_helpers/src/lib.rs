@@ -2,10 +2,11 @@ extern crate proc_macro;
 use proc_macro::TokenStream;
 use std::cmp::min;
 use std::str::FromStr;
-use quote::quote;
+use quote::{quote, ToTokens};
+use syn::{Data, Fields};
 
 #[proc_macro_derive(Debuggable)]
-pub fn debuggable_macro_dervice(input: TokenStream) -> TokenStream {
+pub fn debuggable_macro_derive(input: TokenStream) -> TokenStream {
   let ast = syn::parse(input).unwrap();
   impl_debuggable_macro(&ast)
 }
@@ -24,6 +25,61 @@ fn impl_debuggable_macro(ast: &syn::DeriveInput) -> TokenStream {
     }
   };
   gen.into()
+}
+
+#[proc_macro_derive(New)]
+pub fn new_macro_derive(input: TokenStream) -> TokenStream {
+  let ast = syn::parse(input).unwrap();
+  impl_new_macro(&ast)
+}
+
+fn impl_new_macro(ast: &syn::DeriveInput) -> TokenStream {
+  let name = &ast.ident;
+  match &ast.data {
+    Data::Struct(struct_data) => {
+      let mut token_stream = "impl ".to_string();
+      token_stream += name.to_string().as_str();
+      token_stream += " {";
+
+      let mut typed_args = Vec::new();
+
+      match &struct_data.fields {
+        Fields::Named(named_fields) => {
+          for field in &named_fields.named {
+            match &field.ident {
+              Some(field_name) => {
+                typed_args.push((field_name.to_string(), field.ty.to_token_stream()))
+              }
+              None => {}
+            }
+          }
+        }
+        _ => {}
+      }
+
+      token_stream += "pub fn new(";
+      for (idx, (arg_name, arg_type)) in typed_args.iter().enumerate() {
+        token_stream += arg_name.to_string().as_str();
+        token_stream += ": ";
+        token_stream += arg_type.to_string().as_str();
+        if idx != typed_args.len() - 1 {
+          token_stream += ", ";
+        }
+      }
+      token_stream += ") -> Self { Self { ";
+      for (idx, (arg_name, _)) in typed_args.iter().enumerate() {
+        token_stream += arg_name;
+        if idx != typed_args.len() - 1 {
+          token_stream += ", "
+        }
+      }
+      token_stream += "} }\n";
+      token_stream += "}";
+
+      TokenStream::from_str(&token_stream).unwrap()
+    }
+    _ => TokenStream::new()
+  }
 }
 
 // TODO I need to think much more deeply about if I want wrapping behavior for these operations

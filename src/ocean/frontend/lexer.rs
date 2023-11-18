@@ -33,7 +33,8 @@ pub fn lex(input: String) -> Vec<Token<TokenType>> {
         //check against every other thing it could be
         let token_type = match lexeme.as_str() {
           "function" => TokenType::Function,
-          "i8" | "i16" | "i32" | "i64" | "i128" | "f32" | "f64" | "u8" | "u16" | "u32" | "u64" | "u128"  | "string" | "auto" | "bool" | "ref" | "mut" | "lazy" | "char" => TokenType::Type,
+          "i8" | "i16" | "i32" | "i64" | "i128" | "f32" | "f64" | "u8" | "u16" | "u32" | "u64" | "u128"  | "string" | "bool" | "char" => TokenType::Type,
+          "auto" |  "ref" | "mut" | "lazy" => TokenType::TypePrefix,
           "if" => TokenType::If,
           "else" => TokenType::Else,
           "return" => TokenType::Return,
