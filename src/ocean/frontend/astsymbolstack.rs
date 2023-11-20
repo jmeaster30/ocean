@@ -1,3 +1,4 @@
+use itertools::Either;
 use crate::ocean::frontend::ast::*;
 use crate::ocean::frontend::tokentype::TokenType;
 use crate::util::token::Token;
@@ -14,8 +15,11 @@ pub enum  AstSymbol {
   Identifier(Identifier),
   Type(Type),
 
+  Expression(ExpressionNode),
+
   Token(Token<TokenType>),
   OptToken(Option<Token<TokenType>>),
+  ExpressionTokenList(Vec<Token<TokenType>>),
 }
 
 #[derive(Debug)]

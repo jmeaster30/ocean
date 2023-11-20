@@ -21,7 +21,7 @@ impl Ocean {
     }
 
     let phase_one_ast = parse_phase_one(&tokens);
-    println!("{:?}", phase_one_ast);
+    println!("{:#?}", phase_one_ast);
 
     Ok(())
   }

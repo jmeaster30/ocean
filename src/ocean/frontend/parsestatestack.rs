@@ -27,6 +27,9 @@ pub enum ParseState {
   TypeArrayEnd,
   TypeEndParen,
   TypeEnd,
+
+  Expression,
+  SubExpression,
 }
 
 pub struct ParseStateStack {
