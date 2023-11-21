@@ -30,6 +30,13 @@ pub enum ParseState {
 
   Expression,
   SubExpression,
+  ExpressionStatement,
+
+  BranchStatement,
+  BranchElseStatement,
+  BranchEndStatement,
+
+  CompoundStatement,
 }
 
 pub struct ParseStateStack {

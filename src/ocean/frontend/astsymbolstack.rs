@@ -1,4 +1,3 @@
-use itertools::Either;
 use crate::ocean::frontend::ast::*;
 use crate::ocean::frontend::tokentype::TokenType;
 use crate::util::token::Token;
@@ -10,6 +9,9 @@ pub enum  AstSymbol {
   OptStatement(Option<Statement>),
 
   UsingPathEntries(Vec<UsingPathEntry>),
+  CompoundStatement(CompoundStatement),
+  Branch(Branch),
+  ElseBranch(ElseBranch),
 
   LetTarget(LetTarget),
   Identifier(Identifier),

@@ -87,8 +87,7 @@ pub struct Branch {
 #[derive(Clone, Debug, New)]
 pub struct ElseBranch {
   pub else_token: Token<TokenType>,
-  pub body: Option<CompoundStatement>,
-  pub branch: Option<Box<Branch>>,
+  pub body: Either<CompoundStatement, Box<Branch>>,
 }
 
 #[derive(Clone, Debug, New)]
