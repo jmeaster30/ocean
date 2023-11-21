@@ -32,6 +32,9 @@ pub fn parse_phase_one(tokens: &Vec<Token<TokenType>>) -> Program {
       (Some(ParseState::StatementList), Some(AstSymbol::StatementList(_)), TokenType::RightCurly) => {
         parser_state_stack.pop();
       }
+      (Some(ParseState::StatementList), _, TokenType::Newline) => {
+        token_index += 1;
+      }
       (Some(ParseState::StatementList), _, _) => {
         parser_state_stack.push(ParseState::PreStatement);
         ast_stack.push(AstSymbol::StatementData(Vec::new()));
@@ -87,6 +90,29 @@ pub fn parse_phase_one(tokens: &Vec<Token<TokenType>>) -> Program {
         parser_state_stack.push(ParseState::BranchStatement);
         parser_state_stack.push(ParseState::CompoundStatement);
         parser_state_stack.push(ParseState::Expression);
+      }
+      (Some(ParseState::Statement), Some(AstSymbol::StatementData(_)), TokenType::While) => {
+        ast_stack.push(AstSymbol::Token(current_token.clone()));
+        token_index += 1;
+        parser_state_stack.goto(ParseState::StatementFinalize);
+        parser_state_stack.push(ParseState::WhileStatement);
+        parser_state_stack.push(ParseState::CompoundStatement);
+        parser_state_stack.push(ParseState::Expression);
+      }
+      (Some(ParseState::Statement), Some(AstSymbol::StatementData(_)), TokenType::Break) => {
+        ast_stack.push(AstSymbol::OptStatement(Some(Statement::Break(Break::new(current_token.clone())))));
+        token_index += 1;
+        parser_state_stack.goto(ParseState::StatementFinalize);
+      }
+      (Some(ParseState::Statement), Some(AstSymbol::StatementData(_)), TokenType::Continue) => {
+        ast_stack.push(AstSymbol::OptStatement(Some(Statement::Continue(Continue::new(current_token.clone())))));
+        token_index += 1;
+        parser_state_stack.goto(ParseState::StatementFinalize);
+      }
+      (Some(ParseState::Statement), Some(AstSymbol::StatementData(_)), TokenType::Return) => {
+        ast_stack.push(AstSymbol::OptStatement(Some(Statement::Return(Return::new(current_token.clone())))));
+        token_index += 1;
+        parser_state_stack.goto(ParseState::StatementFinalize);
       }
       (Some(ParseState::Statement), Some(AstSymbol::StatementData(_)), TokenType::LeftParen) |
       (Some(ParseState::Statement), Some(AstSymbol::StatementData(_)), TokenType::RightParen) |
@@ -476,6 +502,20 @@ pub fn parse_phase_one(tokens: &Vec<Token<TokenType>>) -> Program {
           AstSymbol::Token(left_curly) => {
             ast_stack.push(AstSymbol::CompoundStatement(CompoundStatement::new(left_curly, compound_statement, current_token.clone())));
             token_index += 1;
+            parser_state_stack.pop();
+          }
+          _ => panic!("Invalid state :(")
+        }
+      }
+      //</editor-fold>
+      //<editor-fold desc="> CompoundStatement">
+      (Some(ParseState::WhileStatement), Some(AstSymbol::CompoundStatement(compound_statement)), _) => {
+        ast_stack.pop();
+        let condition_sym = ast_stack.pop_panic();
+        let while_token_sym = ast_stack.pop_panic();
+        match (while_token_sym, condition_sym) {
+          (AstSymbol::Token(while_token), AstSymbol::Expression(expression_node)) => {
+            ast_stack.push(AstSymbol::OptStatement(Some(Statement::WhileLoop(WhileLoop::new(while_token, expression_node, compound_statement)))));
             parser_state_stack.pop();
           }
           _ => panic!("Invalid state :(")

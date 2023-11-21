@@ -58,6 +58,7 @@ pub struct CompoundStatement {
 #[derive(Clone, Debug, New)]
 pub struct WhileLoop {
   pub while_token: Token<TokenType>,
+  pub condition: ExpressionNode,
   pub body: CompoundStatement,
 }
 

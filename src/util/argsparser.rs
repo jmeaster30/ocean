@@ -202,6 +202,7 @@ impl ArgsParser {
     for i in 1..args.len() {
       clargs.push((i, args[i].clone()));
     }
+
     let total = clargs.len();
     let mut args_map = HashMap::new();
     args_map.insert("command".to_string(), command.command_name.clone());
@@ -220,12 +221,12 @@ impl ArgsParser {
               if arg_schema.possible_values.is_empty() {
                 args_map.insert(arg_schema.arg_name.clone(), value_text.clone());
                 if index < clargs.len() {
-                  clargs.remove(index - 1);
+                  clargs = clargs.iter().filter(|(idx, _)| *idx != index).map(|x| x.clone()).collect::<Vec<(usize, String)>>();
                 }
               } else if arg_schema.possible_values.contains(value_text) {
                 args_map.insert(arg_schema.arg_name.clone(), value_text.clone());
                 if index < clargs.len() {
-                  clargs.remove(index - 1);
+                  clargs = clargs.iter().filter(|(idx, _)| *idx != index).map(|x| x.clone()).collect::<Vec<(usize, String)>>();
                 }
               } else if arg_schema.default_value.is_some() {
                 args_map.insert(
@@ -253,15 +254,16 @@ impl ArgsParser {
           if arg_schema.takes_value {
             match index {
               Some(index) => {
-                if index < clargs.len() - 1 {
-                  args_map.insert(arg_schema.arg_name.clone(), clargs[index + 1].1.clone());
-                  clargs.remove(index);
-                } else {
-                  args_map.insert(arg_schema.arg_name.clone(), "".to_string());
+                match clargs.iter().find(|x| x.0 == index + 1) {
+                  Some((value_index, value)) => {
+                    args_map.insert(arg_schema.arg_name.clone(), value.clone());
+                    clargs = clargs.iter().filter(|(idx, _)| *idx != *value_index).map(|x| x.clone()).collect::<Vec<(usize, String)>>();
+                  }
+                  None => {
+                    args_map.insert(arg_schema.arg_name.clone(), "".to_string());
+                  }
                 }
-                if index < clargs.len() {
-                  clargs.remove(index);
-                }
+                clargs = clargs.iter().filter(|(idx, _)| *idx != index).map(|x| x.clone()).collect::<Vec<(usize, String)>>();
               }
               None => match &arg_schema.default_value {
                 Some(v) => {
@@ -275,7 +277,7 @@ impl ArgsParser {
               Some(index) => {
                 args_map.insert(arg_schema.arg_name.clone(), "true".to_string());
                 if index < clargs.len() {
-                  clargs.remove(index);
+                  clargs = clargs.iter().filter(|(idx, _)| *idx != index).map(|x| x.clone()).collect::<Vec<(usize, String)>>();
                 }
               }
               None => {

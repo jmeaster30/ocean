@@ -26,6 +26,16 @@ fn main() -> std::io::Result<()> {
       .command(Command::new("version")
         .description("Print version information"))
       .command(Command::new("run")
+        .arg(Argument::new("Tokens")
+          .named("-t", "--tokens")
+          .takes_value()
+          .possible_values(vec!["print", "file", "none"])
+          .default("none"))
+        .arg(Argument::new("Ast")
+          .named("-a", "--ast")
+          .takes_value()
+          .possible_values(vec!["print", "file", "none"])
+          .default("none"))
         .arg(Argument::new("Source File")
           .last()
           .default("main.sea")
@@ -109,7 +119,11 @@ fn main() -> std::io::Result<()> {
           }
         }
         "run" => {
-          Ocean::compile(arguments.get("Source File").unwrap().as_str()).unwrap();
+          Ocean::compile(
+            arguments.get("Source File").unwrap().as_str(),
+            arguments.get("Tokens").unwrap().as_str(),
+            arguments.get("Ast").unwrap().as_str()
+          ).unwrap();
         }
         _ => todo!("Unimplemented command :("),
       },
