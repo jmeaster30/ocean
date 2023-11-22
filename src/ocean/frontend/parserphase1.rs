@@ -99,6 +99,23 @@ pub fn parse_phase_one(tokens: &Vec<Token<TokenType>>) -> Program {
         parser_state_stack.push(ParseState::CompoundStatement);
         parser_state_stack.push(ParseState::Expression);
       }
+      (Some(ParseState::Statement), Some(AstSymbol::StatementData(_)), TokenType::Loop) => {
+        ast_stack.push(AstSymbol::Token(current_token.clone()));
+        token_index += 1;
+        parser_state_stack.goto(ParseState::StatementFinalize);
+        parser_state_stack.push(ParseState::LoopStatement);
+        parser_state_stack.push(ParseState::CompoundStatement);
+      }
+      (Some(ParseState::Statement), Some(AstSymbol::StatementData(_)), TokenType::For) => {
+        ast_stack.push(AstSymbol::Token(current_token.clone()));
+        token_index += 1;
+        parser_state_stack.goto(ParseState::StatementFinalize);
+        parser_state_stack.push(ParseState::ForStatement);
+        parser_state_stack.push(ParseState::CompoundStatement);
+        parser_state_stack.push(ParseState::Expression);
+        parser_state_stack.push(ParseState::ForStatementIn);
+        parser_state_stack.push(ParseState::Expression);
+      }
       (Some(ParseState::Statement), Some(AstSymbol::StatementData(_)), TokenType::Break) => {
         ast_stack.push(AstSymbol::OptStatement(Some(Statement::Break(Break::new(current_token.clone())))));
         token_index += 1;
@@ -489,6 +506,9 @@ pub fn parse_phase_one(tokens: &Vec<Token<TokenType>>) -> Program {
       }
       //</editor-fold>
       //<editor-fold desc="> CompoundStatement">
+      (Some(ParseState::CompoundStatement), Some(_), TokenType::Newline) => {
+        token_index += 1;
+      }
       (Some(ParseState::CompoundStatement), Some(_), TokenType::LeftCurly) => {
         ast_stack.push(AstSymbol::Token(current_token.clone()));
         ast_stack.push(AstSymbol::StatementList(vec![]));
@@ -508,7 +528,7 @@ pub fn parse_phase_one(tokens: &Vec<Token<TokenType>>) -> Program {
         }
       }
       //</editor-fold>
-      //<editor-fold desc="> CompoundStatement">
+      //<editor-fold desc="> WhileStatement">
       (Some(ParseState::WhileStatement), Some(AstSymbol::CompoundStatement(compound_statement)), _) => {
         ast_stack.pop();
         let condition_sym = ast_stack.pop_panic();
@@ -520,6 +540,41 @@ pub fn parse_phase_one(tokens: &Vec<Token<TokenType>>) -> Program {
           }
           _ => panic!("Invalid state :(")
         }
+      }
+      //</editor-fold>
+      //<editor-fold desc="> LoopStatement">
+      (Some(ParseState::LoopStatement), Some(AstSymbol::CompoundStatement(compound_statement)), _) => {
+        ast_stack.pop();
+        let loop_token_sym = ast_stack.pop_panic();
+        match loop_token_sym {
+          AstSymbol::Token(loop_token) => {
+            ast_stack.push(AstSymbol::OptStatement(Some(Statement::Loop(Loop::new(loop_token, compound_statement)))));
+            parser_state_stack.pop();
+          }
+          _ => panic!("Invalid state :(")
+        }
+      }
+      //</editor-fold>
+
+      //<editor-fold desc="> ForStatement">
+      (Some(ParseState::ForStatement), Some(AstSymbol::CompoundStatement(compound_statement)), _) => {
+        ast_stack.pop();
+        let iterable_sym = ast_stack.pop_panic();
+        let in_token_sym = ast_stack.pop_panic();
+        let iterator_sym = ast_stack.pop_panic();
+        let for_token_sym = ast_stack.pop_panic();
+        match (for_token_sym, iterator_sym, in_token_sym, iterable_sym) {
+          (AstSymbol::Token(for_token), AstSymbol::Expression(iterator), AstSymbol::Token(in_token), AstSymbol::Expression(iterable)) => {
+            ast_stack.push(AstSymbol::OptStatement(Some(Statement::ForLoop(ForLoop::new(for_token, iterator, in_token, iterable, compound_statement)))));
+            parser_state_stack.pop();
+          }
+          _ => panic!("Invalid state :(")
+        }
+      }
+      (Some(ParseState::ForStatementIn), Some(AstSymbol::Expression(_)), TokenType::In) => {
+        ast_stack.push(AstSymbol::Token(current_token.clone()));
+        token_index += 1;
+        parser_state_stack.pop();
       }
       //</editor-fold>
 

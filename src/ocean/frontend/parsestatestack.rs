@@ -37,6 +37,9 @@ pub enum ParseState {
   BranchEndStatement,
 
   WhileStatement,
+  LoopStatement,
+  ForStatement,
+  ForStatementIn,
 
   CompoundStatement,
 }
