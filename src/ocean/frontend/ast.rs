@@ -242,7 +242,7 @@ pub struct Pack {
 #[derive(Clone, Debug, New)]
 pub struct PackMember {
   pub identifier: Identifier,
-  pub comma_token: Token<TokenType>,
+  pub comma_token: Option<Token<TokenType>>,
 }
 
 #[derive(Clone, Debug, New)]

@@ -5,6 +5,13 @@ pub enum ParseState {
   Statement,
   StatementFinalize,
 
+  PackIdentifier,
+  PackBodyStart,
+  PackBody,
+  PackBodyEnd,
+  PackMember,
+  PackMemberEnd,
+
   UsingPathIdentifier,
   UsingPathOptionalDot,
 

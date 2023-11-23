@@ -131,6 +131,13 @@ pub fn parse_phase_one(tokens: &Vec<Token<TokenType>>) -> Program {
         token_index += 1;
         parser_state_stack.goto(ParseState::StatementFinalize);
       }
+      (Some(ParseState::Statement), Some(AstSymbol::StatementData(_)), TokenType::Pack) => {
+        parser_state_stack.goto(ParseState::StatementFinalize);
+        parser_state_stack.push(ParseState::PackBodyStart);
+        parser_state_stack.push(ParseState::PackIdentifier);
+        ast_stack.push(AstSymbol::Token(current_token.clone()));
+        token_index += 1;
+      }
       (Some(ParseState::Statement), Some(AstSymbol::StatementData(_)), TokenType::LeftParen) |
       (Some(ParseState::Statement), Some(AstSymbol::StatementData(_)), TokenType::RightParen) |
       (Some(ParseState::Statement), Some(AstSymbol::StatementData(_)), TokenType::String) |
@@ -152,6 +159,66 @@ pub fn parse_phase_one(tokens: &Vec<Token<TokenType>>) -> Program {
         parser_state_stack.push(ParseState::Expression);
       }
 
+      //<editor-fold desc="> Pack">
+      (Some(ParseState::PackIdentifier), Some(_), TokenType::Identifier) => {
+        ast_stack.push(AstSymbol::Token(current_token.clone()));
+        token_index += 1;
+        parser_state_stack.pop();
+      }
+      (Some(ParseState::PackBodyStart), Some(_), TokenType::LeftCurly) => {
+        ast_stack.push(AstSymbol::Token(current_token.clone()));
+        ast_stack.push(AstSymbol::PackMembers(Vec::new()));
+        token_index += 1;
+        parser_state_stack.goto(ParseState::PackBody);
+      }
+      (Some(ParseState::PackBodyEnd), Some(AstSymbol::PackMembers(pack_members)), TokenType::RightCurly) => {
+        ast_stack.pop();
+        let left_curly_sym = ast_stack.pop_panic();
+        let identifier_sym = ast_stack.pop_panic();
+        let pack_token_sym = ast_stack.pop_panic();
+        match (pack_token_sym, identifier_sym, left_curly_sym) {
+          (AstSymbol::Token(pack_token), AstSymbol::Token(identifier), AstSymbol::Token(left_curly)) => {
+            ast_stack.push(AstSymbol::OptStatement(Some(Statement::Pack(Pack::new(pack_token, identifier, left_curly, pack_members, current_token.clone())))));
+            token_index += 1;
+            parser_state_stack.pop();
+          }
+          _ => panic!("Invalid state")
+        }
+      }
+      (Some(ParseState::PackBody), Some(AstSymbol::PackMembers(_)), TokenType::Identifier) => {
+        parser_state_stack.push(ParseState::IdentifierStart);
+      }
+      (Some(ParseState::PackBody), Some(AstSymbol::PackMembers(_)), TokenType::RightCurly) => {
+        parser_state_stack.goto(ParseState::PackBodyEnd);
+      }
+      (Some(ParseState::PackBody), Some(AstSymbol::Identifier(identifier)), TokenType::Comma) => {
+        ast_stack.pop();
+        let pack_members_sym = ast_stack.pop_panic();
+        match pack_members_sym {
+          AstSymbol::PackMembers(mut pack_members) => {
+            pack_members.push(PackMember::new(identifier, Some(current_token.clone())));
+            ast_stack.push(AstSymbol::PackMembers(pack_members));
+            token_index += 1;
+          }
+          _ => panic!("Invalid state")
+        }
+      }
+      (Some(ParseState::PackBody), Some(AstSymbol::Identifier(identifier)), _) => {
+        ast_stack.pop();
+        let pack_members_sym = ast_stack.pop_panic();
+        match pack_members_sym {
+          AstSymbol::PackMembers(mut pack_members) => {
+            pack_members.push(PackMember::new(identifier, None));
+            ast_stack.push(AstSymbol::PackMembers(pack_members));
+          }
+          _ => panic!("Invalid state")
+        }
+      }
+      (Some(ParseState::PackBody), _, TokenType::Comment) |
+      (Some(ParseState::PackBody), _, TokenType::Newline) => {
+        token_index += 1;
+      }
+      //</editor-fold>
 
       //<editor-fold desc="> Using Statement">
       (Some(ParseState::UsingPathIdentifier), Some(AstSymbol::UsingPathEntries(_)), TokenType::Identifier) => {

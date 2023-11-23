@@ -12,6 +12,7 @@ pub enum  AstSymbol {
   CompoundStatement(CompoundStatement),
   Branch(Branch),
   ElseBranch(ElseBranch),
+  PackMembers(Vec<PackMember>),
 
   Identifier(Identifier),
   Type(Type),
