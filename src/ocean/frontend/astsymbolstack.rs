@@ -13,9 +13,10 @@ pub enum  AstSymbol {
   Branch(Branch),
   ElseBranch(ElseBranch),
 
-  LetTarget(LetTarget),
   Identifier(Identifier),
   Type(Type),
+  FunctionTypeArgument(FunctionTypeArgument),
+  FunctionTypeArguments(Vec<FunctionTypeArgument>),
 
   Expression(ExpressionNode),
 

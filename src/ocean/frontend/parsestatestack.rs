@@ -27,6 +27,11 @@ pub enum ParseState {
   TypeArrayEnd,
   TypeEndParen,
   TypeEnd,
+  TypeFunctionParams,
+  TypeFunctionParamType,
+  TypeFunctionOptArrow,
+  TypeFunctionReturns,
+  TypeFunctionReturnType,
 
   Expression,
   SubExpression,

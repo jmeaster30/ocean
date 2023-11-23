@@ -131,6 +131,7 @@ pub struct Identifier {
 #[derive(Clone, Debug)]
 pub enum Type {
   Base(BaseType),
+  Custom(CustomType),
   Auto(AutoType),
   Lazy(LazyType),
   Ref(RefType),
@@ -143,6 +144,11 @@ pub enum Type {
 #[derive(Clone, Debug, New)]
 pub struct BaseType {
   pub base_type: Token<TokenType>,
+}
+
+#[derive(Clone, Debug, New)]
+pub struct CustomType {
+  pub identifier: Token<TokenType>,
 }
 
 #[derive(Clone, Debug, New)]
@@ -188,12 +194,18 @@ pub struct ArrayType {
 pub struct FunctionType {
   pub function_token: Token<TokenType>,
   pub param_left_paren: Token<TokenType>,
-  pub param_types: Vec<Type>,
+  pub param_types: Vec<FunctionTypeArgument>,
   pub param_right_paren: Token<TokenType>,
-  pub arrow_token: Token<TokenType>,
+  pub arrow_token: Option<Token<TokenType>>,
   pub result_left_paren: Option<Token<TokenType>>,
-  pub result_types: Vec<Type>,
+  pub result_types: Vec<FunctionTypeArgument>,
   pub result_right_paren: Option<Token<TokenType>>,
+}
+
+#[derive(Clone, Debug, New)]
+pub struct FunctionTypeArgument {
+  pub arg_type: Type,
+  pub comma_token: Option<Token<TokenType>>
 }
 
 #[derive(Clone, Debug, New)]
