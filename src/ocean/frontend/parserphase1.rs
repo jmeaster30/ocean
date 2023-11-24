@@ -138,6 +138,13 @@ pub fn parse_phase_one(tokens: &Vec<Token<TokenType>>) -> Program {
         ast_stack.push(AstSymbol::Token(current_token.clone()));
         token_index += 1;
       }
+      (Some(ParseState::Statement), Some(AstSymbol::StatementData(_)), TokenType::Union) => {
+        parser_state_stack.goto(ParseState::StatementFinalize);
+        parser_state_stack.push(ParseState::UnionBodyStart);
+        parser_state_stack.push(ParseState::UnionIdentifier);
+        ast_stack.push(AstSymbol::Token(current_token.clone()));
+        token_index += 1;
+      }
       (Some(ParseState::Statement), Some(AstSymbol::StatementData(_)), TokenType::LeftParen) |
       (Some(ParseState::Statement), Some(AstSymbol::StatementData(_)), TokenType::RightParen) |
       (Some(ParseState::Statement), Some(AstSymbol::StatementData(_)), TokenType::String) |
@@ -217,6 +224,76 @@ pub fn parse_phase_one(tokens: &Vec<Token<TokenType>>) -> Program {
       (Some(ParseState::PackBody), _, TokenType::Comment) |
       (Some(ParseState::PackBody), _, TokenType::Newline) => {
         token_index += 1;
+      }
+      //</editor-fold>
+
+      //<editor-fold desc="> Union Statement">
+      (Some(ParseState::UnionIdentifier), _, TokenType::Identifier) => {
+        ast_stack.push(AstSymbol::Token(current_token.clone()));
+        token_index += 1;
+        parser_state_stack.pop();
+      }
+      (Some(ParseState::UnionBodyStart), Some(_), TokenType::LeftCurly) => {
+        ast_stack.push(AstSymbol::Token(current_token.clone()));
+        ast_stack.push(AstSymbol::UnionMembers(Vec::new()));
+        token_index += 1;
+        parser_state_stack.goto(ParseState::UnionBody);
+      }
+      (Some(ParseState::UnionBodyEnd), Some(AstSymbol::UnionMembers(union_members)), TokenType::RightCurly) => {
+        ast_stack.pop();
+        let left_curly_sym = ast_stack.pop_panic();
+        let identifier_sym = ast_stack.pop_panic();
+        let union_token_sym = ast_stack.pop_panic();
+        match (union_token_sym, identifier_sym, left_curly_sym) {
+          (AstSymbol::Token(union_token), AstSymbol::Token(identifier), AstSymbol::Token(left_curly)) => {
+            ast_stack.push(AstSymbol::OptStatement(Some(Statement::Union(Union::new(union_token, identifier, left_curly, union_members, current_token.clone())))));
+            token_index += 1;
+            parser_state_stack.pop();
+          }
+          _ => panic!("Invalid state")
+        }
+      }
+      (Some(ParseState::UnionBody), Some(AstSymbol::UnionMembers(_)), TokenType::Newline) |
+      (Some(ParseState::UnionBody), Some(AstSymbol::UnionMembers(_)), TokenType::Comment) => {
+        token_index += 1;
+      }
+      (Some(ParseState::UnionBody), Some(AstSymbol::UnionMembers(_)), TokenType::Identifier) => {
+        ast_stack.push(AstSymbol::Token(current_token.clone()));
+        token_index += 1;
+        parser_state_stack.push(ParseState::UnionSubTypeStart);
+      }
+      (Some(ParseState::UnionBody), Some(AstSymbol::UnionMembers(_)), TokenType::RightCurly) => {
+        parser_state_stack.goto(ParseState::UnionBodyEnd);
+      }
+      (Some(ParseState::UnionSubTypeStart), Some(_), TokenType::Newline) |
+      (Some(ParseState::UnionSubTypeStart), Some(_), TokenType::Comment) => {
+        token_index += 1;
+      }
+      (Some(ParseState::UnionSubTypeStart), _, TokenType::LeftParen) => {
+        println!("{:?}", ast_stack);
+        panic!("no done :(");
+      }
+      (Some(ParseState::UnionSubTypeStart), _, TokenType::Identifier) => {
+        ast_stack.push(AstSymbol::OptToken(None));
+        parser_state_stack.goto(ParseState::UnionMemberNoSubType);
+      }
+      (Some(ParseState::UnionSubTypeStart), _, TokenType::Comma) => {
+        ast_stack.push(AstSymbol::OptToken(Some(current_token.clone())));
+        token_index += 1;
+        parser_state_stack.goto(ParseState::UnionMemberNoSubType);
+      }
+      (Some(ParseState::UnionMemberNoSubType), Some(AstSymbol::OptToken(opt_comma_token)), _) => {
+        ast_stack.pop();
+        let union_member_id_sym = ast_stack.pop_panic();
+        let union_members_sym = ast_stack.pop_panic();
+        match (union_member_id_sym, union_members_sym) {
+          (AstSymbol::Token(union_member_id), AstSymbol::UnionMembers(mut union_members)) => {
+            union_members.push(UnionMember::new(union_member_id, None, opt_comma_token));
+            ast_stack.push(AstSymbol::UnionMembers(union_members));
+            parser_state_stack.pop();
+          }
+          _ => panic!("invalid state :(")
+        }
       }
       //</editor-fold>
 

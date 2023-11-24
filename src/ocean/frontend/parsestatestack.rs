@@ -9,8 +9,15 @@ pub enum ParseState {
   PackBodyStart,
   PackBody,
   PackBodyEnd,
-  PackMember,
-  PackMemberEnd,
+
+  UnionIdentifier,
+  UnionBodyStart,
+  UnionBody,
+  UnionBodyEnd,
+  UnionMemberNoSubType,
+  UnionSubTypeStart,
+  UnionSubType,
+  UnionSubTypeEnd,
 
   UsingPathIdentifier,
   UsingPathOptionalDot,

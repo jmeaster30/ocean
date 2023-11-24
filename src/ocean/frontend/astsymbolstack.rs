@@ -13,6 +13,8 @@ pub enum  AstSymbol {
   Branch(Branch),
   ElseBranch(ElseBranch),
   PackMembers(Vec<PackMember>),
+  UnionMembers(Vec<UnionMember>),
+  UnionSubTypes(Vec<UnionSubTypes>),
 
   Identifier(Identifier),
   Type(Type),
