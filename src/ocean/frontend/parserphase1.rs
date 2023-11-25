@@ -270,17 +270,74 @@ pub fn parse_phase_one(tokens: &Vec<Token<TokenType>>) -> Program {
         token_index += 1;
       }
       (Some(ParseState::UnionSubTypeStart), _, TokenType::LeftParen) => {
-        println!("{:?}", ast_stack);
-        panic!("no done :(");
+        ast_stack.push(AstSymbol::Token(current_token.clone()));
+        ast_stack.push(AstSymbol::UnionSubTypeEntries(Vec::new()));
+        token_index += 1;
+        parser_state_stack.push(ParseState::UnionSubType);
       }
-      (Some(ParseState::UnionSubTypeStart), _, TokenType::Identifier) => {
+      (Some(ParseState::UnionSubTypeStart), Some(AstSymbol::Token(_)), TokenType::RightCurly) |
+      (Some(ParseState::UnionSubTypeStart), Some(AstSymbol::Token(_)), TokenType::Identifier) => {
         ast_stack.push(AstSymbol::OptToken(None));
         parser_state_stack.goto(ParseState::UnionMemberNoSubType);
       }
-      (Some(ParseState::UnionSubTypeStart), _, TokenType::Comma) => {
+      (Some(ParseState::UnionSubTypeStart), Some(AstSymbol::Token(_)), TokenType::Comma) => {
         ast_stack.push(AstSymbol::OptToken(Some(current_token.clone())));
         token_index += 1;
         parser_state_stack.goto(ParseState::UnionMemberNoSubType);
+      }
+      (Some(ParseState::UnionSubTypeStart), Some(AstSymbol::UnionSubTypes(_)), TokenType::RightCurly) |
+      (Some(ParseState::UnionSubTypeStart), Some(AstSymbol::UnionSubTypes(_)), TokenType::Identifier) => {
+        ast_stack.push(AstSymbol::OptToken(None));
+        parser_state_stack.goto(ParseState::UnionMemberSubType);
+      }
+      (Some(ParseState::UnionSubTypeStart), Some(AstSymbol::UnionSubTypes(_)), TokenType::Comma) => {
+        ast_stack.push(AstSymbol::OptToken(Some(current_token.clone())));
+        token_index += 1;
+        parser_state_stack.goto(ParseState::UnionMemberSubType);
+      }
+      (Some(ParseState::UnionSubType), Some(AstSymbol::UnionSubTypeEntries(_)), TokenType::Identifier) |
+      (Some(ParseState::UnionSubType), Some(AstSymbol::UnionSubTypeEntries(_)), TokenType::Type) |
+      (Some(ParseState::UnionSubType), Some(AstSymbol::UnionSubTypeEntries(_)), TokenType::TypePrefix) => {
+        parser_state_stack.push(ParseState::Type);
+      }
+      (Some(ParseState::UnionSubType), Some(_), TokenType::Newline) => {
+        token_index += 1;
+      }
+      (Some(ParseState::UnionSubType), Some(AstSymbol::Type(sub_type)), TokenType::Comma) => {
+        ast_stack.pop();
+        let union_member_subtypes = ast_stack.pop_panic();
+        match union_member_subtypes {
+          AstSymbol::UnionSubTypeEntries(mut union_member_subtypes) => {
+            union_member_subtypes.push(UnionSubTypeEntry::new(sub_type, Some(current_token.clone())));
+            token_index += 1;
+            ast_stack.push(AstSymbol::UnionSubTypeEntries(union_member_subtypes));
+          }
+          _ => panic!("Invalid state :(")
+        }
+      }
+      (Some(ParseState::UnionSubType), Some(AstSymbol::Type(sub_type)), TokenType::RightParen) => {
+        ast_stack.pop();
+        let union_member_subtypes = ast_stack.pop_panic();
+        match union_member_subtypes {
+          AstSymbol::UnionSubTypeEntries(mut union_member_subtypes) => {
+            union_member_subtypes.push(UnionSubTypeEntry::new(sub_type, None));
+            ast_stack.push(AstSymbol::UnionSubTypeEntries(union_member_subtypes));
+            parser_state_stack.goto(ParseState::UnionSubTypeEnd);
+          }
+          _ => panic!("Invalid state :(")
+        }
+      }
+      (Some(ParseState::UnionSubTypeEnd), Some(AstSymbol::UnionSubTypeEntries(sub_type_entries)), TokenType::RightParen) => {
+        ast_stack.pop();
+        let left_paren_token = ast_stack.pop_panic();
+        match left_paren_token {
+          AstSymbol::Token(left_paren_token) => {
+            ast_stack.push(AstSymbol::UnionSubTypes(UnionSubTypes::new(left_paren_token, sub_type_entries, current_token.clone())));
+            token_index += 1;
+            parser_state_stack.pop();
+          }
+          _ => panic!("Invalid state :(")
+        }
       }
       (Some(ParseState::UnionMemberNoSubType), Some(AstSymbol::OptToken(opt_comma_token)), _) => {
         ast_stack.pop();
@@ -289,6 +346,20 @@ pub fn parse_phase_one(tokens: &Vec<Token<TokenType>>) -> Program {
         match (union_member_id_sym, union_members_sym) {
           (AstSymbol::Token(union_member_id), AstSymbol::UnionMembers(mut union_members)) => {
             union_members.push(UnionMember::new(union_member_id, None, opt_comma_token));
+            ast_stack.push(AstSymbol::UnionMembers(union_members));
+            parser_state_stack.pop();
+          }
+          _ => panic!("invalid state :(")
+        }
+      }
+      (Some(ParseState::UnionMemberSubType), Some(AstSymbol::OptToken(opt_comma_token)), _) => {
+        ast_stack.pop();
+        let union_member_sub_types = ast_stack.pop_panic();
+        let union_member_id_sym = ast_stack.pop_panic();
+        let union_members_sym = ast_stack.pop_panic();
+        match (union_member_id_sym, union_member_sub_types, union_members_sym) {
+          (AstSymbol::Token(union_member_id), AstSymbol::UnionSubTypes(union_member_sub_types), AstSymbol::UnionMembers(mut union_members)) => {
+            union_members.push(UnionMember::new(union_member_id, Some(union_member_sub_types), opt_comma_token));
             ast_stack.push(AstSymbol::UnionMembers(union_members));
             parser_state_stack.pop();
           }

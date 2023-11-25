@@ -15,6 +15,7 @@ pub enum ParseState {
   UnionBody,
   UnionBodyEnd,
   UnionMemberNoSubType,
+  UnionMemberSubType,
   UnionSubTypeStart,
   UnionSubType,
   UnionSubTypeEnd,
