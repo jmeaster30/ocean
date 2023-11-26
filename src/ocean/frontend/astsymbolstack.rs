@@ -10,12 +10,16 @@ pub enum  AstSymbol {
 
   UsingPathEntries(Vec<UsingPathEntry>),
   CompoundStatement(CompoundStatement),
+  OptCompoundStatement(Option<CompoundStatement>),
   Branch(Branch),
   ElseBranch(ElseBranch),
   PackMembers(Vec<PackMember>),
   UnionMembers(Vec<UnionMember>),
   UnionSubTypes(UnionSubTypes),
   UnionSubTypeEntries(Vec<UnionSubTypeEntry>),
+
+  FunctionParams(Vec<FunctionParam>),
+  FunctionReturns(Vec<FunctionReturn>),
 
   Identifier(Identifier),
   Type(Type),

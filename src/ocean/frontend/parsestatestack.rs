@@ -49,6 +49,7 @@ pub enum ParseState {
   TypeFunctionReturnType,
 
   Expression,
+  ExpressionNoComma,
   SubExpression,
   ExpressionStatement,
 
@@ -60,6 +61,17 @@ pub enum ParseState {
   LoopStatement,
   ForStatement,
   ForStatementIn,
+
+  FunctionIdentifier,
+  FunctionParameterStart,
+  FunctionParameter,
+  FunctionParameterEnd,
+  FunctionArrow,
+  FunctionReturnStart,
+  FunctionReturn,
+  FunctionReturnExpression,
+  FunctionReturnEnd,
+  FunctionBody,
 
   CompoundStatement,
 }

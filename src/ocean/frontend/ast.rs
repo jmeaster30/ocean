@@ -213,13 +213,19 @@ pub struct Function {
   pub function_token: Token<TokenType>,
   pub identifier: Token<TokenType>,
   pub param_left_paren: Token<TokenType>,
-  pub params: Vec<Identifier>,
+  pub params: Vec<FunctionParam>,
   pub param_right_paren: Token<TokenType>,
   pub arrow_token: Token<TokenType>,
   pub result_left_paren: Token<TokenType>,
   pub results: Vec<FunctionReturn>,
   pub result_right_paren: Token<TokenType>,
   pub compound_statement: Option<CompoundStatement>,
+}
+
+#[derive(Clone, Debug, New)]
+pub struct FunctionParam {
+  pub identifier: Identifier,
+  pub comma_token: Option<Token<TokenType>>,
 }
 
 #[derive(Clone, Debug, New)]

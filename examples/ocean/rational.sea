@@ -26,7 +26,11 @@ function abs (a: i64) -> (result: i64) {
   }
 }
 
-function lcm (a: i64, b: i64) -> (result: i64 = abs(a) * abs(b) / gcd(a, b))
+function lcm (a: i64,
+b: i64)
+-> (result: i64
+    = abs(a) * abs(b) / gcd(a, b)
+    , test: i128 = 123 + 987)
 
 pack rational {
   numerator: i64
