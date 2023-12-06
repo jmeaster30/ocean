@@ -2,8 +2,11 @@ use std::{env, fs, io};
 use std::fs::File;
 use std::io::{Read, Write};
 use std::path::Path;
+use crate::ocean::frontend::annotationparser::parse_annotations;
 use crate::ocean::frontend::lexer::lex;
 use crate::ocean::frontend::parserphase1::parse_phase_one;
+use crate::ocean::frontend::parserphase2::parse_phase_two;
+use crate::ocean::frontend::precedencetable::PrecedenceTable;
 use crate::ocean::Ocean;
 
 impl Ocean {
@@ -29,8 +32,7 @@ impl Ocean {
       _ => {}
     }
 
-
-    let phase_one_ast = parse_phase_one(&tokens);
+    let mut phase_one_ast = parse_phase_one(&tokens);
     match ast_mode {
       "print" => println!("{:#?}", phase_one_ast),
       "file" => {
@@ -39,6 +41,22 @@ impl Ocean {
       }
       _ => {}
     }
+
+    parse_annotations(&mut phase_one_ast);
+
+    let mut precedence_table = PrecedenceTable::new();
+    precedence_table.add_scope();
+
+    let phase_two_ast = parse_phase_two(&mut phase_one_ast, &mut precedence_table);
+    match ast_mode {
+      "print" => println!("{:#?}", phase_two_ast),
+      "file" => {
+        let mut file = File::create(file_path.to_string() + ".ast_p2")?;
+        file.write_all(format!("{:#?}", phase_two_ast).as_bytes())?;
+      }
+      _ => {}
+    }
+
 
     Ok(())
   }

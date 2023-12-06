@@ -5,3 +5,6 @@ mod parserphase1;
 mod ast;
 mod parsestatestack;
 mod astsymbolstack;
+mod parserphase2;
+mod precedencetable;
+mod annotationparser;

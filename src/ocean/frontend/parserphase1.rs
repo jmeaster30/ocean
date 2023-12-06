@@ -450,7 +450,6 @@ pub fn parse_phase_one(tokens: &Vec<Token<TokenType>>) -> Program {
         token_index += 1;
       }
       (Some(ParseState::FunctionReturn), Some(AstSymbol::FunctionReturns(_)), TokenType::RightParen) => {
-        println!("function return {:?}", current_token.clone());
         parser_state_stack.goto(ParseState::FunctionReturnEnd);
       }
       (Some(ParseState::FunctionReturn), Some(AstSymbol::FunctionReturns(_)), TokenType::Identifier) |
@@ -514,7 +513,6 @@ pub fn parse_phase_one(tokens: &Vec<Token<TokenType>>) -> Program {
         }
       }
       (Some(ParseState::FunctionReturnEnd), Some(AstSymbol::FunctionReturns(_)), TokenType::RightParen) => {
-        println!("here?????");
         ast_stack.push(AstSymbol::Token(current_token.clone()));
         token_index += 1;
         parser_state_stack.pop();

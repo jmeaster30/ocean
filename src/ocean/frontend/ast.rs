@@ -25,9 +25,19 @@ pub struct Comment {
   pub token: Token<TokenType>,
 }
 
-#[derive(Clone, Debug, New)]
+#[derive(Clone, Debug)]
 pub struct Annotation {
   pub token: Token<TokenType>,
+  pub annotation_ast: Option<AnnotationNode>,
+}
+
+impl Annotation {
+  pub fn new(token: Token<TokenType>) -> Self {
+    Self {
+      token,
+      annotation_ast: None,
+    }
+  }
 }
 
 #[derive(Clone, Debug)]
@@ -308,7 +318,105 @@ pub struct UsingPathEntry {
 }
 
 // This may result in multiple sub expressions
-#[derive(Clone, Debug, New)]
+#[derive(Clone, Debug)]
 pub struct ExpressionNode {
   pub tokens: Vec<Token<TokenType>>,
+  pub parsed_expression: Option<Vec<Expression>>,
+}
+
+impl ExpressionNode {
+  pub fn new(tokens: Vec<Token<TokenType>>) -> Self {
+    Self {
+      tokens,
+      parsed_expression: None,
+    }
+  }
+}
+
+// Expression ast nodes
+
+#[derive(Clone, Debug)]
+pub enum Expression {
+  Variable,
+  Tuple,
+  Call,
+  SubExpression,
+}
+
+#[derive(Clone, Debug, New)]
+pub struct Variable {
+  pub identifier: Token<TokenType>,
+}
+
+#[derive(Clone, Debug, New)]
+pub struct Call {
+  pub target: Expression,
+  pub left_paren: Token<TokenType>,
+  pub arguments: Vec<Argument>,
+  pub right_paren: Token<TokenType>,
+}
+
+#[derive(Clone, Debug, New)]
+pub struct Argument {
+  pub value: Expression,
+  pub comma_token: Option<Token<TokenType>>,
+}
+
+#[derive(Clone, Debug, New)]
+pub struct Tuple {
+  pub left_token: Token<TokenType>,
+  pub tuple_members: Vec<TupleMember>,
+  pub right_token: Token<TokenType>,
+}
+
+#[derive(Clone, Debug, New)]
+pub struct TupleMember {
+  pub identifier: Option<Token<TokenType>>,
+  pub colon_token: Option<Token<TokenType>>,
+  pub value: Expression,
+  pub comma_token: Option<Token<TokenType>>,
+}
+
+#[derive(Clone, Debug, New)]
+pub struct SubExpression {
+  pub left_paren: Token<TokenType>,
+  pub expression: Expression,
+  pub right_paren: Token<TokenType>,
+}
+
+#[derive(Clone, Debug, New)]
+pub struct PrefixOperator {
+  pub operator: Token<TokenType>,
+  pub expression: Expression,
+}
+
+#[derive(Clone, Debug, New)]
+pub struct PostfixOperator {
+  pub expression: Expression,
+  pub operator: Token<TokenType>,
+}
+
+#[derive(Clone, Debug, New)]
+pub struct BinaryOperator {
+  pub left_expression: Expression,
+  pub operator: Token<TokenType>,
+  pub right_expression: Expression,
+}
+
+#[derive(Clone, Debug, New)]
+pub struct TernaryOperator {
+  pub left_expression: Expression,
+  pub first_operator: Token<TokenType>,
+  pub middle_expression: Expression,
+  pub second_operator: Token<TokenType>,
+  pub right_expression: Expression,
+}
+
+// annotation ast nodes
+#[derive(Clone, Debug)]
+pub enum AnnotationNode {
+  Operator,
+  Macro,
+  FunctionWrapper,
+  None,
 }
