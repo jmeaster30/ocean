@@ -6,12 +6,14 @@ using std.annotation.trace
 @Memoize
 function fib (input: i64) -> (result: i64) {
   if input <= 1 {
-    result = input
+    result = input;
   } else {
-    result = fib(input - 1) + fib(input - 2)
+    result = fib(input - 1) + fib(input - 2);
   }
 }
 
-println(9.fib)
-println(fib(10))
-a
+let result = 9.fib;
+
+println(result);
+println(fib(10));
+a;

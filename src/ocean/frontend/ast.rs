@@ -1,7 +1,7 @@
-use itertools::Either;
-use ocean_helpers::New;
 use crate::ocean::frontend::tokentype::TokenType;
 use crate::util::token::Token;
+use itertools::Either;
+use ocean_helpers::New;
 
 #[derive(Clone, Debug, New)]
 pub struct Program {
@@ -17,7 +17,7 @@ pub struct StatementNode {
 #[derive(Clone, Debug)]
 pub enum StatementNodeData {
   Comment(Comment),
-  Annotation(Annotation)
+  Annotation(Annotation),
 }
 
 #[derive(Clone, Debug, New)]
@@ -33,10 +33,7 @@ pub struct Annotation {
 
 impl Annotation {
   pub fn new(token: Token<TokenType>) -> Self {
-    Self {
-      token,
-      annotation_ast: None,
-    }
+    Self { token, annotation_ast: None }
   }
 }
 
@@ -55,7 +52,13 @@ pub enum Statement {
   Break(Break),
   Continue(Continue),
   Using(Using),
-  Expression(ExpressionNode),
+  Expression(ExpressionStatement),
+}
+
+#[derive(Clone, Debug, New)]
+pub struct ExpressionStatement {
+  pub expression_node: ExpressionNode,
+  pub semicolon_token: Token<TokenType>,
 }
 
 #[derive(Clone, Debug, New)]
@@ -92,7 +95,7 @@ pub struct Branch {
   pub if_token: Token<TokenType>,
   pub condition: ExpressionNode,
   pub body: CompoundStatement,
-  pub else_branch: Option<ElseBranch>
+  pub else_branch: Option<ElseBranch>,
 }
 
 #[derive(Clone, Debug, New)]
@@ -122,7 +125,7 @@ pub struct MatchCase {
 pub struct Assignment {
   pub left_expression: Either<LetTarget, ExpressionNode>, // This expression node must result in 1 left expression
   pub equal_token: Token<TokenType>,
-  pub right_expression: ExpressionNode,
+  pub right_expression: ExpressionStatement,
 }
 
 #[derive(Clone, Debug, New)]
@@ -149,6 +152,7 @@ pub enum Type {
   Function(FunctionType),
   Sub(SubType),
   Array(ArrayType),
+  VariableType(VariableType),
 }
 
 #[derive(Clone, Debug, New)]
@@ -201,6 +205,12 @@ pub struct ArrayType {
 }
 
 #[derive(Clone, Debug, New)]
+pub struct VariableType {
+  pub base_type: Box<Type>,
+  pub spread_token: Token<TokenType>,
+}
+
+#[derive(Clone, Debug, New)]
 pub struct FunctionType {
   pub function_token: Token<TokenType>,
   pub param_left_paren: Token<TokenType>,
@@ -215,7 +225,7 @@ pub struct FunctionType {
 #[derive(Clone, Debug, New)]
 pub struct FunctionTypeArgument {
   pub arg_type: Type,
-  pub comma_token: Option<Token<TokenType>>
+  pub comma_token: Option<Token<TokenType>>,
 }
 
 #[derive(Clone, Debug, New)]
@@ -321,15 +331,12 @@ pub struct UsingPathEntry {
 #[derive(Clone, Debug)]
 pub struct ExpressionNode {
   pub tokens: Vec<Token<TokenType>>,
-  pub parsed_expression: Option<Vec<Expression>>,
+  pub parsed_expression: Option<Expression>,
 }
 
 impl ExpressionNode {
   pub fn new(tokens: Vec<Token<TokenType>>) -> Self {
-    Self {
-      tokens,
-      parsed_expression: None,
-    }
+    Self { tokens, parsed_expression: None }
   }
 }
 
@@ -337,10 +344,46 @@ impl ExpressionNode {
 
 #[derive(Clone, Debug)]
 pub enum Expression {
-  Variable,
-  Tuple,
-  Call,
-  SubExpression,
+  String(StringLiteral),
+  Number(Number),
+  Boolean(Boolean),
+  InterpolatedString(InterpolatedString),
+  Variable(Variable),
+  Tuple(Tuple),
+  Call(Call),
+  SubExpression(SubExpression),
+  Cast(Cast),
+  PrefixOperation(PrefixOperator),
+  PostfixOperation(PostfixOperator),
+  BinaryOperation(BinaryOperator),
+}
+
+#[derive(Clone, Debug, New)]
+pub struct StringLiteral {
+  pub token: Token<TokenType>,
+}
+
+#[derive(Clone, Debug, New)]
+pub struct Number {
+  pub token: Token<TokenType>,
+}
+
+#[derive(Clone, Debug, New)]
+pub struct Boolean {
+  pub token: Token<TokenType>,
+}
+
+#[derive(Clone, Debug, New)]
+pub struct InterpolatedString {
+  pub token: Token<TokenType>,
+  pub subexpressions: Vec<Expression>,
+}
+
+#[derive(Clone, Debug, New)]
+pub struct Cast {
+  pub expression: Box<Expression>,
+  pub as_token: Token<TokenType>,
+  pub casted_type: Type,
 }
 
 #[derive(Clone, Debug, New)]
@@ -350,7 +393,7 @@ pub struct Variable {
 
 #[derive(Clone, Debug, New)]
 pub struct Call {
-  pub target: Expression,
+  pub target: Box<Expression>,
   pub left_paren: Token<TokenType>,
   pub arguments: Vec<Argument>,
   pub right_paren: Token<TokenType>,
@@ -380,27 +423,27 @@ pub struct TupleMember {
 #[derive(Clone, Debug, New)]
 pub struct SubExpression {
   pub left_paren: Token<TokenType>,
-  pub expression: Expression,
+  pub expression: Box<Expression>,
   pub right_paren: Token<TokenType>,
 }
 
 #[derive(Clone, Debug, New)]
 pub struct PrefixOperator {
   pub operator: Token<TokenType>,
-  pub expression: Expression,
+  pub expression: Box<Expression>,
 }
 
 #[derive(Clone, Debug, New)]
 pub struct PostfixOperator {
-  pub expression: Expression,
+  pub expression: Box<Expression>,
   pub operator: Token<TokenType>,
 }
 
 #[derive(Clone, Debug, New)]
 pub struct BinaryOperator {
-  pub left_expression: Expression,
+  pub left_expression: Box<Expression>,
   pub operator: Token<TokenType>,
-  pub right_expression: Expression,
+  pub right_expression: Box<Expression>,
 }
 
 #[derive(Clone, Debug, New)]
@@ -416,7 +459,7 @@ pub struct TernaryOperator {
 #[derive(Clone, Debug)]
 pub enum AnnotationNode {
   Operator,
-  Macro,
+  Hydro,
   FunctionWrapper,
   None,
 }

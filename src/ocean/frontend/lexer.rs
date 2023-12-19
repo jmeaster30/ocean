@@ -33,8 +33,8 @@ pub fn lex(input: String) -> Vec<Token<TokenType>> {
         //check against every other thing it could be
         let token_type = match lexeme.as_str() {
           "function" => TokenType::Function,
-          "i8" | "i16" | "i32" | "i64" | "i128" | "f32" | "f64" | "u8" | "u16" | "u32" | "u64" | "u128"  | "string" | "bool" | "char" => TokenType::Type,
-          "auto" |  "ref" | "mut" | "lazy" => TokenType::TypePrefix,
+          "i8" | "i16" | "i32" | "i64" | "i128" | "f32" | "f64" | "u8" | "u16" | "u32" | "u64" | "u128" | "string" | "bool" | "char" => TokenType::Type,
+          "auto" | "ref" | "mut" | "lazy" => TokenType::TypePrefix,
           "if" => TokenType::If,
           "else" => TokenType::Else,
           "return" => TokenType::Return,
@@ -52,16 +52,10 @@ pub fn lex(input: String) -> Vec<Token<TokenType>> {
           "true" => TokenType::True,
           "false" => TokenType::False,
           "let" => TokenType::Let,
-          _ => TokenType::Identifier
+          _ => TokenType::Identifier,
         };
 
-        tokens.push(Token::new(
-          lexeme.clone(),
-          token_type,
-          (start_index, index),
-          (line_start, line_end),
-          (column_start, column_end),
-        ));
+        tokens.push(Token::new(lexeme.clone(), token_type, (start_index, index), (line_start, line_end), (column_start, column_end)));
 
         lexeme.clear();
       }
@@ -94,13 +88,7 @@ pub fn lex(input: String) -> Vec<Token<TokenType>> {
           index -= 1;
         }
 
-        tokens.push(Token::new(
-          lexeme.clone(),
-          TokenType::Number,
-          (start_index, index),
-          (line_start, line_end),
-          (column_start, column_end)
-        ));
+        tokens.push(Token::new(lexeme.clone(), TokenType::Number, (start_index, index), (line_start, line_end), (column_start, column_end)));
         lexeme.clear();
       }
       '@' => {
@@ -131,13 +119,7 @@ pub fn lex(input: String) -> Vec<Token<TokenType>> {
           if !found_end {
             panic!("Unending block macro")
           } else {
-            tokens.push(Token::new(
-              lexeme.clone(),
-              TokenType::Annotation,
-              (start_index, index),
-              (line_start, line_end),
-              (column_start, column_end),
-            ));
+            tokens.push(Token::new(lexeme.clone(), TokenType::Annotation, (start_index, index), (line_start, line_end), (column_start, column_end)));
           }
         } else {
           while index < input_length {
@@ -148,13 +130,7 @@ pub fn lex(input: String) -> Vec<Token<TokenType>> {
             }
             index += 1;
           }
-          tokens.push(Token::new(
-            lexeme.clone(),
-            TokenType::Annotation,
-            (start_index, index),
-            (line_start, line_end),
-            (column_start, column_end),
-          ));
+          tokens.push(Token::new(lexeme.clone(), TokenType::Annotation, (start_index, index), (line_start, line_end), (column_start, column_end)));
         }
         lexeme.clear();
       }
@@ -216,21 +192,9 @@ pub fn lex(input: String) -> Vec<Token<TokenType>> {
         if !found_end {
           panic!("Unending string")
         } else if delim == '`' {
-          tokens.push(Token::new(
-            lexeme.clone(),
-            TokenType::InterpolatedString,
-            (start_index, index),
-            (line_start, line_end),
-            (column_start, column_end)
-          ))
+          tokens.push(Token::new(lexeme.clone(), TokenType::InterpolatedString, (start_index, index), (line_start, line_end), (column_start, column_end)))
         } else {
-          tokens.push(Token::new(
-            lexeme.clone(),
-            TokenType::String,
-            (start_index, index),
-            (line_start, line_end),
-            (column_start, column_end)
-          ));
+          tokens.push(Token::new(lexeme.clone(), TokenType::String, (start_index, index), (line_start, line_end), (column_start, column_end)));
         }
         lexeme.clear();
       }
@@ -272,55 +236,43 @@ pub fn lex(input: String) -> Vec<Token<TokenType>> {
           }
         }
 
-        tokens.push(Token::new(
-          lexeme.clone(),
-          TokenType::Comment,
-          (start_index, index),
-          (line_start, line_end),
-          (column_start, column_end)
-        ));
+        tokens.push(Token::new(lexeme.clone(), TokenType::Comment, (start_index, index), (line_start, line_end), (column_start, column_end)));
 
         lexeme.clear();
       }
-      '.' | ':' | '~' | '+' | '-' | '>' | '<' | '?' | '/' | '=' | '^' | '&' | '|' | '*' | '!' | '%' => {
+      '.' | ':' | '~' | '+' | '-' | '>' | '<' | '?' | '/' | '=' | '^' | '&' | '|' | '*' | '!' | '%' | ';' => {
         lexeme.push_str(&input_chars[index].to_string());
         index += 1;
         while index < input_length - 1 && lexeme.len() < 3 {
           let n = input_chars[index];
           match n {
-            '.' | ':' | '~' | '+' | '-' | '>' | '<' | '?' | '/' | '=' | '^' | '&' | '|' | '*' | '!' | '%' => {
+            '.' | ':' | '~' | '+' | '-' | '>' | '<' | '?' | '/' | '=' | '^' | '&' | '|' | '*' | '!' | '%' | ';' => {
               lexeme.push_str(&n.to_string());
             }
             _ => {
               index -= 1;
-              break
-            },
+              break;
+            }
           }
           index += 1;
+        }
+
+        if index - start_index + 1 == 4 {
+          index -= 1;
         }
 
         let token_type = match lexeme.as_str() {
           "." => TokenType::Dot,
           ":" => TokenType::Colon,
           "->" => TokenType::Arrow,
+          "..." => TokenType::Spread,
+          ";" => TokenType::Semicolon,
           _ => TokenType::Symbol,
         };
-        tokens.push(Token::new(
-          lexeme.clone(),
-          token_type,
-          (start_index, index),
-          (line_start, line_end),
-          (column_start, column_end)
-        ));
+        tokens.push(Token::new(lexeme.clone(), token_type, (start_index, index), (line_start, line_end), (column_start, column_end)));
         lexeme.clear();
       }
-      ',' => tokens.push(Token::new(
-        ",".to_string(),
-        TokenType::Comma,
-        (start_index, index),
-        (line_start, line_end),
-        (column_start, column_end)
-      )),
+      ',' => tokens.push(Token::new(",".to_string(), TokenType::Comma, (start_index, index), (line_start, line_end), (column_start, column_end))),
       '\r' | '\n' => {
         lexeme.push_str(&input_chars[index].to_string());
         index += 1;
@@ -332,82 +284,27 @@ pub fn lex(input: String) -> Vec<Token<TokenType>> {
             }
             _ => {
               index -= 1;
-              break
-            },
+              break;
+            }
           }
           index += 1;
         }
 
-        tokens.push(Token::new(
-          lexeme.clone(),
-          TokenType::Newline,
-          (start_index, index),
-          (line_start, line_end),
-          (column_start, column_end)
-        ));
+        tokens.push(Token::new(lexeme.clone(), TokenType::Newline, (start_index, index), (line_start, line_end), (column_start, column_end)));
         lexeme.clear();
-
-      },
-      '(' => tokens.push(Token::new(
-        "(".to_string(),
-        TokenType::LeftParen,
-        (start_index, index),
-        (line_start, line_end),
-        (column_start, column_end)
-      )),
-      ')' => tokens.push(Token::new(
-        ")".to_string(),
-        TokenType::RightParen,
-        (start_index, index),
-        (line_start, line_end),
-        (column_start, column_end)
-      )),
-      '[' => tokens.push(Token::new(
-        "[".to_string(),
-        TokenType::LeftSquare,
-        (start_index, index),
-        (line_start, line_end),
-        (column_start, column_end)
-      )),
-      ']' => tokens.push(Token::new(
-        "]".to_string(),
-        TokenType::RightSquare,
-        (start_index, index),
-        (line_start, line_end),
-        (column_start, column_end)
-      )),
-      '{' => tokens.push(Token::new(
-        "{".to_string(),
-        TokenType::LeftCurly,
-        (start_index, index),
-        (line_start, line_end),
-        (column_start, column_end)
-      )),
-      '}' => tokens.push(Token::new(
-        "}".to_string(),
-        TokenType::RightCurly,
-        (start_index, index),
-        (line_start, line_end),
-        (column_start, column_end)
-      )),
+      }
+      '(' => tokens.push(Token::new("(".to_string(), TokenType::LeftParen, (start_index, index), (line_start, line_end), (column_start, column_end))),
+      ')' => tokens.push(Token::new(")".to_string(), TokenType::RightParen, (start_index, index), (line_start, line_end), (column_start, column_end))),
+      '[' => tokens.push(Token::new("[".to_string(), TokenType::LeftSquare, (start_index, index), (line_start, line_end), (column_start, column_end))),
+      ']' => tokens.push(Token::new("]".to_string(), TokenType::RightSquare, (start_index, index), (line_start, line_end), (column_start, column_end))),
+      '{' => tokens.push(Token::new("{".to_string(), TokenType::LeftCurly, (start_index, index), (line_start, line_end), (column_start, column_end))),
+      '}' => tokens.push(Token::new("}".to_string(), TokenType::RightCurly, (start_index, index), (line_start, line_end), (column_start, column_end))),
       ' ' | '\t' => {}
-      _ => tokens.push(Token::new(
-        input_chars[index].to_string(),
-        TokenType::Error,
-        (start_index, index),
-        (line_start, line_end),
-        (column_start, column_end)
-      ))
+      _ => tokens.push(Token::new(input_chars[index].to_string(), TokenType::Error, (start_index, index), (line_start, line_end), (column_start, column_end))),
     }
     index += 1;
   }
 
-  tokens.push(Token::new(
-    "".to_string(),
-    TokenType::EndOfInput,
-    (index, index),
-    (line_start, line_end),
-    (column_start, column_end),
-  ));
+  tokens.push(Token::new("".to_string(), TokenType::EndOfInput, (index, index), (line_start, line_end), (column_start, column_end)));
   tokens
 }

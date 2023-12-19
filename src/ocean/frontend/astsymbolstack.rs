@@ -3,7 +3,7 @@ use crate::ocean::frontend::tokentype::TokenType;
 use crate::util::token::Token;
 
 #[derive(Clone, Debug)]
-pub enum  AstSymbol {
+pub enum AstSymbol {
   StatementList(Vec<StatementNode>),
   StatementData(Vec<StatementNodeData>),
   OptStatement(Option<Statement>),

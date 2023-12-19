@@ -1,6 +1,6 @@
+use crate::util::span::Spanned;
 use std::fmt;
 use std::fmt::{Debug, Display};
-use crate::util::span::Spanned;
 
 pub trait TokenTrait<TokenType: PartialEq + Debug> {
   fn is_token_type(&self, _: TokenType) -> bool;
@@ -40,11 +40,7 @@ impl<TokenType> Token<TokenType> {
 
 impl<TokenType: Debug> Display for Token<TokenType> {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    write!(
-      f,
-      "<[{:?}] '{}' {} {}>",
-      self.token_type, self.lexeme.escape_default(), self.offset.0, self.offset.1
-    )
+    write!(f, "<[{:?}] '{}' {} {}>", self.token_type, self.lexeme.escape_default(), self.offset.0, self.offset.1)
   }
 }
 
@@ -53,4 +49,3 @@ impl<TokenType: Debug> Debug for Token<TokenType> {
     fmt::Display::fmt(self, f)
   }
 }
-

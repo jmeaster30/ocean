@@ -5,11 +5,11 @@ use crate::hydro::intrinsic::Intrinsic;
 use crate::hydro::layouttemplate::LayoutTemplate;
 use crate::hydro::module::Module;
 use crate::hydro::value::{Array, FunctionPointer, LayoutIndexRef, Reference, Type, Value, VariableRef};
+use crate::util::token::{Token, TokenTrait};
 use std::collections::HashMap;
 use std::fs::File;
 use std::io;
 use std::io::Read;
-use crate::util::token::{Token, TokenTrait};
 
 pub struct Parser {
   file_contents: Vec<char>,
@@ -526,9 +526,7 @@ impl Parser {
         "false" => Ok(Value::Boolean(false)),
         _ => Err("Unexpected value for boolean type".to_string()),
       },
-      "string" => {
-        Ok(Value::string(value_lexeme[1..(value_lexeme.len()-1)].to_string()))
-      }
+      "string" => Ok(Value::string(value_lexeme[1..(value_lexeme.len() - 1)].to_string())),
       "u8" => match value_lexeme.parse::<u8>() {
         Ok(value) => Ok(Value::Unsigned8(value)),
         Err(_) => Err(format!("Couldn't parse '{}' into a u8", value_lexeme)),

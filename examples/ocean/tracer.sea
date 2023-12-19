@@ -1,0 +1,11 @@
+using std.logger
+
+@Annotation
+function trace(annotated_function_name: string, annotated_function: function(auto Args...) -> (auto Returns...), arguments: Args) -> (results: Returns)
+{
+    logger.Trace(`Entering function {annotated_function_name} with arguments {arguments}`);
+
+    results = annotated_function(arguments);
+
+    logger.Trace(`Exiting function {annotated_function_name} with results {results}`);
+}

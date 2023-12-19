@@ -1,3 +1,4 @@
+use crate::hydro::compilationunit::CompilationUnit;
 use crate::hydro::debugcontext::DebugConsoleCommandState::{ContinueConsole, ExitProgram, StartResumeExecution};
 use crate::hydro::executioncontext::ExecutionContext;
 use crate::hydro::frontend::parser::Parser;
@@ -8,7 +9,6 @@ use crate::util::metrictracker::{MetricResults, MetricTracker};
 use rustyline::error::ReadlineError;
 use rustyline::{DefaultEditor, Result};
 use std::collections::HashMap;
-use crate::hydro::compilationunit::CompilationUnit;
 
 pub enum DebugConsoleCommandState {
   ContinueConsole,
@@ -211,7 +211,7 @@ impl DebugContext {
 
                     match flamegraph {
                       Some(graph) => graph.print(arguments.get("Time Scale").unwrap().clone()),
-                      None => println!("No graph :(")
+                      None => println!("No graph :("),
                     }
 
                     Ok(ContinueConsole)

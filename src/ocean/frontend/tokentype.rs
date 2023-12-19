@@ -38,8 +38,10 @@ pub enum TokenType {
   LeftCurly,
   RightCurly,
   Dot,
+  Spread,
   Comma,
   Colon,
   Arrow,
+  Semicolon,
   Symbol,
 }

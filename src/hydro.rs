@@ -1,4 +1,5 @@
 //TODO pub mod analyzer;
+mod compilationunit;
 pub mod debugcontext;
 mod debuggable;
 pub mod exception;
@@ -12,6 +13,5 @@ pub mod layouttemplate;
 pub mod module;
 pub mod value;
 mod visualizer;
-mod compilationunit;
 
 pub struct Hydro {}

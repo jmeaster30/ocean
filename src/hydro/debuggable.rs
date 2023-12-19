@@ -79,7 +79,7 @@ impl Debuggable for Call {
               return Err(Exception::new(context.clone(), format!("Could not find module '{}'", module_name).as_str()));
             }
           },
-          None => compilation_unit.get_module(context.current_module.as_str()).unwrap(),// this should always be an available module
+          None => compilation_unit.get_module(context.current_module.as_str()).unwrap(), // this should always be an available module
         };
 
         match target_module.functions.get(func_pointer.function.clone().as_str()) {
@@ -95,10 +95,16 @@ impl Debuggable for Call {
               arguments.insert(0, param_value);
             }
 
-            let return_value = compilation_unit.debug(match func_pointer.module.clone() {
-              Some(module_name) => module_name,
-              None => context.current_module.clone()
-            }, func_pointer.function, arguments, Some(Box::new(context.clone())), debug_context);
+            let return_value = compilation_unit.debug(
+              match func_pointer.module.clone() {
+                Some(module_name) => module_name,
+                None => context.current_module.clone(),
+              },
+              func_pointer.function,
+              arguments,
+              Some(Box::new(context.clone())),
+              debug_context,
+            );
             match return_value {
               Ok(optional_return) => match optional_return {
                 Some(value) => context.stack.push(value),

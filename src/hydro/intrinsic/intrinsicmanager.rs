@@ -67,7 +67,7 @@ fn flush(context: &ExecutionContext, args: Vec<Value>) -> Result<Vec<Value>, Exc
   } else {
     match io::stdout().flush() {
       Ok(()) => Ok(Vec::new()),
-      Err(io_error) => Err(Exception::new(context.clone(), io_error.to_string().as_str()))
+      Err(io_error) => Err(Exception::new(context.clone(), io_error.to_string().as_str())),
     }
   }
 }
@@ -79,7 +79,7 @@ fn readline(context: &ExecutionContext, args: Vec<Value>) -> Result<Vec<Value>, 
     let mut input = String::new();
     match io::stdin().read_line(&mut input) {
       Ok(_) => Ok(vec![Value::string(input)]),
-      Err(io_error) => Err(Exception::new(context.clone(), io_error.to_string().as_str()))
+      Err(io_error) => Err(Exception::new(context.clone(), io_error.to_string().as_str())),
     }
   }
 }

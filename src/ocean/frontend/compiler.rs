@@ -1,13 +1,13 @@
-use std::{env, fs, io};
-use std::fs::File;
-use std::io::{Read, Write};
-use std::path::Path;
 use crate::ocean::frontend::annotationparser::parse_annotations;
 use crate::ocean::frontend::lexer::lex;
 use crate::ocean::frontend::parserphase1::parse_phase_one;
 use crate::ocean::frontend::parserphase2::parse_phase_two;
 use crate::ocean::frontend::precedencetable::PrecedenceTable;
 use crate::ocean::Ocean;
+use std::fs::File;
+use std::io::{Read, Write};
+use std::path::Path;
+use std::{env, fs, io};
 
 impl Ocean {
   pub fn compile(file_path: &str, token_mode: &str, ast_mode: &str) -> Result<(), io::Error> {
@@ -20,8 +20,10 @@ impl Ocean {
 
     let tokens = lex(file_contents);
     match token_mode {
-      "print" => for token in &tokens {
-        println!("{}", token)
+      "print" => {
+        for token in &tokens {
+          println!("{}", token)
+        }
       }
       "file" => {
         let mut file = File::create(file_path.to_string() + ".tokens")?;
@@ -45,7 +47,20 @@ impl Ocean {
     parse_annotations(&mut phase_one_ast);
 
     let mut precedence_table = PrecedenceTable::new();
-    precedence_table.add_scope();
+    precedence_table.add_binary_operator("&&", 10, 11);
+    precedence_table.add_binary_operator("||", 10, 11);
+    precedence_table.add_binary_operator("==", 20, 21);
+    precedence_table.add_binary_operator("!=", 20, 21);
+    precedence_table.add_binary_operator("<", 30, 31);
+    precedence_table.add_binary_operator(">", 30, 31);
+    precedence_table.add_binary_operator("<=", 30, 31);
+    precedence_table.add_binary_operator(">=", 30, 31);
+    precedence_table.add_binary_operator("+", 40, 41);
+    precedence_table.add_binary_operator("-", 40, 41);
+    precedence_table.add_binary_operator("*", 50, 51);
+    precedence_table.add_binary_operator("/", 50, 51);
+    precedence_table.add_binary_operator("%", 50, 51);
+    precedence_table.add_binary_operator(".", 5000, 4999);
 
     let phase_two_ast = parse_phase_two(&mut phase_one_ast, &mut precedence_table);
     match ast_mode {
@@ -56,7 +71,6 @@ impl Ocean {
       }
       _ => {}
     }
-
 
     Ok(())
   }

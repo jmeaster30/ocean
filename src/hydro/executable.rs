@@ -1,5 +1,5 @@
-use crate::hydro::compilationunit::CompilationUnit;
 use super::{executioncontext::ExecutionContext, instruction::*, value::Value};
+use crate::hydro::compilationunit::CompilationUnit;
 use crate::hydro::exception::Exception;
 use crate::hydro::intrinsic::intrinsicmanager::INTRINSIC_MANAGER;
 
@@ -521,7 +521,7 @@ impl Executable for Call {
         let target_module = match func_pointer.module.clone() {
           Some(module_name) => match compilation_unit.get_module(module_name.as_str()) {
             Some(modu) => modu,
-            None => return Err(Exception::new(context.clone(), format!("Could not find module '{}'", module_name).as_str()))
+            None => return Err(Exception::new(context.clone(), format!("Could not find module '{}'", module_name).as_str())),
           },
           None => compilation_unit.get_module(context.current_module.as_str()).unwrap(),
         };
@@ -538,10 +538,15 @@ impl Executable for Call {
               arguments.insert(0, param_value);
             }
 
-            let return_value = compilation_unit.execute(match func_pointer.module.clone() {
-              Some(module_name) => module_name,
-              None => context.current_module.clone(),
-            }, func_pointer.function, arguments, Some(Box::new(context.clone())));
+            let return_value = compilation_unit.execute(
+              match func_pointer.module.clone() {
+                Some(module_name) => module_name,
+                None => context.current_module.clone(),
+              },
+              func_pointer.function,
+              arguments,
+              Some(Box::new(context.clone())),
+            );
             match return_value {
               Ok(optional_return) => match optional_return {
                 Some(value) => context.stack.push(value),

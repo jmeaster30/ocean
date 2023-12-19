@@ -1,7 +1,7 @@
+use itertools::Itertools;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
-use itertools::Itertools;
 
 pub struct MetricTracker {
   current_metrics: HashMap<(Vec<String>, String), Vec<Metric>>,
@@ -110,33 +110,31 @@ impl MetricTracker {
   }
 
   pub fn get_flamegraph(&self, stack: Vec<String>) -> Option<Flamegraph> {
-    let all_metrics = self.finished_metrics.iter()
-      .flat_map(|((stack, metric_name), value)| value.iter()
-        .map(|x| (stack.clone(), metric_name.clone(), x.clone())))
+    let all_metrics = self
+      .finished_metrics
+      .iter()
+      .flat_map(|((stack, metric_name), value)| value.iter().map(|x| (stack.clone(), metric_name.clone(), x.clone())))
       .sorted_by(|(_, _, a_metric), (_, _, b_metric)| match (a_metric.start_time, b_metric.start_time) {
         (Some(a_start), Some(b_start)) => a_start.cmp(&b_start),
         (None, Some(_)) => Ordering::Greater,
         (Some(_), None) => Ordering::Less,
-        (None, None) => Ordering::Equal
+        (None, None) => Ordering::Equal,
       })
-      .group_by(|(stack, _, _)| stack.clone()).into_iter()
+      .group_by(|(stack, _, _)| stack.clone())
+      .into_iter()
       .map(|(key, group)| (key, group.collect_vec()))
       .collect::<Vec<(Vec<String>, Vec<(Vec<String>, String, Metric)>)>>();
-    return MetricTracker::build_flamegraph(stack, all_metrics)
+    return MetricTracker::build_flamegraph(stack, all_metrics);
   }
 
   pub fn build_flamegraph(target_stack: Vec<String>, metrics: Vec<(Vec<String>, Vec<(Vec<String>, String, Metric)>)>) -> Option<Flamegraph> {
-    let applicable_metrics = metrics.iter()
-      .filter(|(stack, _)| stack.starts_with(&target_stack) && stack.clone() != target_stack)
-      .map(|x| x.clone())
-      .collect::< Vec<(Vec<String>, Vec<(Vec<String>, String, Metric)>)>>();
+    let applicable_metrics = metrics.iter().filter(|(stack, _)| stack.starts_with(&target_stack) && stack.clone() != target_stack).map(|x| x.clone()).collect::<Vec<(Vec<String>, Vec<(Vec<String>, String, Metric)>)>>();
 
     let mut flamegraph_stack: Vec<(Vec<String>, Flamegraph)> = Vec::new();
     for (stack, group_metrics) in applicable_metrics {
       let flamegraph_stack_top = flamegraph_stack.last();
       // TODO referencing total here feels kinda hacky but it is the metric that is called first for each function
-      if flamegraph_stack_top.is_some() && !stack.starts_with(&flamegraph_stack_top.unwrap().0)
-      {
+      if flamegraph_stack_top.is_some() && !stack.starts_with(&flamegraph_stack_top.unwrap().0) {
         let (mut found_stack, mut flamegraph) = flamegraph_stack.pop().unwrap();
         // while the top flamegraph stack is not the same as stack
         while found_stack != stack {
@@ -149,8 +147,7 @@ impl MetricTracker {
           flamegraph.subgraph.push(Flamegraph::new(sub_metric_stack.clone(), sub_metric_name.clone(), sub_metric.start_time.unwrap(), sub_metric.duration(), Vec::new()))
         }
         flamegraph_stack.push((found_stack, flamegraph));
-      }
-      else if flamegraph_stack_top.is_none() || group_metrics.first().unwrap().clone().1 == "total" || (flamegraph_stack_top.is_some() && flamegraph_stack_top.unwrap().0 != stack) {
+      } else if flamegraph_stack_top.is_none() || group_metrics.first().unwrap().clone().1 == "total" || (flamegraph_stack_top.is_some() && flamegraph_stack_top.unwrap().0 != stack) {
         let (metric_stack, metric_name, metric) = group_metrics.first().unwrap();
         let mut subgraph = Vec::new();
         for (sub_metric_stack, sub_metric_name, sub_metric) in group_metrics.iter().skip(1) {
@@ -173,7 +170,7 @@ impl MetricTracker {
 
     match flamegraph_stack.first() {
       Some((_, graph)) => Some(graph.clone()),
-      None => None
+      None => None,
     }
   }
 }
@@ -189,15 +186,12 @@ pub struct Flamegraph {
 
 impl Flamegraph {
   pub fn new(stack: Vec<String>, metric_name: String, start: Instant, duration: Duration, subgraph: Vec<Flamegraph>) -> Self {
-    Self {
-      stack, metric_name, start, duration, subgraph,
-    }
+    Self { stack, metric_name, start, duration, subgraph }
   }
 
   pub fn print(&self, units: String) {
     self.print_internal("".to_string(), units);
   }
-
 
   fn print_internal(&self, prefix: String, units: String) {
     if self.metric_name == "total" {

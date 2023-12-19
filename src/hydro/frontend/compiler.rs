@@ -1,4 +1,5 @@
 // TODO use crate::hydro::frontend::binaryable::Binaryable;
+use crate::hydro::compilationunit::CompilationUnit;
 use crate::hydro::frontend::parser::Parser;
 use crate::hydro::module::Module;
 use crate::hydro::Hydro;
@@ -7,7 +8,6 @@ use std::io::{Error, Write};
 use std::path::Path;
 use std::time::Instant;
 use std::{env, fs};
-use crate::hydro::compilationunit::CompilationUnit;
 
 pub enum HydroTranslateType {
   Binary,
@@ -27,15 +27,17 @@ impl Hydro {
     println!("STD ROOT: {:?}", std_root);
 
     match Hydro::internal_compile(file_path, project_root, std_root) {
-      Ok(found_modules) => if found_modules.contains_module("main") {
-        let new_now = Instant::now();
-        println!("Compilation Completed In: {:?}", new_now.duration_since(now));
-        Ok(found_modules)
-      } else {
-        let new_now = Instant::now();
-        println!("Compilation Completed In: {:?}", new_now.duration_since(now));
-        Err(vec!["Main module not found :(".to_string()])
-      },
+      Ok(found_modules) => {
+        if found_modules.contains_module("main") {
+          let new_now = Instant::now();
+          println!("Compilation Completed In: {:?}", new_now.duration_since(now));
+          Ok(found_modules)
+        } else {
+          let new_now = Instant::now();
+          println!("Compilation Completed In: {:?}", new_now.duration_since(now));
+          Err(vec!["Main module not found :(".to_string()])
+        }
+      }
       Err((_, errors)) => {
         let new_now = Instant::now();
         println!("Compilation Completed In: {:?}", new_now.duration_since(now));
@@ -98,7 +100,7 @@ impl Hydro {
               Some(new_target_module) => {
                 target_module = Some(new_target_module.clone());
               }
-              None => { }
+              None => {}
             }
             new_compilation_unit.merge(&compilation_unit);
             break;

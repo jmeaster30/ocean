@@ -1,17 +1,17 @@
 pub mod hydro;
+mod ocean;
 #[cfg(test)]
 mod tests;
 pub mod util;
-mod ocean;
 
 use crate::hydro::debugcontext::DebugContext;
 use crate::hydro::frontend::compiler::HydroTranslateType;
 use crate::hydro::value::Value;
 use crate::hydro::Hydro;
+use crate::ocean::Ocean;
 use crate::util::argsparser::Command;
 use std::env;
 use util::argsparser::{ArgsParser, Argument};
-use crate::ocean::Ocean;
 
 fn main() -> std::io::Result<()> {
   let args: Vec<String> = env::args().collect();
@@ -119,11 +119,7 @@ fn main() -> std::io::Result<()> {
           }
         }
         "run" => {
-          Ocean::compile(
-            arguments.get("Source File").unwrap().as_str(),
-            arguments.get("Tokens").unwrap().as_str(),
-            arguments.get("Ast").unwrap().as_str()
-          ).unwrap();
+          Ocean::compile(arguments.get("Source File").unwrap().as_str(), arguments.get("Tokens").unwrap().as_str(), arguments.get("Ast").unwrap().as_str()).unwrap();
         }
         _ => todo!("Unimplemented command :("),
       },

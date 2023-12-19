@@ -1,3 +1,4 @@
+use crate::hydro::compilationunit::CompilationUnit;
 use graphviz_rust::dot_generator::*;
 use graphviz_rust::dot_structures::*;
 use graphviz_rust::{
@@ -6,7 +7,6 @@ use graphviz_rust::{
   printer::PrinterContext,
 };
 use std::collections::HashMap;
-use crate::hydro::compilationunit::CompilationUnit;
 
 pub struct ModuleDependencyVisualization {
   nodes: Vec<Node>,

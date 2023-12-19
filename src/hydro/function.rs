@@ -134,6 +134,4 @@ impl Function {
     self.body.push(Instruction::Store(Store {}));
     self
   }
-
-
 }

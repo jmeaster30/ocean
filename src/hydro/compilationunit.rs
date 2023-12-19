@@ -1,9 +1,9 @@
-use std::collections::HashMap;
 use crate::hydro::debugcontext::DebugContext;
 use crate::hydro::exception::Exception;
 use crate::hydro::executioncontext::ExecutionContext;
 use crate::hydro::module::Module;
 use crate::hydro::value::{Type, Value};
+use std::collections::HashMap;
 
 pub struct CompilationUnit {
   modules: HashMap<String, Module>,
@@ -67,7 +67,7 @@ impl CompilationUnit {
           Some(module) => match module.layout_templates.get(layout_name.as_str()) {
             Some(template) => Ok(template.to_type(module_name)),
             None => return Err(Exception::new(context.clone(), format!("Layout '{}' not found in module '{}'", layout_name, module_name).as_str())),
-          }
+          },
           None => return Err(Exception::new(context.clone(), format!("Module '{}' not found.", context.current_module).as_str())),
         },
         module_name => match self.modules.get(module_name) {

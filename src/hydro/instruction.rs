@@ -3,12 +3,12 @@ use crate::hydro::function::Target;
 use crate::hydro::value::Type;
 use ocean_helpers::Debuggable;
 // Intellij thinks these are unused but they are used by the Debuggable derive macro
+use crate::hydro::compilationunit::CompilationUnit;
 use crate::hydro::debugcontext::DebugContext;
 use crate::hydro::debuggable::Debuggable;
 use crate::hydro::exception::Exception;
 use crate::hydro::executable::Executable;
 use crate::hydro::executioncontext::ExecutionContext;
-use crate::hydro::compilationunit::CompilationUnit;
 
 #[derive(Debug, Clone)]
 pub enum Instruction {
