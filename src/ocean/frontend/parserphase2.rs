@@ -120,8 +120,14 @@ fn parse_expression(tokens: &Vec<&Token<TokenType>>, token_index: usize, precede
       break;
     }
 
+    // do postfix here?
+
     if !precedence_table.is_binary_operator(&tokens[current_token_index].lexeme) {
-      panic!("Unexpected token expected binary operator {}", tokens[current_token_index]);
+      match tokens[current_token_index].lexeme.as_str() {
+        "[" => todo!("array index"),
+        "(" => todo!("this is a call"),
+        _ => panic!("Unexpected token expected binary operator {}", tokens[current_token_index]),
+      }
     }
 
     let (left_precedence, right_precedence) = precedence_table.get_binary_precedence(&tokens[current_token_index].lexeme);

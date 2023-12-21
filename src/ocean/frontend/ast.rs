@@ -351,6 +351,7 @@ pub enum Expression {
   Variable(Variable),
   Tuple(Tuple),
   Call(Call),
+  ArrayIndex(ArrayIndex),
   SubExpression(SubExpression),
   Cast(Cast),
   PrefixOperation(PrefixOperator),
@@ -397,6 +398,14 @@ pub struct Call {
   pub left_paren: Token<TokenType>,
   pub arguments: Vec<Argument>,
   pub right_paren: Token<TokenType>,
+}
+
+#[derive(Clone, Debug, New)]
+pub struct ArrayIndex {
+  pub target: Box<Expression>,
+  pub left_square: Token<TokenType>,
+  pub argument: Vec<Argument>,
+  pub right_square: Token<TokenType>,
 }
 
 #[derive(Clone, Debug, New)]
