@@ -116,16 +116,58 @@ fn parse_expression(tokens: &Vec<&Token<TokenType>>, token_index: usize, precede
 
   let mut current_token_index = next_token_index;
   while current_token_index < tokens.len() {
-    if tokens[current_token_index].token_type == TokenType::RightParen {
+    if tokens[current_token_index].token_type == TokenType::RightParen || tokens[current_token_index].token_type == TokenType::RightSquare {
       break;
     }
 
     // do postfix here?
 
     if !precedence_table.is_binary_operator(&tokens[current_token_index].lexeme) {
-      match tokens[current_token_index].lexeme.as_str() {
-        "[" => todo!("array index"),
-        "(" => todo!("this is a call"),
+      match tokens[current_token_index].token_type {
+        TokenType::LeftSquare => {
+          let mut arguments = Vec::new();
+          let left_square_index = current_token_index;
+          current_token_index += 1;
+          while current_token_index < tokens.len() {
+            let (index_expression, next_token_index) = parse_expression(tokens, current_token_index, precedence_table, 0);
+            if tokens[next_token_index].token_type == TokenType::Comma {
+              arguments.push(Argument::new(index_expression, Some(tokens[next_token_index].clone())));
+              current_token_index = next_token_index + 1;
+            } else {
+              arguments.push(Argument::new(index_expression, None));
+              current_token_index = next_token_index;
+              break;
+            }
+          }
+          if tokens[current_token_index].token_type != TokenType::RightSquare {
+            panic!("Expected end of array index but got {}", tokens[current_token_index]);
+          }
+          left_hand_side = Expression::ArrayIndex(ArrayIndex::new(Box::new(left_hand_side), tokens[left_square_index].clone(), arguments, tokens[current_token_index].clone()));
+          current_token_index += 1;
+          continue
+        }
+        TokenType::LeftParen => {
+          let mut arguments = Vec::new();
+          let left_paren_index = current_token_index;
+          current_token_index += 1;
+          while current_token_index < tokens.len() {
+            let (index_expression, next_token_index) = parse_expression(tokens, current_token_index, precedence_table, 0);
+            if tokens[next_token_index].token_type == TokenType::Comma {
+              arguments.push(Argument::new(index_expression, Some(tokens[next_token_index].clone())));
+              current_token_index = next_token_index + 1;
+            } else {
+              arguments.push(Argument::new(index_expression, None));
+              current_token_index = next_token_index;
+              break;
+            }
+          }
+          if tokens[current_token_index].token_type != TokenType::RightParen {
+            panic!("Expected end of call but got {}", tokens[current_token_index]);
+          }
+          left_hand_side = Expression::Call(Call::new(Box::new(left_hand_side), tokens[left_paren_index].clone(), arguments, tokens[current_token_index].clone()));
+          current_token_index += 1;
+          continue
+        }
         _ => panic!("Unexpected token expected binary operator {}", tokens[current_token_index]),
       }
     }

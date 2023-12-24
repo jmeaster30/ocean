@@ -34,17 +34,17 @@ impl Ocean {
       _ => {}
     }
 
-    let mut phase_one_ast = parse_phase_one(&tokens);
+    let mut ast = parse_phase_one(&tokens);
     match ast_mode {
-      "print" => println!("{:#?}", phase_one_ast),
+      "print" => println!("{:#?}", ast),
       "file" => {
         let mut file = File::create(file_path.to_string() + ".ast_p1")?;
-        file.write_all(format!("{:#?}", phase_one_ast).as_bytes())?;
+        file.write_all(format!("{:#?}", ast).as_bytes())?;
       }
       _ => {}
     }
 
-    parse_annotations(&mut phase_one_ast);
+    parse_annotations(&mut ast);
 
     let mut precedence_table = PrecedenceTable::new();
     precedence_table.add_binary_operator("=", 0, 1);
@@ -63,12 +63,12 @@ impl Ocean {
     precedence_table.add_binary_operator("%", 50, 51);
     precedence_table.add_binary_operator(".", 5000, 4999);
 
-    let phase_two_ast = parse_phase_two(&mut phase_one_ast, &mut precedence_table);
+    parse_phase_two(&mut ast, &mut precedence_table);
     match ast_mode {
-      "print" => println!("{:#?}", phase_two_ast),
+      "print" => println!("{:#?}", ast),
       "file" => {
         let mut file = File::create(file_path.to_string() + ".ast_p2")?;
-        file.write_all(format!("{:#?}", phase_two_ast).as_bytes())?;
+        file.write_all(format!("{:#?}", ast).as_bytes())?;
       }
       _ => {}
     }

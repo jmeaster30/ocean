@@ -14,6 +14,8 @@ function fib (input: i64) -> (result: i64) {
 
 let result = 9.fib;
 
+test[1 + 7 * 3];
+
 println(result);
 println(fib(10));
 a;
