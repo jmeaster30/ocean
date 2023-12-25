@@ -12,9 +12,9 @@ function fib (input: i64) -> (result: i64) {
   if input <= 1 {
     result = input;
   } else {
-    result = fib(input - 1) + fib(input - 2);
+    result = (fib(input - 1)) + fib(input - 2);
   }
 }
 
 println(`9th fibonacci number is {9.fib} and the tenth is {{} {fib(10)}`);
-println(fib(10));
+println((fib(10)) + 9.fib);

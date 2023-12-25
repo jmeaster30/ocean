@@ -121,6 +121,11 @@ fn parse_expression(tokens: &Vec<&Token<TokenType>>, token_index: usize, precede
       break;
     }
 
+    match tokens[current_token_index].token_type {
+      TokenType::RightParen | TokenType::RightSquare | TokenType::EndOfInput | TokenType::Comma => break,
+      _ => {},
+    }
+
     // do postfix here?
 
     if !precedence_table.is_binary_operator(&tokens[current_token_index].lexeme) {
@@ -266,13 +271,73 @@ fn parse_sub_expression_or_tuple(tokens: &Vec<&Token<TokenType>>, token_index: u
   }
 
   let left_paren = tokens[token_index].clone();
-  let (subexpression, next_token_index) = parse_expression(tokens, token_index + 1, precedence_table, 0);
 
-  if tokens[next_token_index].token_type != TokenType::RightParen {
-    panic!("Unexpected token :( {}", tokens[next_token_index]);
+  // check for named tuple
+  println!("1: {:?} 2: {:?}", if token_index + 1 < tokens.len() {Some(tokens[token_index + 1])} else {None}, if token_index + 2 < tokens.len() {Some(tokens[token_index + 2])} else {None});
+  if tokens[token_index + 1].token_type == TokenType::Identifier && tokens[token_index + 2].token_type == TokenType::Colon {
+    // for sure a tuple
+    let (tuple_members, next_token_index) = parse_tuple_members(tokens, token_index + 1, precedence_table);
+
+    if tokens[next_token_index].token_type != TokenType::RightParen {
+      panic!("Unexpected token :( {}", tokens[next_token_index]);
+    }
+
+    (Expression::Tuple(Tuple::new(left_paren, tuple_members, tokens[next_token_index].clone())), next_token_index + 1)
+  } else {
+    let (subexpression, next_token_index) = parse_expression(tokens, token_index + 1, precedence_table, 0);
+
+    if tokens[next_token_index].token_type == TokenType::Comma {
+      // also a tuple
+      let (mut tuple_members, new_token_index) = parse_tuple_members(tokens, next_token_index + 1, precedence_table);
+      tuple_members.insert(0, TupleMember::new(None, None, subexpression, Some(tokens[next_token_index].clone())));
+
+      if tokens[new_token_index].token_type != TokenType::RightParen {
+        panic!("Unexpected token :( {}", tokens[new_token_index]);
+      }
+
+      (Expression::Tuple(Tuple::new(left_paren, tuple_members, tokens[new_token_index].clone())), new_token_index + 1)
+    } else {
+      if tokens[next_token_index].token_type != TokenType::RightParen {
+        panic!("Unexpected token :( {}", tokens[next_token_index]);
+      }
+
+      (Expression::SubExpression(SubExpression::new(left_paren, Box::new(subexpression), tokens[next_token_index].clone())), next_token_index + 1)
+    }
   }
 
-  (Expression::SubExpression(SubExpression::new(left_paren, Box::new(subexpression), tokens[next_token_index].clone())), next_token_index)
+
+}
+
+fn parse_tuple_members(tokens: &Vec<&Token<TokenType>>, token_index: usize, precedence_table: &PrecedenceTable) -> (Vec<TupleMember>, usize) {
+  let mut tuple_members = Vec::new();
+  let mut current_index = token_index;
+  while current_index < tokens.len() {
+    if tokens[current_index].token_type == TokenType::RightParen {
+      break
+    }
+
+    let (name, colon) = if tokens[current_index].token_type == TokenType::Identifier && tokens[current_index + 1].token_type == TokenType::Colon {
+      let idx = current_index;
+      current_index += 2;
+      (Some(tokens[idx].clone()), Some(tokens[idx + 1].clone()))
+    } else {
+      (None, None)
+    };
+
+    let (expression, next_token_index) = parse_expression(tokens, current_index, precedence_table, 0);
+
+    let comma_token = if tokens[next_token_index].token_type == TokenType::Comma {
+      current_index = next_token_index + 1;
+      Some(tokens[next_token_index].clone())
+    } else {
+      current_index = next_token_index;
+      None
+    };
+
+    tuple_members.push(TupleMember::new(name, colon, expression, comma_token));
+  }
+
+  (tuple_members, current_index)
 }
 
 fn parse_type(tokens: &Vec<&Token<TokenType>>, token_index: usize) -> (Type, usize) {
