@@ -8,6 +8,49 @@ use crate::ocean::frontend::lexer::lex;
 use crate::ocean::frontend::parsestatestack::{ParseState, ParseStateStack};
 
 pub fn parse_phase_two(ast: &mut Program, precedence_table: &mut PrecedenceTable) {
+  let undefined_prefix = 20000;
+  let undefined_infix = 10000;
+
+  for statement_node in &mut ast.statements {
+    for data in &statement_node.data {
+      match data {
+        StatementNodeData::Annotation(annotation) => match &annotation.annotation_ast {
+          Some(AnnotationNode::Operator(operator)) => match operator.operator_type {
+            OperatorType::Infix => {
+              if precedence_table.is_binary_operator(&operator.operator) {
+                if let (Some(left_prec), Some(right_prec)) = (operator.left_precedence, operator.right_precedence) {
+                  if precedence_table.get_binary_precedence(&operator.operator) != (left_prec, right_prec) {
+                    panic!("Conflicting precedences for the same operator.");
+                  }
+                }
+              } else if let (Some(left_prec), Some(right_prec)) = (operator.left_precedence, operator.right_precedence) {
+                precedence_table.add_binary_operator(operator.operator.as_str(), left_prec, right_prec);
+              } else {
+                precedence_table.add_binary_operator(operator.operator.as_str(), undefined_infix, undefined_infix + 1);
+              }
+            }
+            OperatorType::Postfix => {}
+            OperatorType::Prefix => {
+              if precedence_table.is_prefix_operator(&operator.operator) {
+                if let Some(right_prec) = operator.right_precedence {
+                  if precedence_table.get_prefix_precedence(&operator.operator) != right_prec {
+                    panic!("Conflicting precedences for the same operator.");
+                  }
+                }
+              } else if let Some(right_prec) = operator.right_precedence {
+                precedence_table.add_prefix_operator(operator.operator.as_str(), right_prec);
+              } else {
+                precedence_table.add_prefix_operator(operator.operator.as_str(), undefined_prefix);
+              }
+            }
+          }
+          _ => {}
+        }
+        _ => {}
+      }
+    }
+  }
+
   for statement_node in &mut ast.statements {
     match &mut statement_node.statement {
       Some(statement) => {
@@ -83,15 +126,17 @@ fn parse_phase_two_assignment(assignment: &mut Assignment, precedence_table: &mu
 }
 
 fn parse_phase_two_function(function: &mut Function, precedence_table: &mut PrecedenceTable) {
+  let mut new_precedence_table = precedence_table.clone();
+
   for result in &mut function.results {
     match &mut result.expression {
-      Some(expression) => parse_phase_two_expression(expression, precedence_table),
+      Some(expression) => parse_phase_two_expression(expression, &mut new_precedence_table),
       None => {}
     }
   }
 
   match &mut function.compound_statement {
-    Some(compound_stmt) => parse_phase_two_compound(compound_stmt, precedence_table),
+    Some(compound_stmt) => parse_phase_two_compound(compound_stmt, &mut new_precedence_table),
     None => {}
   }
 }
@@ -228,7 +273,6 @@ fn parse_arguments(tokens: &Vec<&Token<TokenType>>, token_index: usize, preceden
 }
 
 fn parse_interpolated_string(lexeme: &String, precedence_table: &PrecedenceTable) -> Vec<Expression> {
-  println!("parsing interpolated string :)");
   let chars = lexeme.chars().collect::<Vec<char>>();
 
   let mut expressions = Vec::new();
@@ -259,8 +303,6 @@ fn parse_interpolated_string(lexeme: &String, precedence_table: &PrecedenceTable
     index += 1;
   }
 
-
-  println!("done");
   expressions
 }
 
@@ -273,7 +315,7 @@ fn parse_sub_expression_or_tuple(tokens: &Vec<&Token<TokenType>>, token_index: u
   let left_paren = tokens[token_index].clone();
 
   // check for named tuple
-  println!("1: {:?} 2: {:?}", if token_index + 1 < tokens.len() {Some(tokens[token_index + 1])} else {None}, if token_index + 2 < tokens.len() {Some(tokens[token_index + 2])} else {None});
+  //println!("1: {:?} 2: {:?}", if token_index + 1 < tokens.len() {Some(tokens[token_index + 1])} else {None}, if token_index + 2 < tokens.len() {Some(tokens[token_index + 2])} else {None});
   if tokens[token_index + 1].token_type == TokenType::Identifier && tokens[token_index + 2].token_type == TokenType::Colon {
     // for sure a tuple
     let (tuple_members, next_token_index) = parse_tuple_members(tokens, token_index + 1, precedence_table);

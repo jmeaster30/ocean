@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+#[derive(Clone, Debug)]
 pub struct PrecedenceTable {
   prefix_op_table: HashMap<String, usize>,
   postfix_op_table: HashMap<String, usize>,

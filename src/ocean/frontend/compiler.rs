@@ -62,7 +62,7 @@ impl Ocean {
     precedence_table.add_binary_operator("*", 50, 51);
     precedence_table.add_binary_operator("/", 50, 51);
     precedence_table.add_binary_operator("%", 50, 51);
-    precedence_table.add_binary_operator(".", 5000, 4999);
+    precedence_table.add_binary_operator(".", usize::MAX, usize::MAX - 1);
 
     parse_phase_two(&mut ast, &mut precedence_table);
     match ast_mode {
