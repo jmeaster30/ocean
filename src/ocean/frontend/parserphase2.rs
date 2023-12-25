@@ -4,6 +4,7 @@ use crate::ocean::frontend::tokentype::TokenType;
 use crate::util::token::Token;
 use itertools::Either;
 use crate::ocean::frontend::astsymbolstack::{AstSymbol, AstSymbolStack};
+use crate::ocean::frontend::lexer::lex;
 use crate::ocean::frontend::parsestatestack::{ParseState, ParseStateStack};
 
 pub fn parse_phase_two(ast: &mut Program, precedence_table: &mut PrecedenceTable) {
@@ -116,7 +117,7 @@ fn parse_expression(tokens: &Vec<&Token<TokenType>>, token_index: usize, precede
 
   let mut current_token_index = next_token_index;
   while current_token_index < tokens.len() {
-    if tokens[current_token_index].token_type == TokenType::RightParen || tokens[current_token_index].token_type == TokenType::RightSquare {
+    if tokens[current_token_index].token_type == TokenType::RightParen || tokens[current_token_index].token_type == TokenType::RightSquare || tokens[current_token_index].token_type == TokenType::EndOfInput {
       break;
     }
 
@@ -222,7 +223,40 @@ fn parse_arguments(tokens: &Vec<&Token<TokenType>>, token_index: usize, preceden
 }
 
 fn parse_interpolated_string(lexeme: &String, precedence_table: &PrecedenceTable) -> Vec<Expression> {
-  Vec::new()
+  println!("parsing interpolated string :)");
+  let chars = lexeme.chars().collect::<Vec<char>>();
+
+  let mut expressions = Vec::new();
+  let mut index = 0;
+  let mut in_expression = false;
+  let mut current_expression_chars = Vec::new();
+  while index < chars.len() {
+    let current_char = chars[index];
+    if current_char != '{' && current_char != '}' && !in_expression {
+    } else if current_char == '{' && !in_expression { // && current_char == '{' || current_char == '}'
+      in_expression = true;
+    } else if current_char == '{' && in_expression && current_expression_chars.len() == 0 {
+      in_expression = false;
+    } else if current_char == '}' && in_expression {
+      let tokens = lex(current_expression_chars.iter().collect::<String>());
+      let clean_tokens = tokens.iter().filter(|x| x.token_type != TokenType::Newline && x.token_type != TokenType::Comment).collect::<Vec<&Token<TokenType>>>();
+      let (expression, _) = parse_expression(&clean_tokens, 0, precedence_table, 0);
+      expressions.push(expression);
+      current_expression_chars.clear();
+      in_expression = false;
+    } else if current_char == '}' && !in_expression {
+      // TODO I think we need to make it so it required an escaped closing brace so the escaped brackets can be symmetric.
+    } else if in_expression {
+      current_expression_chars.push(current_char);
+    } else {
+      panic!("char {}, in_expression {}", current_char, in_expression);
+    }
+    index += 1;
+  }
+
+
+  println!("done");
+  expressions
 }
 
 fn parse_sub_expression_or_tuple(tokens: &Vec<&Token<TokenType>>, token_index: usize, precedence_table: &PrecedenceTable) -> (Expression, usize) {

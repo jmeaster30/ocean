@@ -16,7 +16,5 @@ function fib (input: i64) -> (result: i64) {
   }
 }
 
-let result = 9.fib;
-
-println(result);
+println(`9th fibonacci number is {9.fib} and the tenth is {{} {fib(10)}`);
 println(fib(10));
