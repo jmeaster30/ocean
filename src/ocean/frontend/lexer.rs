@@ -119,7 +119,7 @@ pub fn lex(input: String) -> Vec<Token<TokenType>> {
           if !found_end {
             panic!("Unending block macro")
           } else {
-            tokens.push(Token::new(lexeme.clone(), TokenType::Annotation, (start_index, index), (line_start, line_end), (column_start, column_end)));
+            tokens.push(Token::new(lexeme.clone(), TokenType::AnnotationBlock, (start_index, index), (line_start, line_end), (column_start, column_end)));
           }
         } else {
           while index < input_length {

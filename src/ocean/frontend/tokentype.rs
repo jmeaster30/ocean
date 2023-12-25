@@ -5,6 +5,7 @@ pub enum TokenType {
   Newline,
   Comment,
   Annotation,
+  AnnotationBlock,
   String,
   InterpolatedString,
   Number,

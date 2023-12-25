@@ -39,6 +39,14 @@ pub fn parse_phase_one(tokens: &Vec<Token<TokenType>>) -> Program {
         ast_stack.push(AstSymbol::StatementData(Vec::new()));
       }
 
+      (Some(ParseState::PreStatement), Some(AstSymbol::StatementData(mut statement_data)), TokenType::AnnotationBlock) => {
+        ast_stack.pop();
+        statement_data.push(StatementNodeData::Annotation(Annotation::new(current_token.clone())));
+        ast_stack.push(AstSymbol::StatementData(statement_data));
+        ast_stack.push(AstSymbol::OptStatement(None));
+        parser_state_stack.goto(ParseState::StatementFinalize);
+        token_index = consume_newline(tokens, token_index);
+      }
       (Some(ParseState::PreStatement), Some(AstSymbol::StatementData(mut statement_data)), TokenType::Annotation) => {
         ast_stack.pop();
         statement_data.push(StatementNodeData::Annotation(Annotation::new(current_token.clone())));

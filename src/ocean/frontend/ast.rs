@@ -467,8 +467,26 @@ pub struct TernaryOperator {
 // annotation ast nodes
 #[derive(Clone, Debug)]
 pub enum AnnotationNode {
-  Operator,
+  Operator(AnnotationOperator),
   Hydro,
   FunctionWrapper,
   None,
+}
+
+#[derive(Clone, Debug)]
+pub enum OperatorType {
+  Infix,
+  Postfix,
+  Prefix,
+}
+
+#[derive(Clone, Debug, New)]
+pub struct AnnotationOperator
+{
+  operator: String,
+  operator_type: OperatorType,
+  left_hand_side_name: Option<String>,
+  left_precedence: Option<usize>,
+  right_hand_side_name: Option<String>,
+  right_precedence: Option<usize>,
 }

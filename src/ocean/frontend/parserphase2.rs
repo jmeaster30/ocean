@@ -212,6 +212,15 @@ fn parse_literal(tokens: &Vec<&Token<TokenType>>, token_index: usize, precedence
   }
 }
 
+fn parse_arguments(tokens: &Vec<&Token<TokenType>>, token_index: usize, precedence_table: &PrecedenceTable) -> (Argument, usize) {
+  let (index_expression, next_token_index) = parse_expression(tokens, token_index, precedence_table, 0);
+  if tokens[next_token_index].token_type == TokenType::Comma {
+    (Argument::new(index_expression, Some(tokens[next_token_index].clone())), next_token_index + 1)
+  } else {
+    (Argument::new(index_expression, None), next_token_index)
+  }
+}
+
 fn parse_interpolated_string(lexeme: &String, precedence_table: &PrecedenceTable) -> Vec<Expression> {
   Vec::new()
 }
@@ -252,12 +261,12 @@ fn parse_type(tokens: &Vec<&Token<TokenType>>, token_index: usize) -> (Type, usi
     //println!("{} > {} - {:?}", token_index, current_token, current_ast_symbol);
 
     match (current_state, current_ast_symbol, &current_token.token_type) {
-      (Some(ParseState::Type), Some(_), TokenType::Identifier) => {
+      (Some(ParseState::Type), None, TokenType::Identifier) => {
         parser_state_stack.goto(ParseState::TypeArray);
         ast_stack.push(AstSymbol::Type(Type::Custom(CustomType::new(current_token.clone()))));
         token_index += 1;
       }
-      (Some(ParseState::Type), Some(_), TokenType::Type) => {
+      (Some(ParseState::Type), None, TokenType::Type) => {
         parser_state_stack.goto(ParseState::TypeArray);
         ast_stack.push(AstSymbol::Type(Type::Base(BaseType::new(current_token.clone()))));
         token_index += 1;
@@ -265,7 +274,7 @@ fn parse_type(tokens: &Vec<&Token<TokenType>>, token_index: usize) -> (Type, usi
       (Some(ParseState::Type), Some(_), TokenType::RightSquare) => {
         parser_state_stack.pop();
       }
-      (Some(ParseState::Type), Some(_), TokenType::TypePrefix) => {
+      (Some(ParseState::Type), None, TokenType::TypePrefix) => {
         ast_stack.push(AstSymbol::Token(current_token.clone()));
         token_index += 1;
         parser_state_stack.goto(ParseState::TypeArray);
@@ -289,7 +298,7 @@ fn parse_type(tokens: &Vec<&Token<TokenType>>, token_index: usize) -> (Type, usi
           _ => panic!("Unexpected type prefix"),
         }
       }
-      (Some(ParseState::Type), Some(_), TokenType::Function) => {
+      (Some(ParseState::Type), None, TokenType::Function) => {
         ast_stack.push(AstSymbol::Token(current_token.clone()));
         token_index += 1;
         parser_state_stack.goto(ParseState::TypeFunctionParams);

@@ -47,6 +47,7 @@ impl Ocean {
     parse_annotations(&mut ast);
 
     let mut precedence_table = PrecedenceTable::new();
+    precedence_table.add_prefix_operator("-", 1000);
     precedence_table.add_binary_operator("=", 0, 1);
     precedence_table.add_binary_operator("&&", 10, 11);
     precedence_table.add_binary_operator("||", 10, 11);
