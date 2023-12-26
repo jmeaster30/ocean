@@ -281,8 +281,7 @@ fn parse_interpolated_string(lexeme: &String, precedence_table: &PrecedenceTable
   let mut current_expression_chars = Vec::new();
   while index < chars.len() {
     let current_char = chars[index];
-    if current_char != '{' && current_char != '}' && !in_expression {
-    } else if current_char == '{' && !in_expression { // && current_char == '{' || current_char == '}'
+    if current_char == '{' && !in_expression { // && current_char == '{' || current_char == '}'
       in_expression = true;
     } else if current_char == '{' && in_expression && current_expression_chars.len() == 0 {
       in_expression = false;
@@ -297,8 +296,6 @@ fn parse_interpolated_string(lexeme: &String, precedence_table: &PrecedenceTable
       // TODO I think we need to make it so it required an escaped closing brace so the escaped brackets can be symmetric.
     } else if in_expression {
       current_expression_chars.push(current_char);
-    } else {
-      panic!("char {}, in_expression {}", current_char, in_expression);
     }
     index += 1;
   }
