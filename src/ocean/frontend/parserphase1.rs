@@ -396,7 +396,9 @@ pub fn parse_phase_one(tokens: &Vec<Token<TokenType>>) -> Program {
       (Some(ParseState::FunctionParameter), Some(AstSymbol::FunctionParams(_)), TokenType::RightParen) => {
         parser_state_stack.goto(ParseState::FunctionParameterEnd);
       }
-      (Some(ParseState::FunctionParameter), Some(AstSymbol::FunctionParams(function_params)), TokenType::Identifier) | (Some(ParseState::FunctionParameter), Some(AstSymbol::FunctionParams(function_params)), TokenType::Type) | (Some(ParseState::FunctionParameter), Some(AstSymbol::FunctionParams(function_params)), TokenType::TypePrefix) => {
+      (Some(ParseState::FunctionParameter), Some(AstSymbol::FunctionParams(_)), TokenType::Identifier)
+      | (Some(ParseState::FunctionParameter), Some(AstSymbol::FunctionParams(_)), TokenType::Type)
+      | (Some(ParseState::FunctionParameter), Some(AstSymbol::FunctionParams(_)), TokenType::TypePrefix) => {
         parser_state_stack.push(ParseState::IdentifierStart);
       }
       (Some(ParseState::FunctionParameter), Some(AstSymbol::Identifier(identifier)), TokenType::Comma) => {

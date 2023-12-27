@@ -43,7 +43,7 @@ impl Error {
     file_contents: &[u8],
     file_name: &String,
   ) {
-    println!(
+    eprintln!(
       "\u{001b}[{};1m{}: \u{001b}[95;1m{}\u{001b}[0m",
       self.severity.ansi_color_code(),
       self.severity.name(),
@@ -60,7 +60,7 @@ impl Error {
     while line_index < line_spans.len() {
       if self.span.0 >= line_spans[line_index].0 && self.span.0 <= line_spans[line_index].1 {
         let column_index = self.span.0 - line_spans[line_index].0;
-        println!(
+        eprintln!(
           "{}+----[\u{001b}[{}m{}:{}:{}\u{001b}[0m]----",
           " ".repeat(width + 2),
           self.severity.ansi_color_code(),
@@ -68,7 +68,7 @@ impl Error {
           line_index + 1,
           column_index + 1
         );
-        println!("{}|", " ".repeat(width + 2));
+        eprintln!("{}|", " ".repeat(width + 2));
         if line_index > 0 {
           Error::print_source_line(
             &self.severity,
@@ -90,12 +90,12 @@ impl Error {
           largest_line_number,
         );
 
-        print!(
+        eprint!(
           "{}|{}",
           " ".repeat(width + 2),
           " ".repeat(self.span.0 - line_spans[line_index].0 + 1)
         );
-        println!("\u{001b}[{}m^- {}\u{001b}[0m", "96", self.message);
+        eprintln!("\u{001b}[{}m^- {}\u{001b}[0m", "96", self.message);
 
         while line_index < line_spans.len() && self.span.1 > line_spans[line_index].0 {
           line_index += 1;
@@ -119,7 +119,7 @@ impl Error {
       }
     }
 
-    println!(
+    eprintln!(
       "\u{001b}[0m{}+-----{}-----",
       " ".repeat(width + 2),
       "-".repeat(file_name.len() + 4)
@@ -139,7 +139,7 @@ impl Error {
 
     let width = format!("{}", largest_line_number).len();
 
-    print!(" {:<width$} | ", line_number + 1);
+    eprint!(" {:<width$} | ", line_number + 1);
     while index <= file_span.1 {
       let c;
       if index < file_span.1 {
@@ -154,18 +154,18 @@ impl Error {
         || (start_offset == end_offset && index == start_offset)
       {
         // In the error span
-        print!(
+        eprint!(
           "\u{001b}[{}m{}\u{001b}[0m",
           severity.ansi_color_code(),
           c as char
         )
       } else {
-        print!("{}", c as char)
+        eprint!("{}", c as char)
       }
       index += 1;
     }
 
-    println!();
+    eprintln!();
   }
 
   fn line_spans(contents: &[u8]) -> Vec<(usize, usize)> {

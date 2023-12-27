@@ -18,7 +18,17 @@ impl Ocean {
     let mut file_contents = String::new();
     file.read_to_string(&mut file_contents)?;
 
-    let tokens = lex(file_contents);
+    let tokens = match lex(&file_contents) {
+      Ok(tokens) => tokens,
+      Err(errors) => {
+        for error in errors {
+          error.display_message(file_contents.as_bytes(), &file_path.to_string());
+        }
+        return Ok(()) // TODO I don't know if this is really okay though hmmm
+      }
+    };
+
+
     match token_mode {
       "print" => {
         for token in &tokens {
@@ -64,7 +74,15 @@ impl Ocean {
     precedence_table.add_binary_operator("%", 50, 51);
     precedence_table.add_binary_operator(".", usize::MAX, usize::MAX - 1);
 
-    parse_phase_two(&mut ast, &mut precedence_table);
+    match parse_phase_two(&mut ast, &mut precedence_table) {
+      Ok(()) => {},
+      Err(errors) => {
+        for error in errors {
+          error.display_message(file_contents.as_bytes(), &file_path.to_string());
+        }
+        return Ok(()) // TODO I don't know if this is really okay though hmmm
+      }
+    }
     match ast_mode {
       "print" => println!("{:#?}", ast),
       "file" => {

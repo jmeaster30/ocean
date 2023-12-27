@@ -20,7 +20,7 @@ fn parse_annotation_statement_node(statement_node: &mut StatementNode) {
   }
 }
 
-fn parse_annotation_statement(statement: &mut Statement) {
+fn parse_annotation_statement(_: &mut Statement) {
   // TODO: need to move annotations into unions and packs so
 }
 
