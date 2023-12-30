@@ -44,7 +44,7 @@ impl Ocean {
       _ => {}
     }
 
-    let mut ast = parse_phase_one(&tokens);
+    let (mut ast, mut parse_errors) = parse_phase_one(&tokens);
     match ast_mode {
       "print" => println!("{:#?}", ast),
       "file" => {
@@ -76,12 +76,7 @@ impl Ocean {
 
     match parse_phase_two(&mut ast, &mut precedence_table) {
       Ok(()) => {},
-      Err(errors) => {
-        for error in errors {
-          error.display_message(file_contents.as_bytes(), &file_path.to_string());
-        }
-        return Ok(()) // TODO I don't know if this is really okay though hmmm
-      }
+      Err(mut errors) => parse_errors.append(&mut errors),
     }
     match ast_mode {
       "print" => println!("{:#?}", ast),
@@ -90,6 +85,12 @@ impl Ocean {
         file.write_all(format!("{:#?}", ast).as_bytes())?;
       }
       _ => {}
+    }
+
+    if !parse_errors.is_empty() {
+      for error in parse_errors {
+        error.display_message(file_contents.as_bytes(), &file_path.to_string());
+      }
     }
 
     Ok(())

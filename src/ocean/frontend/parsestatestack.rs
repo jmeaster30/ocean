@@ -1,4 +1,4 @@
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum ParseState {
   StatementList,
   PreStatement,
@@ -116,24 +116,24 @@ impl ParseStateStack {
   }
 
   pub fn pop(&mut self) {
-    if !self.stack.is_empty() {
-      //print!("pop: ({:?})", self.stack[self.stack.len() - 1].clone());
-    }
     self.stack.pop();
-    if !self.stack.is_empty() {
-      //print!(" to: ({:?})", self.stack[self.stack.len() - 1].clone());
+  }
+
+  pub fn pop_until(&mut self, state: ParseState) {
+    while !self.stack.is_empty() {
+      match self.current_state() {
+        Some(current_state) => {
+          if current_state == state {
+            break
+          }
+          self.pop();
+        }
+        None => break
+      }
     }
-    //print!("\n");
   }
 
   pub fn push(&mut self, new_state: ParseState) {
-    if !self.stack.is_empty() {
-      //print!("push: ({:?})", self.stack[self.stack.len() - 1].clone());
-    }
     self.stack.push(new_state);
-    if !self.stack.is_empty() {
-      //print!(" to: ({:?})", self.stack[self.stack.len() - 1].clone());
-    }
-    //print!("\n");
   }
 }

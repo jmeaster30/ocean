@@ -4,11 +4,15 @@ use crate::ocean::frontend::parsestatestack::*;
 use crate::ocean::frontend::tokentype::TokenType;
 use crate::util::token::Token;
 use itertools::Either;
+use crate::util::errors::{Error, Severity};
+use crate::util::span::Spanned;
 
-pub fn parse_phase_one(tokens: &Vec<Token<TokenType>>) -> Program {
+pub fn parse_phase_one(tokens: &Vec<Token<TokenType>>) -> (Program, Vec<Error>) {
   let mut parser_state_stack = ParseStateStack::new();
   let mut ast_stack = AstSymbolStack::new();
   let mut token_index = 0;
+
+  let mut errors = Vec::new();
 
   parser_state_stack.push(ParseState::StatementList);
   ast_stack.push(AstSymbol::StatementList(Vec::new()));
@@ -22,7 +26,7 @@ pub fn parse_phase_one(tokens: &Vec<Token<TokenType>>) -> Program {
     let current_state = parser_state_stack.current_state();
     let current_ast_symbol = ast_stack.peek();
 
-    //println!("{} > {} - {:?}", token_index, current_token, current_ast_symbol);
+    //println!("{} > {} - {:?}", token_index, current_token, current_state);
 
     match (current_state, current_ast_symbol, &current_token.token_type) {
       (Some(ParseState::StatementList), Some(AstSymbol::StatementList(_)), TokenType::EndOfInput) => {
@@ -30,6 +34,11 @@ pub fn parse_phase_one(tokens: &Vec<Token<TokenType>>) -> Program {
       }
       (Some(ParseState::StatementList), Some(AstSymbol::StatementList(_)), TokenType::RightCurly) => {
         parser_state_stack.pop();
+      }
+      (None, Some(AstSymbol::StatementList(_)), TokenType::RightCurly) => {
+        parser_state_stack.push(ParseState::StatementList);
+        errors.push(Error::new(Severity::Error, current_token.get_span(), "Unexpected right curly brace. Either this is extraneous or there is a missing left curly brace prior to this curly brace.".to_string()));
+        token_index = consume_comments_newline(tokens, token_index);
       }
       (Some(ParseState::StatementList), _, TokenType::Newline) => {
         token_index = consume_newline(tokens, token_index);
@@ -988,6 +997,12 @@ pub fn parse_phase_one(tokens: &Vec<Token<TokenType>>) -> Program {
         token_index = consume_comments_newline(tokens, token_index);
         parser_state_stack.pop();
       }
+      (Some(ParseState::ExpressionStatement), Some(AstSymbol::Expression(_)), _) => {
+        errors.push(Error::new(Severity::Error, current_token.get_span(), "Unexpected token following expression. Likely missing a semicolon.".to_string()));
+        parser_state_stack.pop_until(ParseState::StatementList);
+        ast_stack.pop();
+        ast_stack.pop(); // resets ast_stack to empty statement list so we can continue parsing statements
+      }
       //</editor-fold>
       //<editor-fold desc="> BranchStatement">
       (Some(ParseState::BranchStatement), Some(AstSymbol::CompoundStatement(_)), TokenType::Else) => {
@@ -1088,6 +1103,13 @@ pub fn parse_phase_one(tokens: &Vec<Token<TokenType>>) -> Program {
           _ => panic!("Invalid state :("),
         }
       }
+      (Some(ParseState::CompoundStatement), Some(_), _) => {
+        errors.push(Error::new(Severity::Error, current_token.get_span(), "Unexpected token. Expected an opening curly brace for the compound statement.".to_string()));
+        // here add in a dummy left curly and set up the ast stack and parse state stack to continue parsing
+        ast_stack.push(AstSymbol::Token(current_token.clone())); // TODO is this right to copy the current_token even though it isn't a left curly??
+        ast_stack.push(AstSymbol::StatementList(vec![]));
+        parser_state_stack.push(ParseState::StatementList);
+      }
       //</editor-fold>
       //<editor-fold desc="> WhileStatement">
       (Some(ParseState::WhileStatement), Some(AstSymbol::CompoundStatement(compound_statement)), _) => {
@@ -1142,21 +1164,20 @@ pub fn parse_phase_one(tokens: &Vec<Token<TokenType>>) -> Program {
         ast_stack.pop();
         let statement_data = ast_stack.pop_panic();
         let statements = ast_stack.pop_panic();
-        match (statement_data.clone(), statements.clone()) {
-          // TODO remove these clones once the parser is done
+        match (statement_data, statements) {
           (AstSymbol::StatementData(data), AstSymbol::StatementList(mut statements)) => {
             statements.push(StatementNode::new(data, optional_statement));
             ast_stack.push(AstSymbol::StatementList(statements));
             parser_state_stack.pop();
           }
-          _ => panic!("Invalid state :( {:?} {:?}", statement_data, statements),
+          _ => panic!("Invalid state :("),
         }
       }
       (a, b, c) => {
         ast_stack.print();
         parser_state_stack.print();
         println!("TOKEN:::: {}", current_token);
-        panic!("Unexpected state {:?} {:?} {:?}", a, b, c)
+        panic!("THERE WAS A PARSE ERROR BUT WE DON'T REPORT THE ERROR PROPERLY. REPORT THIS ISSUE WITH THE COMPILER PLEASE :) \nParseState: {:?}\nCurrent AstSymbol: {:?}\nCurrent Token: {:?}", a, b, c);
       }
     }
   }
@@ -1166,7 +1187,7 @@ pub fn parse_phase_one(tokens: &Vec<Token<TokenType>>) -> Program {
   }
 
   match ast_stack.pop_panic() {
-    AstSymbol::StatementList(statements) => Program { statements },
+    AstSymbol::StatementList(statements) => (Program { statements }, errors),
     _ => panic!("Unexpected ast stack symbol"),
   }
 }

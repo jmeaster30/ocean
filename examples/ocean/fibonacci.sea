@@ -8,7 +8,7 @@ push u32 123
 
 @Trace
 @Memoize
-function fib (input: i64) -> (result: i64) {
+function fib (input: u128) -> (result: u128) {
   if input <= 1 {
     result = input;
   } else {
@@ -17,4 +17,4 @@ function fib (input: i64) -> (result: i64) {
 }
 
 println(`9th fibonacci number is {9.fib} and the tenth is {{} {fib(10)}`);
-println((fib(10)) &* 9.fib);
+println((fib(10)) + 9.fib);
