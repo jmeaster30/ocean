@@ -8,6 +8,7 @@ use crate::util::errors::{Error, Severity};
 use crate::util::span::Spanned;
 use crate::util::token::Token;
 use itertools::Either;
+use crate::ocean::frontend::parser::parserphase1::parse_phase_one_partial;
 
 pub fn parse_phase_two(ast: &mut Program, precedence_table: &mut PrecedenceTable) -> Result<(), Vec<Error>> {
   let undefined_prefix = 20000;
@@ -307,8 +308,10 @@ fn parse_literal(tokens: &Vec<&Token<TokenType>>, token_index: usize, precedence
   }
 
   if tokens[current_token_index].token_type == TokenType::As {
-    let (parsed_type, next_token_index) = parse_type(tokens, current_token_index + 1);
-    Ok((Expression::Cast(Cast::new(Box::new(expression), tokens[current_token_index].clone(), parsed_type)), next_token_index))
+    match parse_type(tokens, current_token_index + 1) {
+      Ok((parsed_type, next_token_index)) => Ok((Expression::Cast(Cast::new(Box::new(expression), tokens[current_token_index].clone(), parsed_type)), next_token_index)),
+      Err(errors) => Err(errors),
+    }
   } else {
     Ok((expression, current_token_index))
   }
@@ -468,284 +471,15 @@ fn parse_tuple_members(tokens: &Vec<&Token<TokenType>>, token_index: usize, prec
   }
 }
 
-fn parse_type(tokens: &Vec<&Token<TokenType>>, token_index: usize) -> (Type, usize) {
-  // TODO this is copied from the type section of the phase 1 parser. Need to make it so we can call this part of the phase 1 parse directly instead of copying it
-  let mut parser_state_stack = ParseStateStack::new();
-  let mut ast_stack = AstSymbolStack::new();
-  let mut token_index = token_index;
-
-  parser_state_stack.push(ParseState::Type);
-
-  loop {
-    if token_index >= tokens.len() {
-      break;
+fn parse_type(tokens: &Vec<&Token<TokenType>>, token_index: usize) -> Result<(Type, usize), Vec<Error>> {
+  // This is very janky going from ref vec of refs to ref vec of non-refs
+  let (ast_symbol, next_token_index, mut errors) = parse_phase_one_partial(&tokens.iter().map(|x| x.clone().clone()).collect::<Vec<Token<TokenType>>>(), token_index, ParseState::Type, None);
+  match (ast_symbol, errors.clone()) {
+    (AstSymbol::Type(parsed_type), errors) if errors.len() == 0 => Ok((parsed_type, next_token_index)),
+    _ => {
+      errors.push(Error::new(Severity::Error, (tokens[token_index].get_span().0, tokens[next_token_index - 1].get_span().1), "Type parser produced an unexpected ast node :(".to_string()));
+      Err(errors.clone())
     }
-
-    let current_token = tokens[token_index];
-    let current_state = parser_state_stack.current_state();
-    let current_ast_symbol = ast_stack.peek();
-
-    //println!("{} > {} - {:?}", token_index, current_token, current_ast_symbol);
-
-    match (current_state, current_ast_symbol, &current_token.token_type) {
-      (Some(ParseState::Type), None, TokenType::Identifier) => {
-        parser_state_stack.goto(ParseState::TypeArray);
-        ast_stack.push(AstSymbol::Type(Type::Custom(CustomType::new(current_token.clone()))));
-        token_index += 1;
-      }
-      (Some(ParseState::Type), None, TokenType::Type) => {
-        parser_state_stack.goto(ParseState::TypeArray);
-        ast_stack.push(AstSymbol::Type(Type::Base(BaseType::new(current_token.clone()))));
-        token_index += 1;
-      }
-      (Some(ParseState::Type), Some(_), TokenType::RightSquare) => {
-        parser_state_stack.pop();
-      }
-      (Some(ParseState::Type), None, TokenType::TypePrefix) => {
-        ast_stack.push(AstSymbol::Token(current_token.clone()));
-        token_index += 1;
-        parser_state_stack.goto(ParseState::TypeArray);
-        match current_token.lexeme.as_str() {
-          "auto" => {
-            parser_state_stack.push(ParseState::TypeAuto);
-            parser_state_stack.push(ParseState::TypeIdentifier);
-          }
-          "lazy" => {
-            parser_state_stack.push(ParseState::TypeLazy);
-            parser_state_stack.push(ParseState::Type);
-          }
-          "ref" => {
-            parser_state_stack.push(ParseState::TypeRef);
-            parser_state_stack.push(ParseState::Type);
-          }
-          "mut" => {
-            parser_state_stack.push(ParseState::TypeMut);
-            parser_state_stack.push(ParseState::Type);
-          }
-          _ => panic!("Unexpected type prefix"),
-        }
-      }
-      (Some(ParseState::Type), None, TokenType::Function) => {
-        ast_stack.push(AstSymbol::Token(current_token.clone()));
-        token_index += 1;
-        parser_state_stack.goto(ParseState::TypeFunctionParams);
-      }
-      (Some(ParseState::TypeFunctionParams), Some(AstSymbol::FunctionTypeArguments(_)), TokenType::Identifier) | (Some(ParseState::TypeFunctionParams), Some(AstSymbol::FunctionTypeArguments(_)), TokenType::Type) | (Some(ParseState::TypeFunctionParams), Some(AstSymbol::FunctionTypeArguments(_)), TokenType::TypePrefix) => {
-        parser_state_stack.push(ParseState::Type);
-      }
-      (Some(ParseState::TypeFunctionParams), Some(_), TokenType::Newline) | (Some(ParseState::TypeFunctionParams), Some(_), TokenType::Comment) => {
-        token_index += 1;
-      }
-      (Some(ParseState::TypeFunctionParams), Some(AstSymbol::Type(param_type)), TokenType::Comma) => {
-        token_index += 1;
-        ast_stack.pop();
-        let args_sym = ast_stack.pop_panic();
-        match args_sym {
-          AstSymbol::FunctionTypeArguments(mut args) => {
-            args.push(FunctionTypeArgument::new(param_type, Some(current_token.clone())));
-            ast_stack.push(AstSymbol::FunctionTypeArguments(args));
-          }
-          _ => panic!("invalid state :("),
-        }
-      }
-      (Some(ParseState::TypeFunctionParams), Some(_), TokenType::LeftParen) => {
-        ast_stack.push(AstSymbol::Token(current_token.clone()));
-        token_index += 1;
-        ast_stack.push(AstSymbol::FunctionTypeArguments(Vec::new()));
-      }
-      (Some(ParseState::TypeFunctionParams), Some(AstSymbol::Type(param_type)), TokenType::RightParen) => {
-        ast_stack.pop();
-        let args_sym = ast_stack.pop_panic();
-        match args_sym {
-          AstSymbol::FunctionTypeArguments(mut args) => {
-            args.push(FunctionTypeArgument::new(param_type, None));
-            ast_stack.push(AstSymbol::FunctionTypeArguments(args));
-            ast_stack.push(AstSymbol::Token(current_token.clone()));
-            token_index += 1;
-            parser_state_stack.goto(ParseState::TypeFunctionOptArrow);
-          }
-          _ => panic!("invalid state :("),
-        }
-      }
-      (Some(ParseState::TypeFunctionParams), Some(AstSymbol::FunctionTypeArguments(_)), TokenType::RightParen) => {
-        ast_stack.push(AstSymbol::Token(current_token.clone()));
-        token_index += 1;
-        parser_state_stack.goto(ParseState::TypeFunctionOptArrow);
-      }
-      (Some(ParseState::TypeFunctionOptArrow), Some(_), TokenType::Arrow) => {
-        ast_stack.push(AstSymbol::Token(current_token.clone()));
-        token_index += 1;
-        parser_state_stack.goto(ParseState::TypeFunctionReturns);
-      }
-      (Some(ParseState::TypeFunctionOptArrow), Some(AstSymbol::Token(right_paren)), _) => {
-        ast_stack.pop();
-        let param_types_sym = ast_stack.pop_panic();
-        let left_paren_sym = ast_stack.pop_panic();
-        let function_token_sym = ast_stack.pop_panic();
-        match (function_token_sym, left_paren_sym, param_types_sym) {
-          (AstSymbol::Token(function_token), AstSymbol::Token(left_paren), AstSymbol::FunctionTypeArguments(param_types)) => {
-            ast_stack.push(AstSymbol::Type(Type::Function(FunctionType::new(function_token, left_paren, param_types, right_paren, None, None, Vec::new(), None))));
-            parser_state_stack.goto(ParseState::TypeArray);
-          }
-          _ => panic!("invalid state :("),
-        }
-      }
-      (Some(ParseState::TypeFunctionReturns), Some(AstSymbol::FunctionTypeArguments(_)), TokenType::Identifier) | (Some(ParseState::TypeFunctionReturns), Some(AstSymbol::FunctionTypeArguments(_)), TokenType::Type) | (Some(ParseState::TypeFunctionReturns), Some(AstSymbol::FunctionTypeArguments(_)), TokenType::TypePrefix) => {
-        parser_state_stack.push(ParseState::Type);
-      }
-      (Some(ParseState::TypeFunctionReturns), Some(_), TokenType::Newline) | (Some(ParseState::TypeFunctionReturns), Some(_), TokenType::Comment) => {
-        token_index += 1;
-      }
-      (Some(ParseState::TypeFunctionReturns), Some(AstSymbol::Type(param_type)), TokenType::Comma) => {
-        token_index += 1;
-        ast_stack.pop();
-        let args_sym = ast_stack.pop_panic();
-        match args_sym {
-          AstSymbol::FunctionTypeArguments(mut args) => {
-            args.push(FunctionTypeArgument::new(param_type, Some(current_token.clone())));
-            ast_stack.push(AstSymbol::FunctionTypeArguments(args));
-          }
-          _ => panic!("invalid state :("),
-        }
-      }
-      (Some(ParseState::TypeFunctionReturns), Some(_), TokenType::LeftParen) => {
-        ast_stack.push(AstSymbol::Token(current_token.clone()));
-        token_index += 1;
-        ast_stack.push(AstSymbol::FunctionTypeArguments(Vec::new()));
-      }
-      (Some(ParseState::TypeFunctionReturns), Some(AstSymbol::Type(param_type)), TokenType::RightParen) => {
-        ast_stack.pop();
-        let args_sym = ast_stack.pop_panic();
-        match args_sym {
-          AstSymbol::FunctionTypeArguments(mut args) => {
-            args.push(FunctionTypeArgument::new(param_type, None));
-            ast_stack.push(AstSymbol::FunctionTypeArguments(args));
-          }
-          _ => panic!("invalid state :("),
-        }
-      }
-      (Some(ParseState::TypeFunctionReturns), Some(AstSymbol::FunctionTypeArguments(return_args)), TokenType::RightParen) => {
-        ast_stack.pop();
-        let return_left_paren_sym = ast_stack.pop_panic();
-        let arrow_sym = ast_stack.pop_panic();
-        let right_paren_sym = ast_stack.pop_panic();
-        let params_sym = ast_stack.pop_panic();
-        let left_paren_sym = ast_stack.pop_panic();
-        let function_sym = ast_stack.pop_panic();
-        match (function_sym.clone(), left_paren_sym.clone(), params_sym.clone(), right_paren_sym.clone(), arrow_sym.clone(), return_left_paren_sym.clone()) {
-          (AstSymbol::Token(function_token), AstSymbol::Token(left_paren), AstSymbol::FunctionTypeArguments(params), AstSymbol::Token(right_paren), AstSymbol::Token(arrow_token), AstSymbol::Token(return_left_paren)) => {
-            ast_stack.push(AstSymbol::Type(Type::Function(FunctionType::new(function_token, left_paren, params, right_paren, Some(arrow_token), Some(return_left_paren), return_args, Some(current_token.clone())))));
-            token_index += 1;
-            parser_state_stack.goto(ParseState::TypeArray);
-          }
-          _ => panic!("invalid state :(\n{:?}\n{:?}\n{:?}\n{:?}\n{:?}\n{:?}", function_sym, left_paren_sym, params_sym, right_paren_sym, arrow_sym, return_left_paren_sym),
-        }
-      }
-      (Some(ParseState::TypeIdentifier), Some(_), TokenType::Identifier) => {
-        token_index += 1;
-        ast_stack.push(AstSymbol::Token(current_token.clone()));
-        parser_state_stack.pop();
-      }
-      (Some(ParseState::TypeAuto), Some(AstSymbol::Token(identifier_token)), _) => {
-        ast_stack.pop();
-        let auto_token_sym = ast_stack.pop_panic();
-        match auto_token_sym {
-          AstSymbol::Token(auto_token) => {
-            ast_stack.push(AstSymbol::Type(Type::Auto(AutoType::new(auto_token, identifier_token))));
-          }
-          _ => panic!("Unexpected state :("),
-        }
-        parser_state_stack.pop();
-      }
-      (Some(ParseState::TypeLazy), Some(AstSymbol::Type(subtype)), _) => {
-        ast_stack.pop();
-        let lazy_token_sym = ast_stack.pop_panic();
-        match lazy_token_sym {
-          AstSymbol::Token(lazy_token) => {
-            ast_stack.push(AstSymbol::Type(Type::Lazy(LazyType::new(lazy_token, Box::new(subtype)))));
-          }
-          _ => panic!("Unexpected state :("),
-        }
-        parser_state_stack.pop();
-      }
-      (Some(ParseState::TypeRef), Some(AstSymbol::Type(subtype)), _) => {
-        ast_stack.pop();
-        let ref_token_sym = ast_stack.pop_panic();
-        match ref_token_sym {
-          AstSymbol::Token(ref_token) => {
-            ast_stack.push(AstSymbol::Type(Type::Ref(RefType::new(ref_token, Box::new(subtype)))));
-          }
-          _ => panic!("Unexpected state :("),
-        }
-        parser_state_stack.pop();
-      }
-      (Some(ParseState::TypeMut), Some(AstSymbol::Type(subtype)), _) => {
-        ast_stack.pop();
-        let mut_token_sym = ast_stack.pop_panic();
-        match mut_token_sym {
-          AstSymbol::Token(mut_token) => {
-            ast_stack.push(AstSymbol::Type(Type::Mutable(MutType::new(mut_token, Box::new(subtype)))));
-          }
-          _ => panic!("Unexpected state :("),
-        }
-        parser_state_stack.pop();
-      }
-      (Some(ParseState::TypeArray), Some(_), TokenType::LeftSquare) => {
-        ast_stack.push(AstSymbol::Token(current_token.clone()));
-        token_index += 1;
-        parser_state_stack.goto(ParseState::TypeArrayEnd);
-        parser_state_stack.push(ParseState::Type);
-      }
-      (Some(ParseState::TypeArray), Some(AstSymbol::Type(base_type)), TokenType::Spread) => {
-        ast_stack.pop();
-        ast_stack.push(AstSymbol::Type(Type::VariableType(VariableType::new(Box::new(base_type), current_token.clone()))));
-        token_index += 1;
-        parser_state_stack.pop();
-      }
-      (Some(ParseState::TypeArray), Some(_), _) => {
-        parser_state_stack.pop();
-      }
-      (Some(ParseState::TypeArrayEnd), Some(AstSymbol::Type(subtype)), TokenType::RightSquare) => {
-        ast_stack.pop();
-        let left_square_sym = ast_stack.pop_panic();
-        let main_type_sym = ast_stack.pop_panic();
-        parser_state_stack.pop();
-        token_index += 1;
-        match (main_type_sym, left_square_sym) {
-          (AstSymbol::Type(main_type), AstSymbol::Token(left_square)) => {
-            ast_stack.push(AstSymbol::Type(Type::Array(ArrayType::new(Box::new(main_type), left_square, Some(Box::new(subtype)), current_token.clone()))));
-          }
-          _ => panic!("Unexpected stack state :("),
-        }
-      }
-      (Some(ParseState::TypeArrayEnd), Some(AstSymbol::Token(left_square)), TokenType::RightSquare) => {
-        ast_stack.pop();
-        let main_type_sym = ast_stack.pop_panic();
-        parser_state_stack.pop();
-        token_index += 1;
-        match main_type_sym {
-          AstSymbol::Type(main_type) => {
-            ast_stack.push(AstSymbol::Type(Type::Array(ArrayType::new(Box::new(main_type), left_square, None, current_token.clone()))));
-          }
-          _ => panic!("Unexpected stack state :("),
-        }
-      }
-      (a, b, c) => {
-        ast_stack.print();
-        parser_state_stack.print();
-        println!("TOKEN:::: {}", current_token);
-        panic!("Unexpected state {:?} {:?} {:?}", a, b, c)
-      }
-    }
-  }
-
-  if ast_stack.size() != 1 {
-    panic!("Too many things in the ast stack");
-  }
-
-  match ast_stack.pop_panic() {
-    AstSymbol::Type(parsed_type) => (parsed_type, token_index),
-    _ => panic!("Unexpected ast stack symbol"),
   }
 }
 

@@ -8,14 +8,25 @@ use crate::util::token::Token;
 use itertools::Either;
 
 pub fn parse_phase_one(tokens: &Vec<Token<TokenType>>) -> (Program, Vec<Error>) {
+  let (ast_symbol, _, errors) = parse_phase_one_partial(tokens, 0, ParseState::StatementList, Some(AstSymbol::StatementList(Vec::new())));
+  match ast_symbol {
+    AstSymbol::StatementList(statements) => (Program { statements }, errors),
+    _ => panic!("Unexpected parse state :(. Expected AstSymbol::StatementList but got {:?}", ast_symbol)
+  }
+}
+
+pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_index: usize, initial_parse_state: ParseState, initial_ast_symbol: Option<AstSymbol>) -> (AstSymbol, usize, Vec<Error>) {
   let mut parser_state_stack = ParseStateStack::new();
   let mut ast_stack = AstSymbolStack::new();
-  let mut token_index = 0;
+  let mut token_index = initial_token_index;
 
   let mut errors = Vec::new();
 
-  parser_state_stack.push(ParseState::StatementList);
-  ast_stack.push(AstSymbol::StatementList(Vec::new()));
+  parser_state_stack.push(initial_parse_state);
+  match initial_ast_symbol {
+    Some(symbol) => ast_stack.push(symbol),
+    None => {}
+  };
 
   loop {
     if token_index >= tokens.len() {
@@ -635,20 +646,20 @@ pub fn parse_phase_one(tokens: &Vec<Token<TokenType>>) -> (Program, Vec<Error>) 
       }
       //</editor-fold>
       //<editor-fold desc="> Type">
-      (Some(ParseState::Type), Some(_), TokenType::Identifier) => {
+      (Some(ParseState::Type), _, TokenType::Identifier) => {
         parser_state_stack.goto(ParseState::TypeArray);
         ast_stack.push(AstSymbol::Type(Type::Custom(CustomType::new(current_token.clone()))));
         token_index = consume_comments_newline(tokens, token_index);
       }
-      (Some(ParseState::Type), Some(_), TokenType::Type) => {
+      (Some(ParseState::Type), _, TokenType::Type) => {
         parser_state_stack.goto(ParseState::TypeArray);
         ast_stack.push(AstSymbol::Type(Type::Base(BaseType::new(current_token.clone()))));
         token_index = consume_comments_newline(tokens, token_index);
       }
-      (Some(ParseState::Type), Some(_), TokenType::RightSquare) => {
+      (Some(ParseState::Type), _, TokenType::RightSquare) => {
         parser_state_stack.pop();
       }
-      (Some(ParseState::Type), Some(_), TokenType::TypePrefix) => {
+      (Some(ParseState::Type), _, TokenType::TypePrefix) => {
         ast_stack.push(AstSymbol::Token(current_token.clone()));
         token_index = consume_comments_newline(tokens, token_index);
         parser_state_stack.goto(ParseState::TypeArray);
@@ -672,7 +683,7 @@ pub fn parse_phase_one(tokens: &Vec<Token<TokenType>>) -> (Program, Vec<Error>) 
           _ => panic!("Unexpected type prefix"),
         }
       }
-      (Some(ParseState::Type), Some(_), TokenType::Function) => {
+      (Some(ParseState::Type), _, TokenType::Function) => {
         ast_stack.push(AstSymbol::Token(current_token.clone()));
         token_index = consume_comments_newline(tokens, token_index);
         parser_state_stack.goto(ParseState::TypeFunctionParams);
@@ -1171,6 +1182,9 @@ pub fn parse_phase_one(tokens: &Vec<Token<TokenType>>) -> (Program, Vec<Error>) 
           _ => panic!("Invalid state :("),
         }
       }
+      (None, _, _) => {
+        break // Idk if this would cause issues but we would probably catch any issues below
+      }
       (a, b, c) => {
         ast_stack.print();
         parser_state_stack.print();
@@ -1184,10 +1198,8 @@ pub fn parse_phase_one(tokens: &Vec<Token<TokenType>>) -> (Program, Vec<Error>) 
     panic!("Too many things in the ast stack");
   }
 
-  match ast_stack.pop_panic() {
-    AstSymbol::StatementList(statements) => (Program { statements }, errors),
-    _ => panic!("Unexpected ast stack symbol"),
-  }
+  let symbol = ast_stack.pop_panic();
+  (symbol, token_index, errors)
 }
 
 fn consume_comments_newline(tokens: &Vec<Token<TokenType>>, current_index: usize) -> usize {

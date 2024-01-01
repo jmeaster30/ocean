@@ -44,14 +44,6 @@ impl Ocean {
     }
 
     let (mut ast, mut parse_errors) = parse_phase_one(&tokens);
-    match ast_mode {
-      "print" => println!("{:#?}", ast),
-      "file" => {
-        let mut file = File::create(file_path.to_string() + ".ast_p1")?;
-        file.write_all(format!("{:#?}", ast).as_bytes())?;
-      }
-      _ => {}
-    }
 
     parse_annotations(&mut ast);
 
