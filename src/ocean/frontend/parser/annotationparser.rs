@@ -35,25 +35,23 @@ fn annotation_parser(annotation_content: &String, linked_statement: &Option<Stat
     "hydro" => {
       println!("found some hydro code");
       AnnotationNode::None
-    },
+    }
     "annotation" => {
       println!("found an annotation!");
       AnnotationNode::None
-    },
+    }
     "operator" => {
       if let Some(Statement::Function(_)) = linked_statement {
         parse_operator_annotation(annotation_body)
       } else {
         panic!("The operator annotation must be attached to a function")
       }
-    },
+    }
     _ => {
       println!("oooo a custom annotation!");
       AnnotationNode::None
-    },
+    }
   }
-
-
 }
 
 #[derive(Clone, Debug)]
@@ -67,7 +65,7 @@ enum OperatorAnnotationTokenType {
   LeftSquare,
   RightSquare,
   EndOfInput,
-  Error
+  Error,
 }
 
 #[derive(Clone, Debug)]
@@ -82,8 +80,7 @@ enum OperatorAnnotationParseState {
   Exit,
 }
 
-fn tokenize_operator_annotation(input: &str) -> Vec<Token<OperatorAnnotationTokenType>>
-{
+fn tokenize_operator_annotation(input: &str) -> Vec<Token<OperatorAnnotationTokenType>> {
   let input_chars = input.chars().collect::<Vec<char>>();
   let input_length = input.len();
   let mut lexeme = String::new();
@@ -157,7 +154,7 @@ fn tokenize_operator_annotation(input: &str) -> Vec<Token<OperatorAnnotationToke
 
         let token_type = match lexeme.as_str() {
           ":" => OperatorAnnotationTokenType::Colon,
-          _ => OperatorAnnotationTokenType::Operator
+          _ => OperatorAnnotationTokenType::Operator,
         };
 
         tokens.push(Token::new(lexeme.clone(), token_type, (start_index, index), (line_start, line_end), (column_start, column_end)));
@@ -246,6 +243,6 @@ fn parse_operator_annotation(lexeme: &str) -> AnnotationNode {
     (Some(operator), Some(left_hand_side_name), left_precedence, Some(right_hand_side_name), right_precedence) => AnnotationNode::Operator(AnnotationOperator::new(operator, OperatorType::Infix, Some(left_hand_side_name), left_precedence, Some(right_hand_side_name), right_precedence)),
     (Some(operator), Some(left_hand_side_name), left_precedence, None, None) => AnnotationNode::Operator(AnnotationOperator::new(operator, OperatorType::Postfix, Some(left_hand_side_name), left_precedence, None, None)),
     (Some(operator), None, None, Some(right_hand_side_name), right_precedence) => AnnotationNode::Operator(AnnotationOperator::new(operator, OperatorType::Prefix, None, None, Some(right_hand_side_name), right_precedence)),
-    _ => panic!("There was an issue parsing")
+    _ => panic!("There was an issue parsing"),
   }
 }

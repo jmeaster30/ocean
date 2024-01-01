@@ -481,8 +481,7 @@ pub enum OperatorType {
 }
 
 #[derive(Clone, Debug, New)]
-pub struct AnnotationOperator
-{
+pub struct AnnotationOperator {
   pub operator: String,
   pub operator_type: OperatorType,
   pub left_hand_side_name: Option<String>,

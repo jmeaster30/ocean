@@ -1,8 +1,8 @@
-use crate::ocean::frontend::annotationparser::parse_annotations;
 use crate::ocean::frontend::lexer::lex;
-use crate::ocean::frontend::parserphase1::parse_phase_one;
-use crate::ocean::frontend::parserphase2::parse_phase_two;
-use crate::ocean::frontend::precedencetable::PrecedenceTable;
+use crate::ocean::frontend::parser::annotationparser::parse_annotations;
+use crate::ocean::frontend::parser::parserphase1::parse_phase_one;
+use crate::ocean::frontend::parser::parserphase2::parse_phase_two;
+use crate::ocean::frontend::parser::precedencetable::PrecedenceTable;
 use crate::ocean::Ocean;
 use std::fs::File;
 use std::io::{Read, Write};
@@ -24,10 +24,9 @@ impl Ocean {
         for error in errors {
           error.display_message(file_contents.as_bytes(), &file_path.to_string());
         }
-        return Ok(()) // TODO I don't know if this is really okay though hmmm
+        return Ok(()); // TODO I don't know if this is really okay though hmmm
       }
     };
-
 
     match token_mode {
       "print" => {
@@ -75,7 +74,7 @@ impl Ocean {
     precedence_table.add_binary_operator(".", usize::MAX, usize::MAX - 1);
 
     match parse_phase_two(&mut ast, &mut precedence_table) {
-      Ok(()) => {},
+      Ok(()) => {}
       Err(mut errors) => parse_errors.append(&mut errors),
     }
     match ast_mode {

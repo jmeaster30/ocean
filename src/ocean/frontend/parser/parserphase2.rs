@@ -1,15 +1,15 @@
 use crate::ocean::frontend::ast::*;
-use crate::ocean::frontend::precedencetable::PrecedenceTable;
-use crate::ocean::frontend::tokentype::TokenType;
-use crate::util::token::Token;
-use itertools::Either;
-use crate::ocean::frontend::astsymbolstack::{AstSymbol, AstSymbolStack};
 use crate::ocean::frontend::lexer::lex;
-use crate::ocean::frontend::parsestatestack::{ParseState, ParseStateStack};
+use crate::ocean::frontend::parser::astsymbolstack::{AstSymbol, AstSymbolStack};
+use crate::ocean::frontend::parser::parsestatestack::{ParseState, ParseStateStack};
+use crate::ocean::frontend::parser::precedencetable::PrecedenceTable;
+use crate::ocean::frontend::tokentype::TokenType;
 use crate::util::errors::{Error, Severity};
 use crate::util::span::Spanned;
+use crate::util::token::Token;
+use itertools::Either;
 
-pub fn parse_phase_two(ast: &mut Program, precedence_table: &mut PrecedenceTable) -> Result<(), Vec<Error>>{
+pub fn parse_phase_two(ast: &mut Program, precedence_table: &mut PrecedenceTable) -> Result<(), Vec<Error>> {
   let undefined_prefix = 20000;
   let undefined_infix = 10000;
 
@@ -47,24 +47,23 @@ pub fn parse_phase_two(ast: &mut Program, precedence_table: &mut PrecedenceTable
                 precedence_table.add_prefix_operator(operator.operator.as_str(), undefined_prefix);
               }
             }
-          }
+          },
           _ => {}
-        }
+        },
         _ => {}
       }
     }
   }
 
-
   for statement_node in &mut ast.statements {
     match &mut statement_node.statement {
       Some(statement) => match parse_phase_two_statement(statement, precedence_table) {
-        Ok(()) => {},
+        Ok(()) => {}
         Err(mut new_errors) => errors.append(&mut new_errors),
-      }
+      },
       None => {}
     }
-  };
+  }
 
   if errors.is_empty() {
     Ok(())
@@ -91,12 +90,10 @@ fn parse_phase_two_compound(compound_statement: &mut CompoundStatement, preceden
   let mut errors = Vec::new();
   for statement_node in &mut compound_statement.body {
     match &mut statement_node.statement {
-      Some(statement) => {
-        match parse_phase_two_statement(statement, precedence_table) {
-          Ok(()) => {}
-          Err(mut new_errors) => errors.append(&mut new_errors),
-        }
-      }
+      Some(statement) => match parse_phase_two_statement(statement, precedence_table) {
+        Ok(()) => {}
+        Err(mut new_errors) => errors.append(&mut new_errors),
+      },
       None => {}
     }
   }
@@ -109,18 +106,11 @@ fn parse_phase_two_compound(compound_statement: &mut CompoundStatement, preceden
 }
 
 fn parse_phase_two_while(while_loop: &mut WhileLoop, precedence_table: &mut PrecedenceTable) -> Result<(), Vec<Error>> {
-  join_results(vec![
-    parse_phase_two_expression(&mut while_loop.condition, precedence_table),
-    parse_phase_two_compound(&mut while_loop.body, precedence_table),
-  ])
+  join_results(vec![parse_phase_two_expression(&mut while_loop.condition, precedence_table), parse_phase_two_compound(&mut while_loop.body, precedence_table)])
 }
 
 fn parse_phase_two_for(for_loop: &mut ForLoop, precedence_table: &mut PrecedenceTable) -> Result<(), Vec<Error>> {
-  join_results(vec![
-    parse_phase_two_expression(&mut for_loop.iterator, precedence_table),
-    parse_phase_two_expression(&mut for_loop.iterable, precedence_table),
-    parse_phase_two_compound(&mut for_loop.body, precedence_table),
-  ])
+  join_results(vec![parse_phase_two_expression(&mut for_loop.iterator, precedence_table), parse_phase_two_expression(&mut for_loop.iterable, precedence_table), parse_phase_two_compound(&mut for_loop.body, precedence_table)])
 }
 
 fn parse_phase_two_loop(loop_loop: &mut Loop, precedence_table: &mut PrecedenceTable) -> Result<(), Vec<Error>> {
@@ -136,7 +126,7 @@ fn parse_phase_two_branch(branch: &mut Branch, precedence_table: &mut Precedence
         Either::Left(body) => parse_phase_two_compound(body, precedence_table),
         Either::Right(else_branch) => parse_phase_two_branch(else_branch, precedence_table),
       },
-      None => Ok(())
+      None => Ok(()),
     },
   ])
 }
@@ -151,7 +141,7 @@ fn parse_phase_two_assignment(assignment: &mut Assignment, precedence_table: &mu
       Either::Left(_) => Ok(()),
       Either::Right(expression) => parse_phase_two_expression(expression, precedence_table),
     },
-    parse_phase_two_expression(&mut assignment.right_expression.expression_node, precedence_table)
+    parse_phase_two_expression(&mut assignment.right_expression.expression_node, precedence_table),
   ])
 }
 
@@ -162,13 +152,13 @@ fn parse_phase_two_function(function: &mut Function, precedence_table: &mut Prec
   for result in &mut function.results {
     parse_results.push(match &mut result.expression {
       Some(expression) => parse_phase_two_expression(expression, &mut new_precedence_table),
-      None => Ok(())
+      None => Ok(()),
     });
   }
 
   parse_results.push(match &mut function.compound_statement {
     Some(compound_stmt) => parse_phase_two_compound(compound_stmt, &mut new_precedence_table),
-    None => Ok(())
+    None => Ok(()),
   });
   join_results(parse_results)
 }
@@ -179,7 +169,7 @@ fn parse_phase_two_expression(expression: &mut ExpressionNode, precedence_table:
     Ok((parsed_expression, _)) => {
       expression.parsed_expression = Some(parsed_expression);
       Ok(())
-    },
+    }
     Err(errors) => Err(errors),
   }
 }
@@ -195,7 +185,7 @@ fn parse_expression(tokens: &Vec<&Token<TokenType>>, token_index: usize, precede
     if let Ok((expr, next_index)) = result {
       Ok((Expression::PrefixOperation(PrefixOperator::new(tokens[token_index].clone(), Box::new(expr))), next_index))
     } else {
-      return result
+      return result;
     }
   } else {
     panic!("Unexpected token in expression {}", tokens[token_index])
@@ -214,7 +204,7 @@ fn parse_expression(tokens: &Vec<&Token<TokenType>>, token_index: usize, precede
 
     match tokens[current_token_index].token_type {
       TokenType::RightParen | TokenType::RightSquare | TokenType::EndOfInput | TokenType::Comma => break,
-      _ => {},
+      _ => {}
     }
 
     // do postfix here?
@@ -241,11 +231,11 @@ fn parse_expression(tokens: &Vec<&Token<TokenType>>, token_index: usize, precede
             }
           }
           if tokens[current_token_index].token_type != TokenType::RightSquare {
-            return Err(vec![Error::new(Severity::Error, tokens[current_token_index].get_span(), "Expected the end of the array index. Missing a ']' right square bracket.".to_string())])
+            return Err(vec![Error::new(Severity::Error, tokens[current_token_index].get_span(), "Expected the end of the array index. Missing a ']' right square bracket.".to_string())]);
           }
           left_hand_side = Expression::ArrayIndex(ArrayIndex::new(Box::new(left_hand_side), tokens[left_square_index].clone(), arguments, tokens[current_token_index].clone()));
           current_token_index += 1;
-          continue
+          continue;
         }
         TokenType::LeftParen => {
           let mut arguments = Vec::new();
@@ -254,7 +244,7 @@ fn parse_expression(tokens: &Vec<&Token<TokenType>>, token_index: usize, precede
           while current_token_index < tokens.len() {
             let (index_expression, next_token_index) = match parse_expression(tokens, current_token_index, precedence_table, 0) {
               Ok(a) => a,
-              Err(errors) => return Err(errors)
+              Err(errors) => return Err(errors),
             };
             if tokens[next_token_index].token_type == TokenType::Comma {
               arguments.push(Argument::new(index_expression, Some(tokens[next_token_index].clone())));
@@ -270,7 +260,7 @@ fn parse_expression(tokens: &Vec<&Token<TokenType>>, token_index: usize, precede
           }
           left_hand_side = Expression::Call(Call::new(Box::new(left_hand_side), tokens[left_paren_index].clone(), arguments, tokens[current_token_index].clone()));
           current_token_index += 1;
-          continue
+          continue;
         }
         _ => return Err(vec![Error::new(Severity::Error, tokens[current_token_index].get_span(), "Unexpected operator. Expected a valid binary operator (TODO display binary operators from precedence table or add an extra details section to the error message maybe it is suggestions on how to fix the error?).".to_string())]),
       }
@@ -298,7 +288,7 @@ fn parse_literal(tokens: &Vec<&Token<TokenType>>, token_index: usize, precedence
     TokenType::InterpolatedString => match parse_interpolated_string(&tokens[token_index].lexeme, precedence_table) {
       Ok(expressions) => Ok((Expression::InterpolatedString(InterpolatedString::new(tokens[token_index].clone(), expressions)), token_index + 1)),
       Err(new_errors) => Err(new_errors),
-    }
+    },
     TokenType::True | TokenType::False => Ok((Expression::Boolean(Boolean::new(tokens[token_index].clone())), token_index + 1)),
     TokenType::Number => Ok((Expression::Number(Number::new(tokens[token_index].clone())), token_index + 1)),
     TokenType::LeftParen => parse_sub_expression_or_tuple(tokens, token_index, precedence_table),
@@ -347,7 +337,8 @@ fn parse_interpolated_string(lexeme: &String, precedence_table: &PrecedenceTable
   let mut current_expression_chars = Vec::new();
   while index < chars.len() {
     let current_char = chars[index];
-    if current_char == '{' && !in_expression { // && current_char == '{' || current_char == '}'
+    if current_char == '{' && !in_expression {
+      // && current_char == '{' || current_char == '}'
       in_expression = true;
     } else if current_char == '{' && in_expression && current_expression_chars.len() == 0 {
       in_expression = false;
@@ -356,7 +347,7 @@ fn parse_interpolated_string(lexeme: &String, precedence_table: &PrecedenceTable
         Ok(tokens) => tokens,
         Err(mut new_errors) => {
           errors.append(&mut new_errors);
-          continue
+          continue;
         }
       };
       let clean_tokens = tokens.iter().filter(|x| x.token_type != TokenType::Newline && x.token_type != TokenType::Comment).collect::<Vec<&Token<TokenType>>>();
@@ -408,14 +399,14 @@ fn parse_sub_expression_or_tuple(tokens: &Vec<&Token<TokenType>>, token_index: u
   } else {
     let (subexpression, next_token_index) = match parse_expression(tokens, token_index + 1, precedence_table, 0) {
       Ok(a) => a,
-      Err(errors) => return Err(errors)
+      Err(errors) => return Err(errors),
     };
 
     if tokens[next_token_index].token_type == TokenType::Comma {
       // also a tuple
       let (mut tuple_members, new_token_index) = match parse_tuple_members(tokens, next_token_index + 1, precedence_table) {
         Ok(a) => a,
-        Err(errors) => return Err(errors)
+        Err(errors) => return Err(errors),
       };
       tuple_members.insert(0, TupleMember::new(None, None, subexpression, Some(tokens[next_token_index].clone())));
 
@@ -440,7 +431,7 @@ fn parse_tuple_members(tokens: &Vec<&Token<TokenType>>, token_index: usize, prec
   let mut current_index = token_index;
   while current_index < tokens.len() {
     if tokens[current_index].token_type == TokenType::RightParen {
-      break
+      break;
     }
 
     let (name, colon) = if tokens[current_index].token_type == TokenType::Identifier && tokens[current_index + 1].token_type == TokenType::Colon {

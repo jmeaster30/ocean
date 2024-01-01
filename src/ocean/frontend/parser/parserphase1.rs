@@ -1,11 +1,11 @@
 use crate::ocean::frontend::ast::*;
-use crate::ocean::frontend::astsymbolstack::*;
-use crate::ocean::frontend::parsestatestack::*;
+use crate::ocean::frontend::parser::astsymbolstack::*;
+use crate::ocean::frontend::parser::parsestatestack::*;
 use crate::ocean::frontend::tokentype::TokenType;
-use crate::util::token::Token;
-use itertools::Either;
 use crate::util::errors::{Error, Severity};
 use crate::util::span::Spanned;
+use crate::util::token::Token;
+use itertools::Either;
 
 pub fn parse_phase_one(tokens: &Vec<Token<TokenType>>) -> (Program, Vec<Error>) {
   let mut parser_state_stack = ParseStateStack::new();
@@ -405,9 +405,7 @@ pub fn parse_phase_one(tokens: &Vec<Token<TokenType>>) -> (Program, Vec<Error>) 
       (Some(ParseState::FunctionParameter), Some(AstSymbol::FunctionParams(_)), TokenType::RightParen) => {
         parser_state_stack.goto(ParseState::FunctionParameterEnd);
       }
-      (Some(ParseState::FunctionParameter), Some(AstSymbol::FunctionParams(_)), TokenType::Identifier)
-      | (Some(ParseState::FunctionParameter), Some(AstSymbol::FunctionParams(_)), TokenType::Type)
-      | (Some(ParseState::FunctionParameter), Some(AstSymbol::FunctionParams(_)), TokenType::TypePrefix) => {
+      (Some(ParseState::FunctionParameter), Some(AstSymbol::FunctionParams(_)), TokenType::Identifier) | (Some(ParseState::FunctionParameter), Some(AstSymbol::FunctionParams(_)), TokenType::Type) | (Some(ParseState::FunctionParameter), Some(AstSymbol::FunctionParams(_)), TokenType::TypePrefix) => {
         parser_state_stack.push(ParseState::IdentifierStart);
       }
       (Some(ParseState::FunctionParameter), Some(AstSymbol::Identifier(identifier)), TokenType::Comma) => {

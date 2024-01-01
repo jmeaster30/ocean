@@ -308,7 +308,7 @@ pub fn lex(input: &String) -> Result<Vec<Token<TokenType>>, Vec<Error>> {
       _ => {
         tokens.push(Token::new(input_chars[index].to_string(), TokenType::Error, (start_index, index), (line_start, line_end), (column_start, column_end)));
         errors.push(Error::new(Severity::Error, (start_index, index), "Unknown token.".to_string()));
-      },
+      }
     }
     index += 1;
   }

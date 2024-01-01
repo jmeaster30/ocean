@@ -124,11 +124,11 @@ impl ParseStateStack {
       match self.current_state() {
         Some(current_state) => {
           if current_state == state {
-            break
+            break;
           }
           self.pop();
         }
-        None => break
+        None => break,
       }
     }
   }

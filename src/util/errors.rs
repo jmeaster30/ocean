@@ -38,17 +38,8 @@ pub struct Error {
 }
 
 impl Error {
-  pub fn display_message(
-    &self,
-    file_contents: &[u8],
-    file_name: &String,
-  ) {
-    eprintln!(
-      "\u{001b}[{};1m{}: \u{001b}[95;1m{}\u{001b}[0m",
-      self.severity.ansi_color_code(),
-      self.severity.name(),
-      self.message
-    );
+  pub fn display_message(&self, file_contents: &[u8], file_name: &String) {
+    eprintln!("\u{001b}[{};1m{}: \u{001b}[95;1m{}\u{001b}[0m", self.severity.ansi_color_code(), self.severity.name(), self.message);
 
     let line_spans = Error::line_spans(file_contents);
 
@@ -60,41 +51,14 @@ impl Error {
     while line_index < line_spans.len() {
       if self.span.0 >= line_spans[line_index].0 && self.span.0 <= line_spans[line_index].1 {
         let column_index = self.span.0 - line_spans[line_index].0;
-        eprintln!(
-          "{}+----[\u{001b}[{}m{}:{}:{}\u{001b}[0m]----",
-          " ".repeat(width + 2),
-          self.severity.ansi_color_code(),
-          file_name,
-          line_index + 1,
-          column_index + 1
-        );
+        eprintln!("{}+----[\u{001b}[{}m{}:{}:{}\u{001b}[0m]----", " ".repeat(width + 2), self.severity.ansi_color_code(), file_name, line_index + 1, column_index + 1);
         eprintln!("{}|", " ".repeat(width + 2));
         if line_index > 0 {
-          Error::print_source_line(
-            &self.severity,
-            file_contents,
-            line_spans[line_index - 1],
-            self.span.0,
-            self.span.1,
-            line_index - 1,
-            largest_line_number,
-          );
+          Error::print_source_line(&self.severity, file_contents, line_spans[line_index - 1], self.span.0, self.span.1, line_index - 1, largest_line_number);
         }
-        Error::print_source_line(
-          &self.severity,
-          file_contents,
-          line_spans[line_index],
-          self.span.0,
-          self.span.1,
-          line_index,
-          largest_line_number,
-        );
+        Error::print_source_line(&self.severity, file_contents, line_spans[line_index], self.span.0, self.span.1, line_index, largest_line_number);
 
-        eprint!(
-          "{}|{}",
-          " ".repeat(width + 2),
-          " ".repeat(self.span.0 - line_spans[line_index].0 + 1)
-        );
+        eprint!("{}|{}", " ".repeat(width + 2), " ".repeat(self.span.0 - line_spans[line_index].0 + 1));
         eprintln!("\u{001b}[{}m^- {}\u{001b}[0m", "96", self.message);
 
         while line_index < line_spans.len() && self.span.1 > line_spans[line_index].0 {
@@ -102,15 +66,7 @@ impl Error {
           if line_index >= line_spans.len() {
             break;
           }
-          Error::print_source_line(
-            &self.severity,
-            file_contents,
-            line_spans[line_index],
-            self.span.0,
-            self.span.1,
-            line_index,
-            largest_line_number,
-          );
+          Error::print_source_line(&self.severity, file_contents, line_spans[line_index], self.span.0, self.span.1, line_index, largest_line_number);
         }
 
         break;
@@ -119,22 +75,10 @@ impl Error {
       }
     }
 
-    eprintln!(
-      "\u{001b}[0m{}+-----{}-----",
-      " ".repeat(width + 2),
-      "-".repeat(file_name.len() + 4)
-    );
+    eprintln!("\u{001b}[0m{}+-----{}-----", " ".repeat(width + 2), "-".repeat(file_name.len() + 4));
   }
 
-  fn print_source_line(
-    severity: &Severity,
-    file_contents: &[u8],
-    file_span: (usize, usize),
-    start_offset: usize,
-    end_offset: usize,
-    line_number: usize,
-    largest_line_number: usize,
-  ) {
+  fn print_source_line(severity: &Severity, file_contents: &[u8], file_span: (usize, usize), start_offset: usize, end_offset: usize, line_number: usize, largest_line_number: usize) {
     let mut index = file_span.0;
 
     let width = format!("{}", largest_line_number).len();
@@ -150,15 +94,9 @@ impl Error {
         c = b' ';
       }
 
-      if (index >= start_offset && index <= end_offset)
-        || (start_offset == end_offset && index == start_offset)
-      {
+      if (index >= start_offset && index <= end_offset) || (start_offset == end_offset && index == start_offset) {
         // In the error span
-        eprint!(
-          "\u{001b}[{}m{}\u{001b}[0m",
-          severity.ansi_color_code(),
-          c as char
-        )
+        eprint!("\u{001b}[{}m{}\u{001b}[0m", severity.ansi_color_code(), c as char)
       } else {
         eprint!("{}", c as char)
       }

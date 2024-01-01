@@ -1,11 +1,6 @@
-mod annotationparser;
 mod ast;
-mod astsymbolstack;
 pub mod compiler;
 mod lexer;
-mod parserphase1;
-mod parserphase2;
-mod parsestatestack;
-mod precedencetable;
-pub mod tokentype;
+mod parser;
 mod semanticanalysis;
+pub mod tokentype;
