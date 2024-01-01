@@ -263,6 +263,16 @@ fn parse_expression(tokens: &Vec<&Token<TokenType>>, token_index: usize, precede
           current_token_index += 1;
           continue;
         }
+        TokenType::As => {
+          match parse_type(tokens, current_token_index + 1) {
+            Ok((parsed_type, next_token_index)) => {
+              left_hand_side = Expression::Cast(Cast::new(Box::new(left_hand_side), tokens[current_token_index].clone(), parsed_type));
+              current_token_index = next_token_index;
+            }
+            Err(errors) => return Err(errors),
+          }
+          continue;
+        }
         _ => return Err(vec![Error::new(Severity::Error, tokens[current_token_index].get_span(), "Unexpected operator. Expected a valid binary operator (TODO display binary operators from precedence table or add an extra details section to the error message maybe it is suggestions on how to fix the error?).".to_string())]),
       }
     }
@@ -307,14 +317,7 @@ fn parse_literal(tokens: &Vec<&Token<TokenType>>, token_index: usize, precedence
     return Ok((expression, next_token_index));
   }
 
-  if tokens[current_token_index].token_type == TokenType::As {
-    match parse_type(tokens, current_token_index + 1) {
-      Ok((parsed_type, next_token_index)) => Ok((Expression::Cast(Cast::new(Box::new(expression), tokens[current_token_index].clone(), parsed_type)), next_token_index)),
-      Err(errors) => Err(errors),
-    }
-  } else {
-    Ok((expression, current_token_index))
-  }
+  Ok((expression, current_token_index))
 }
 
 fn parse_arguments(tokens: &Vec<&Token<TokenType>>, token_index: usize, precedence_table: &PrecedenceTable) -> Result<(Argument, usize), Vec<Error>> {
