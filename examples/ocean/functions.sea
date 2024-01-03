@@ -1,13 +1,14 @@
 use std.io as io
 
-let morph = 
-  function (value: auto T, callback: function (T) -> T)
-  -> 
-  (result: T = callback(value))
+function morph
+    (value: auto T, callback: function (T) -> T)
+    ->
+    (result: T = callback(value))
 
 function swap (a: auto T, b: T) -> (c: T = b, d: T = a)
 
-let sum = func (a: i32, b: i32) -> (result: i32)
+# should type check to only be types that have a "+" operator defined.
+function sum (a: auto T, b: T) -> (result: T)
 {
-  result = a + b
+  result = a + b;
 }

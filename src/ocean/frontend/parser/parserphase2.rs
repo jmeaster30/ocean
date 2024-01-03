@@ -166,35 +166,22 @@ fn parse_phase_two_function(function: &mut Function, precedence_table: &mut Prec
 
 fn parse_phase_two_expression(expression: &mut ExpressionNode, precedence_table: &mut PrecedenceTable) -> Result<(), Vec<Error>> {
   let expression_tokens = expression.tokens.iter().filter(|x| x.token_type != TokenType::Newline && x.token_type != TokenType::Comment).collect::<Vec<&Token<TokenType>>>();
-  match parse_expression(&expression_tokens, 0, precedence_table, 0) {
-    Ok((parsed_expression, _)) => {
-      expression.parsed_expression = Some(parsed_expression);
-      Ok(())
-    }
-    Err(errors) => Err(errors),
-  }
+  let (parsed_expression, _) = parse_expression(&expression_tokens, 0, precedence_table, 0)?;
+  expression.parsed_expression = Some(parsed_expression);
+  Ok(())
 }
 
 fn parse_expression(tokens: &Vec<&Token<TokenType>>, token_index: usize, precedence_table: &PrecedenceTable, min_precedence: usize) -> Result<(Expression, usize), Vec<Error>> {
   //println!("tokens size: {} token_index: {} min_prec {}", tokens.len(), token_index, min_precedence);
   //println!("tokens: {:?}", tokens);
-  let result = if is_literal_start_token(tokens[token_index]) {
-    parse_literal(tokens, token_index, precedence_table)
+  let (mut left_hand_side, next_token_index) = if is_literal_start_token(tokens[token_index]) {
+    parse_literal(tokens, token_index, precedence_table)?
   } else if precedence_table.is_prefix_operator(&tokens[token_index].lexeme) {
     let prefix_precedence = precedence_table.get_prefix_precedence(&tokens[token_index].lexeme);
-    let result = parse_expression(tokens, token_index + 1, precedence_table, prefix_precedence);
-    if let Ok((expr, next_index)) = result {
-      Ok((Expression::PrefixOperation(PrefixOperator::new(tokens[token_index].clone(), Box::new(expr))), next_index))
-    } else {
-      return result;
-    }
+    let (parsed_expression, next_index) = parse_expression(tokens, token_index + 1, precedence_table, prefix_precedence)?;
+    (Expression::PrefixOperation(PrefixOperator::new(tokens[token_index].clone(), Box::new(parsed_expression))), next_index)
   } else {
     panic!("Unexpected token in expression {}", tokens[token_index])
-  };
-
-  let (mut left_hand_side, next_token_index) = match result {
-    Ok(a) => a,
-    Err(errors) => return Err(errors),
   };
 
   let mut current_token_index = next_token_index;
@@ -217,11 +204,7 @@ fn parse_expression(tokens: &Vec<&Token<TokenType>>, token_index: usize, precede
           let left_square_index = current_token_index;
           current_token_index += 1;
           while current_token_index < tokens.len() {
-            let result = parse_expression(tokens, current_token_index, precedence_table, 0);
-            let (index_expression, next_token_index) = match result {
-              Ok(a) => a,
-              Err(errors) => return Err(errors),
-            };
+            let (index_expression, next_token_index) = parse_expression(tokens, current_token_index, precedence_table, 0)?;
             if tokens[next_token_index].token_type == TokenType::Comma {
               arguments.push(Argument::new(index_expression, Some(tokens[next_token_index].clone())));
               current_token_index = next_token_index + 1;
@@ -243,10 +226,7 @@ fn parse_expression(tokens: &Vec<&Token<TokenType>>, token_index: usize, precede
           let left_paren_index = current_token_index;
           current_token_index += 1;
           while current_token_index < tokens.len() {
-            let (index_expression, next_token_index) = match parse_expression(tokens, current_token_index, precedence_table, 0) {
-              Ok(a) => a,
-              Err(errors) => return Err(errors),
-            };
+            let (index_expression, next_token_index) = parse_expression(tokens, current_token_index, precedence_table, 0)?;
             if tokens[next_token_index].token_type == TokenType::Comma {
               arguments.push(Argument::new(index_expression, Some(tokens[next_token_index].clone())));
               current_token_index = next_token_index + 1;
@@ -264,13 +244,9 @@ fn parse_expression(tokens: &Vec<&Token<TokenType>>, token_index: usize, precede
           continue;
         }
         TokenType::As => {
-          match parse_type(tokens, current_token_index + 1) {
-            Ok((parsed_type, next_token_index)) => {
-              left_hand_side = Expression::Cast(Cast::new(Box::new(left_hand_side), tokens[current_token_index].clone(), parsed_type));
-              current_token_index = next_token_index;
-            }
-            Err(errors) => return Err(errors),
-          }
+          let (parsed_type, next_token_index) = parse_type(tokens, current_token_index + 1)?;
+          left_hand_side = Expression::Cast(Cast::new(Box::new(left_hand_side), tokens[current_token_index].clone(), parsed_type));
+          current_token_index = next_token_index;
           continue;
         }
         _ => return Err(vec![Error::new(Severity::Error, tokens[current_token_index].get_span(), "Unexpected operator. Expected a valid binary operator (TODO display binary operators from precedence table or add an extra details section to the error message maybe it is suggestions on how to fix the error?).".to_string())]),
@@ -282,10 +258,7 @@ fn parse_expression(tokens: &Vec<&Token<TokenType>>, token_index: usize, precede
       break;
     }
 
-    let (right_hand_side, next_token_index) = match parse_expression(tokens, current_token_index + 1, precedence_table, right_precedence) {
-      Ok(a) => a,
-      Err(errors) => return Err(errors),
-    };
+    let (right_hand_side, next_token_index) = parse_expression(tokens, current_token_index + 1, precedence_table, right_precedence)?;
     left_hand_side = Expression::BinaryOperation(BinaryOperator::new(Box::new(left_hand_side), tokens[current_token_index].clone(), Box::new(right_hand_side)));
     current_token_index = next_token_index
   }
@@ -294,22 +267,17 @@ fn parse_expression(tokens: &Vec<&Token<TokenType>>, token_index: usize, precede
 }
 
 fn parse_literal(tokens: &Vec<&Token<TokenType>>, token_index: usize, precedence_table: &PrecedenceTable) -> Result<(Expression, usize), Vec<Error>> {
-  let result = match tokens[token_index].token_type {
-    TokenType::String => Ok((Expression::String(StringLiteral::new(tokens[token_index].clone())), token_index + 1)),
-    TokenType::InterpolatedString => match parse_interpolated_string(&tokens[token_index].lexeme, precedence_table) {
-      Ok(expressions) => Ok((Expression::InterpolatedString(InterpolatedString::new(tokens[token_index].clone(), expressions)), token_index + 1)),
-      Err(new_errors) => Err(new_errors),
+  let (expression, next_token_index) = match tokens[token_index].token_type {
+    TokenType::String => (Expression::String(StringLiteral::new(tokens[token_index].clone())), token_index + 1),
+    TokenType::InterpolatedString => {
+      let parsed_expressions = parse_interpolated_string(&tokens[token_index].lexeme, precedence_table)?;
+      (Expression::InterpolatedString(InterpolatedString::new(tokens[token_index].clone(), parsed_expressions)), token_index + 1)
     },
-    TokenType::True | TokenType::False => Ok((Expression::Boolean(Boolean::new(tokens[token_index].clone())), token_index + 1)),
-    TokenType::Number => Ok((Expression::Number(Number::new(tokens[token_index].clone())), token_index + 1)),
-    TokenType::LeftParen => parse_sub_expression_or_tuple(tokens, token_index, precedence_table),
-    TokenType::Identifier => Ok((Expression::Variable(Variable::new(tokens[token_index].clone())), token_index + 1)),
+    TokenType::True | TokenType::False => (Expression::Boolean(Boolean::new(tokens[token_index].clone())), token_index + 1),
+    TokenType::Number => (Expression::Number(Number::new(tokens[token_index].clone())), token_index + 1),
+    TokenType::LeftParen => parse_sub_expression_or_tuple(tokens, token_index, precedence_table)?,
+    TokenType::Identifier => (Expression::Variable(Variable::new(tokens[token_index].clone())), token_index + 1),
     _ => panic!("Unexpected case??? {}", tokens[token_index]),
-  };
-
-  let (expression, next_token_index) = match result {
-    Ok(a) => a,
-    Err(error) => return Err(error),
   };
 
   let current_token_index = next_token_index;
@@ -321,10 +289,7 @@ fn parse_literal(tokens: &Vec<&Token<TokenType>>, token_index: usize, precedence
 }
 
 fn parse_arguments(tokens: &Vec<&Token<TokenType>>, token_index: usize, precedence_table: &PrecedenceTable) -> Result<(Argument, usize), Vec<Error>> {
-  let (index_expression, next_token_index) = match parse_expression(tokens, token_index, precedence_table, 0) {
-    Ok(a) => a,
-    Err(error) => return Err(error),
-  };
+  let (index_expression, next_token_index) = parse_expression(tokens, token_index, precedence_table, 0)?;
 
   if tokens[next_token_index].token_type == TokenType::Comma {
     Ok((Argument::new(index_expression, Some(tokens[next_token_index].clone())), next_token_index + 1))
@@ -392,10 +357,7 @@ fn parse_sub_expression_or_tuple(tokens: &Vec<&Token<TokenType>>, token_index: u
   let left_paren = tokens[token_index].clone();
 
   if tokens[token_index + 1].token_type == TokenType::Identifier && tokens[token_index + 2].token_type == TokenType::Colon {
-    let (tuple_members, next_token_index) = match parse_tuple_members(tokens, token_index + 1, precedence_table) {
-      Ok(a) => a,
-      Err(errors) => return Err(errors),
-    };
+    let (tuple_members, next_token_index) = parse_tuple_members(tokens, token_index + 1, precedence_table)?;
 
     if tokens[next_token_index].token_type != TokenType::RightParen {
       Err(vec![Error::new(Severity::Error, tokens[next_token_index].get_span(), "Unexpected token. Expected ')' right parenthesis.".to_string())])
@@ -403,17 +365,11 @@ fn parse_sub_expression_or_tuple(tokens: &Vec<&Token<TokenType>>, token_index: u
       Ok((Expression::Tuple(Tuple::new(left_paren, tuple_members, tokens[next_token_index].clone())), next_token_index + 1))
     }
   } else {
-    let (subexpression, next_token_index) = match parse_expression(tokens, token_index + 1, precedence_table, 0) {
-      Ok(a) => a,
-      Err(errors) => return Err(errors),
-    };
+    let (subexpression, next_token_index) = parse_expression(tokens, token_index + 1, precedence_table, 0)?;
 
     if tokens[next_token_index].token_type == TokenType::Comma {
       // also a tuple
-      let (mut tuple_members, new_token_index) = match parse_tuple_members(tokens, next_token_index + 1, precedence_table) {
-        Ok(a) => a,
-        Err(errors) => return Err(errors),
-      };
+      let (mut tuple_members, new_token_index) = parse_tuple_members(tokens, next_token_index + 1, precedence_table)?;
       tuple_members.insert(0, TupleMember::new(None, None, subexpression, Some(tokens[next_token_index].clone())));
 
       if tokens[new_token_index].token_type != TokenType::RightParen {
@@ -481,7 +437,7 @@ fn parse_type(tokens: &Vec<&Token<TokenType>>, token_index: usize) -> Result<(Ty
     (AstSymbol::Type(parsed_type), errors) if errors.len() == 0 => Ok((parsed_type, next_token_index)),
     _ => {
       errors.push(Error::new(Severity::Error, (tokens[token_index].get_span().0, tokens[next_token_index - 1].get_span().1), "Type parser produced an unexpected ast node :(".to_string()));
-      Err(errors.clone())
+      Err(errors)
     }
   }
 }
