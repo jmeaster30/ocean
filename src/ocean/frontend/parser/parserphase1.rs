@@ -648,7 +648,9 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
       //<editor-fold desc="> Type">
       (Some(ParseState::Type), _, TokenType::Identifier) => {
         parser_state_stack.goto(ParseState::TypeArray);
-        ast_stack.push(AstSymbol::Type(Type::Custom(CustomType::new(current_token.clone()))));
+        parser_state_stack.push(ParseState::TypeCustom);
+        parser_state_stack.push(ParseState::TypeArguments);
+        ast_stack.push(AstSymbol::Token(current_token.clone()));
         token_index = consume_comments_newline(tokens, token_index);
       }
       (Some(ParseState::Type), _, TokenType::Type) => {
@@ -802,6 +804,68 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
       (Some(ParseState::TypeIdentifier), Some(_), TokenType::Identifier) => {
         token_index = consume_comments_newline(tokens, token_index);
         ast_stack.push(AstSymbol::Token(current_token.clone()));
+        parser_state_stack.pop();
+      }
+      (Some(ParseState::TypeCustom), Some(AstSymbol::Token(identifier_token)), _) => {
+        ast_stack.pop();
+        ast_stack.push(AstSymbol::Type(Type::Custom(CustomType::new(identifier_token, None))));
+        parser_state_stack.pop();
+      }
+      (Some(ParseState::TypeCustom), Some(AstSymbol::TypeParameters(type_parameters)), _) => {
+        ast_stack.pop();
+        let identifier_token = ast_stack.pop_panic();
+        match identifier_token {
+          AstSymbol::Token(identifier_token) => {
+            ast_stack.push(AstSymbol::Type(Type::Custom(CustomType::new(identifier_token, Some(type_parameters)))));
+            parser_state_stack.pop();
+          }
+          _ => panic!("Invalid parse state :("),
+        }
+      }
+      (Some(ParseState::TypeArguments), Some(AstSymbol::Token(_)), TokenType::LeftParen) => {
+        ast_stack.push(AstSymbol::Token(current_token.clone()));
+        ast_stack.push(AstSymbol::TypeArguments(Vec::new()));
+        token_index = consume_comments_newline(tokens, token_index);
+      }
+      (Some(ParseState::TypeArguments), Some(AstSymbol::Type(type_symbol)), TokenType::Comma) => {
+        ast_stack.pop();
+        let mut type_arguments = ast_stack.pop_panic();
+        match type_arguments {
+          AstSymbol::TypeArguments(mut type_arguments) => {
+            type_arguments.push(TypeArgument::new(type_symbol, Some(current_token.clone())));
+            token_index = consume_comments_newline(tokens, token_index);
+            ast_stack.push(AstSymbol::TypeArguments(type_arguments));
+          }
+          _ => panic!("Invalid parse state :(")
+        }
+      }
+      (Some(ParseState::TypeArguments), Some(AstSymbol::Type(type_symbol)), TokenType::RightParen) => {
+        ast_stack.pop();
+        let mut type_arguments = ast_stack.pop_panic();
+        match type_arguments {
+          AstSymbol::TypeArguments(mut type_arguments) => {
+            type_arguments.push(TypeArgument::new(type_symbol, None));
+            ast_stack.push(AstSymbol::TypeArguments(type_arguments));
+          }
+          _ => panic!("Invalid parse state :(")
+        }
+      }
+      (Some(ParseState::TypeArguments), Some(AstSymbol::TypeArguments(type_arguments)), TokenType::RightParen) => {
+        ast_stack.pop();
+        let left_paren_token = ast_stack.pop_panic();
+        match left_paren_token {
+          AstSymbol::Token(left_paren_token) => {
+            ast_stack.push(AstSymbol::TypeParameters(TypeParameters::new(left_paren_token.clone(), type_arguments, current_token.clone())));
+            token_index = consume_comments_newline(tokens, token_index);
+            parser_state_stack.pop();
+          }
+          _ => panic!("Invalid parse state :("),
+        }
+      }
+      (Some(ParseState::TypeArguments), Some(AstSymbol::TypeArguments(_)), _) => {
+        parser_state_stack.push(ParseState::Type);
+      }
+      (Some(ParseState::TypeArguments), Some(_), _) => {
         parser_state_stack.pop();
       }
       (Some(ParseState::TypeAuto), Some(AstSymbol::Token(identifier_token)), _) => {

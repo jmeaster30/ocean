@@ -163,6 +163,20 @@ pub struct BaseType {
 #[derive(Clone, Debug, New)]
 pub struct CustomType {
   pub identifier: Token<TokenType>,
+  pub type_parameters: Option<TypeParameters>,
+}
+
+#[derive(Clone, Debug, New)]
+pub struct TypeParameters {
+  pub left_paren_token: Token<TokenType>,
+  pub type_arguments: Vec<TypeArgument>,
+  pub right_paren_token: Token<TokenType>,
+}
+
+#[derive(Clone, Debug, New)]
+pub struct TypeArgument {
+  pub argument_type: Type,
+  pub comma_token: Option<Token<TokenType>>,
 }
 
 #[derive(Clone, Debug, New)]

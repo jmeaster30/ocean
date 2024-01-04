@@ -34,6 +34,8 @@ pub enum ParseState {
 
   Type,
   TypeIdentifier,
+  TypeCustom,
+  TypeArguments,
   TypeAuto,
   TypeLazy,
   TypeRef,

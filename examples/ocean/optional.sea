@@ -1,0 +1,18 @@
+union result(auto oktype, auto errortype) {
+    Ok(oktype),
+    Err(errortype)
+}
+
+union optional(auto subtype) {
+    Some(subtype),
+    None
+}
+
+function has_value(optional_value: optional(auto subtype)) -> (result: bool = optional_value != None);
+
+function get_value_or_default(optional_value: optional(auto subtype), default_value: lazy subtype) -> (result: subtype) {
+    match optional_value {
+        Some(value) -> result = value;
+        None -> result = default_value;
+    }
+}
