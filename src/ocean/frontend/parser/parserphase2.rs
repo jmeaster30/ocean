@@ -200,20 +200,10 @@ fn parse_expression(tokens: &Vec<&Token<TokenType>>, token_index: usize, precede
     if !precedence_table.is_binary_operator(&tokens[current_token_index].lexeme) {
       match tokens[current_token_index].token_type {
         TokenType::LeftSquare => {
-          let mut arguments = Vec::new();
           let left_square_index = current_token_index;
           current_token_index += 1;
-          while current_token_index < tokens.len() {
-            let (index_expression, next_token_index) = parse_expression(tokens, current_token_index, precedence_table, 0)?;
-            if tokens[next_token_index].token_type == TokenType::Comma {
-              arguments.push(Argument::new(index_expression, Some(tokens[next_token_index].clone())));
-              current_token_index = next_token_index + 1;
-            } else {
-              arguments.push(Argument::new(index_expression, None));
-              current_token_index = next_token_index;
-              break;
-            }
-          }
+          let (arguments, next_token_index) = parse_arguments(tokens, current_token_index, precedence_table)?;
+          current_token_index = next_token_index;
           if tokens[current_token_index].token_type != TokenType::RightSquare {
             return Err(vec![Error::new(Severity::Error, tokens[current_token_index].get_span(), "Expected the end of the array index. Missing a ']' right square bracket.".to_string())]);
           }
@@ -222,20 +212,10 @@ fn parse_expression(tokens: &Vec<&Token<TokenType>>, token_index: usize, precede
           continue;
         }
         TokenType::LeftParen => {
-          let mut arguments = Vec::new();
           let left_paren_index = current_token_index;
           current_token_index += 1;
-          while current_token_index < tokens.len() {
-            let (index_expression, next_token_index) = parse_expression(tokens, current_token_index, precedence_table, 0)?;
-            if tokens[next_token_index].token_type == TokenType::Comma {
-              arguments.push(Argument::new(index_expression, Some(tokens[next_token_index].clone())));
-              current_token_index = next_token_index + 1;
-            } else {
-              arguments.push(Argument::new(index_expression, None));
-              current_token_index = next_token_index;
-              break;
-            }
-          }
+          let (arguments, next_token_index) = parse_arguments(tokens, current_token_index, precedence_table)?;
+          current_token_index = next_token_index;
           if tokens[current_token_index].token_type != TokenType::RightParen {
             return Err(vec![Error::new(Severity::Error, tokens[current_token_index].get_span(), "Expected the end of the call. Missing a ')' right parenthesis.".to_string())]);
           }
@@ -277,6 +257,17 @@ fn parse_literal(tokens: &Vec<&Token<TokenType>>, token_index: usize, precedence
     TokenType::Number => (Expression::Number(Number::new(tokens[token_index].clone())), token_index + 1),
     TokenType::LeftParen => parse_sub_expression_or_tuple(tokens, token_index, precedence_table)?,
     TokenType::Identifier => (Expression::Variable(Variable::new(tokens[token_index].clone())), token_index + 1),
+    TokenType::LeftSquare => {
+      let left_square_index = token_index;
+      let mut current_token_index = left_square_index;
+      current_token_index += 1;
+      let (arguments, next_token_index) = parse_arguments(tokens, current_token_index, precedence_table)?;
+      current_token_index = next_token_index;
+      if tokens[current_token_index].token_type != TokenType::RightSquare {
+        return Err(vec![Error::new(Severity::Error, tokens[current_token_index].get_span(), "Expected the end of the array literal. Missing a ']' right square bracket.".to_string())]);
+      }
+      (Expression::ArrayLiteral(ArrayLiteral::new(tokens[left_square_index].clone(), arguments, tokens[current_token_index].clone())), current_token_index + 1)
+    }
     _ => panic!("Unexpected case??? {}", tokens[token_index]),
   };
 
@@ -288,14 +279,21 @@ fn parse_literal(tokens: &Vec<&Token<TokenType>>, token_index: usize, precedence
   Ok((expression, current_token_index))
 }
 
-fn parse_arguments(tokens: &Vec<&Token<TokenType>>, token_index: usize, precedence_table: &PrecedenceTable) -> Result<(Argument, usize), Vec<Error>> {
-  let (index_expression, next_token_index) = parse_expression(tokens, token_index, precedence_table, 0)?;
-
-  if tokens[next_token_index].token_type == TokenType::Comma {
-    Ok((Argument::new(index_expression, Some(tokens[next_token_index].clone())), next_token_index + 1))
-  } else {
-    Ok((Argument::new(index_expression, None), next_token_index))
+fn parse_arguments(tokens: &Vec<&Token<TokenType>>, token_index: usize, precedence_table: &PrecedenceTable) -> Result<(Vec<Argument>, usize), Vec<Error>> {
+  let mut current_token_index = token_index;
+  let mut arguments = Vec::new();
+  while current_token_index < tokens.len() {
+    let (index_expression, next_token_index) = parse_expression(tokens, current_token_index, precedence_table, 0)?;
+    if tokens[next_token_index].token_type == TokenType::Comma {
+      arguments.push(Argument::new(index_expression, Some(tokens[next_token_index].clone())));
+      current_token_index = next_token_index + 1;
+    } else {
+      arguments.push(Argument::new(index_expression, None));
+      current_token_index = next_token_index;
+      break;
+    }
   }
+  Ok((arguments, current_token_index))
 }
 
 fn parse_interpolated_string(lexeme: &String, precedence_table: &PrecedenceTable) -> Result<Vec<Expression>, Vec<Error>> {
@@ -433,10 +431,10 @@ fn parse_tuple_members(tokens: &Vec<&Token<TokenType>>, token_index: usize, prec
 fn parse_type(tokens: &Vec<&Token<TokenType>>, token_index: usize) -> Result<(Type, usize), Vec<Error>> {
   // This is very janky going from ref vec of refs to ref vec of non-refs
   let (ast_symbol, next_token_index, mut errors) = parse_phase_one_partial(&tokens.iter().map(|x| x.clone().clone()).collect::<Vec<Token<TokenType>>>(), token_index, ParseState::Type, None);
-  match (ast_symbol, errors.clone()) {
+  match (ast_symbol.clone(), errors.clone()) {
     (AstSymbol::Type(parsed_type), errors) if errors.len() == 0 => Ok((parsed_type, next_token_index)),
     _ => {
-      errors.push(Error::new(Severity::Error, (tokens[token_index].get_span().0, tokens[next_token_index - 1].get_span().1), "Type parser produced an unexpected ast node :(".to_string()));
+      errors.push(Error::new(Severity::Error, (tokens[token_index].get_span().0, tokens[next_token_index - 1].get_span().1), format!("Type parser produced an unexpected ast node :( {:?}", ast_symbol).to_string()));
       Err(errors)
     }
   }
@@ -444,7 +442,7 @@ fn parse_type(tokens: &Vec<&Token<TokenType>>, token_index: usize) -> Result<(Ty
 
 fn is_literal_start_token(token: &Token<TokenType>) -> bool {
   match token.token_type {
-    TokenType::String | TokenType::InterpolatedString | TokenType::Identifier | TokenType::LeftParen | TokenType::True | TokenType::False | TokenType::Number => true,
+    TokenType::String | TokenType::InterpolatedString | TokenType::Identifier | TokenType::LeftParen | TokenType::LeftSquare | TokenType::True | TokenType::False | TokenType::Number => true,
     _ => false,
   }
 }

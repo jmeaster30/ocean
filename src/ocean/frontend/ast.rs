@@ -375,6 +375,7 @@ impl ExpressionNode {
 #[derive(Clone, Debug)]
 pub enum Expression {
   String(StringLiteral),
+  ArrayLiteral(ArrayLiteral),
   Number(Number),
   Boolean(Boolean),
   InterpolatedString(InterpolatedString),
@@ -392,6 +393,13 @@ pub enum Expression {
 #[derive(Clone, Debug, New)]
 pub struct StringLiteral {
   pub token: Token<TokenType>,
+}
+
+#[derive(Clone, Debug, New)]
+pub struct ArrayLiteral {
+  pub left_square_token: Token<TokenType>,
+  pub arguments: Vec<Argument>,
+  pub right_square_token: Token<TokenType>,
 }
 
 #[derive(Clone, Debug, New)]
