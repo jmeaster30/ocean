@@ -54,6 +54,7 @@ pub fn lex(input: &String) -> Result<Vec<Token<TokenType>>, Vec<Error>> {
           "true" => TokenType::True,
           "false" => TokenType::False,
           "let" => TokenType::Let,
+          "interface" => TokenType::Interface,
           _ => TokenType::Identifier,
         };
 

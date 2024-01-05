@@ -17,6 +17,7 @@ pub enum TokenType {
 
   Pack,
   Union,
+  Interface,
   Function,
   While,
   Loop,

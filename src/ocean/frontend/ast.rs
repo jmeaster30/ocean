@@ -48,6 +48,7 @@ pub enum Statement {
   Function(Function),
   Pack(Pack),
   Union(Union),
+  Interface(Interface),
   Return(Return),
   Break(Break),
   Continue(Continue),
@@ -273,7 +274,7 @@ pub struct FunctionReturn {
 #[derive(Clone, Debug, New)]
 pub struct Pack {
   pub pack_token: Token<TokenType>,
-  pub identifier: Token<TokenType>,
+  pub custom_type: CustomType,
   pub left_curly: Token<TokenType>,
   pub members: Vec<PackMember>,
   pub right_curly: Token<TokenType>,
@@ -288,7 +289,7 @@ pub struct PackMember {
 #[derive(Clone, Debug, New)]
 pub struct Union {
   pub union_token: Token<TokenType>,
-  pub identifier: Token<TokenType>,
+  pub custom_type: CustomType,
   pub left_curly: Token<TokenType>,
   pub members: Vec<UnionMember>,
   pub right_curly: Token<TokenType>,
@@ -311,6 +312,21 @@ pub struct UnionSubTypes {
 #[derive(Clone, Debug, New)]
 pub struct UnionSubTypeEntry {
   pub types: Type,
+  pub comma_token: Option<Token<TokenType>>,
+}
+
+#[derive(Clone, Debug, New)]
+pub struct Interface {
+  pub interface_token: Token<TokenType>,
+  pub custom_type: CustomType,
+  pub left_curly_token: Token<TokenType>,
+  pub entries: Vec<InterfaceEntry>,
+  pub right_curly_token: Token<TokenType>,
+}
+
+#[derive(Clone, Debug, New)]
+pub struct InterfaceEntry {
+  pub function: Function,
   pub comma_token: Option<Token<TokenType>>,
 }
 

@@ -17,6 +17,7 @@ pub enum AstSymbol {
   UnionMembers(Vec<UnionMember>),
   UnionSubTypes(UnionSubTypes),
   UnionSubTypeEntries(Vec<UnionSubTypeEntry>),
+  InterfaceMembers(Vec<InterfaceEntry>),
 
   FunctionParams(Vec<FunctionParam>),
   FunctionReturns(Vec<FunctionReturn>),

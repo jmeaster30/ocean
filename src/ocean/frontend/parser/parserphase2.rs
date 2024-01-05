@@ -181,7 +181,7 @@ fn parse_expression(tokens: &Vec<&Token<TokenType>>, token_index: usize, precede
     let (parsed_expression, next_index) = parse_expression(tokens, token_index + 1, precedence_table, prefix_precedence)?;
     (Expression::PrefixOperation(PrefixOperator::new(tokens[token_index].clone(), Box::new(parsed_expression))), next_index)
   } else {
-    panic!("Unexpected token in expression {}", tokens[token_index])
+    return Err(vec![Error::new(Severity::Error, tokens[token_index].get_span(), "Unexpected token. Expected a literal or a prefix operator.".to_string())])
   };
 
   let mut current_token_index = next_token_index;

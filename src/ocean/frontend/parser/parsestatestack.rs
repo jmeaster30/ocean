@@ -20,6 +20,11 @@ pub enum ParseState {
   UnionSubType,
   UnionSubTypeEnd,
 
+  InterfaceIdentifier,
+  InterfaceBodyStart,
+  InterfaceBody,
+  InterfaceBodyEnd,
+
   UsingPathIdentifier,
   UsingPathOptionalDot,
 
