@@ -172,8 +172,6 @@ fn parse_phase_two_expression(expression: &mut ExpressionNode, precedence_table:
 }
 
 fn parse_expression(tokens: &Vec<&Token<TokenType>>, token_index: usize, precedence_table: &PrecedenceTable, min_precedence: usize) -> Result<(Expression, usize), Vec<Error>> {
-  //println!("tokens size: {} token_index: {} min_prec {}", tokens.len(), token_index, min_precedence);
-  //println!("tokens: {:?}", tokens);
   let (mut left_hand_side, next_token_index) = if is_literal_start_token(tokens[token_index]) {
     parse_literal(tokens, token_index, precedence_table)?
   } else if precedence_table.is_prefix_operator(&tokens[token_index].lexeme) {
@@ -430,7 +428,9 @@ fn parse_tuple_members(tokens: &Vec<&Token<TokenType>>, token_index: usize, prec
 
 fn parse_type(tokens: &Vec<&Token<TokenType>>, token_index: usize) -> Result<(Type, usize), Vec<Error>> {
   // This is very janky going from ref vec of refs to ref vec of non-refs
-  let (ast_symbol, next_token_index, mut errors) = parse_phase_one_partial(&tokens.iter().map(|x| x.clone().clone()).collect::<Vec<Token<TokenType>>>(), token_index, ParseState::Type, None);
+  let mut token_copy = tokens.iter().map(|x| x.clone().clone()).collect::<Vec<Token<TokenType>>>();
+  token_copy.push(Token::new("".to_string(), TokenType::EndOfInput, (0, 0), (0, 0), (0, 0)));
+  let (ast_symbol, next_token_index, mut errors) = parse_phase_one_partial(&token_copy, token_index, ParseState::Type, None);
   match (ast_symbol.clone(), errors.clone()) {
     (AstSymbol::Type(parsed_type), errors) if errors.len() == 0 => Ok((parsed_type, next_token_index)),
     _ => {
