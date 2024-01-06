@@ -280,6 +280,9 @@ fn parse_literal(tokens: &Vec<&Token<TokenType>>, token_index: usize, precedence
 fn parse_arguments(tokens: &Vec<&Token<TokenType>>, token_index: usize, precedence_table: &PrecedenceTable) -> Result<(Vec<Argument>, usize), Vec<Error>> {
   let mut current_token_index = token_index;
   let mut arguments = Vec::new();
+  if tokens[current_token_index].token_type == TokenType::RightParen || tokens[current_token_index].token_type == TokenType::RightSquare {
+    return Ok((arguments, current_token_index));
+  }
   while current_token_index < tokens.len() {
     let (index_expression, next_token_index) = parse_expression(tokens, current_token_index, precedence_table, 0)?;
     if tokens[next_token_index].token_type == TokenType::Comma {
