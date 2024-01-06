@@ -1,6 +1,6 @@
 interface Iterable(auto Subtype) {
     function current(iterator: Iterable(Subtype)) -> (result: Optional(Subtype)),
-    function move(iterator: Iterable(Subtype)) -> ()
+    function move(iterator: Iterable(Subtype))
 }
 
 pack ArrayIterable(auto Subtype) {
@@ -60,9 +60,11 @@ function current(filter_iterator: FilterIterable(auto Subtype)) -> (result: Opti
     }
 }
 
-function move(filter_iterator: FilterIterable(auto Subtype)) -> () {
+function move(filter_iterator: FilterIterable(auto Subtype)) {
     filter_iterator.iterator.move();
 }
+
+let a: function(Subtype) = "test";
 
 
 using std.io

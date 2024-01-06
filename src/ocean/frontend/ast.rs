@@ -250,10 +250,10 @@ pub struct Function {
   pub param_left_paren: Token<TokenType>,
   pub params: Vec<FunctionParam>,
   pub param_right_paren: Token<TokenType>,
-  pub arrow_token: Token<TokenType>,
-  pub result_left_paren: Token<TokenType>,
+  pub arrow_token: Option<Token<TokenType>>,
+  pub result_left_paren: Option<Token<TokenType>>,
   pub results: Vec<FunctionReturn>,
-  pub result_right_paren: Token<TokenType>,
+  pub result_right_paren: Option<Token<TokenType>>,
   pub compound_statement: Option<CompoundStatement>,
 }
 

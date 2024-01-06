@@ -527,15 +527,25 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
         token_index = consume_comments_newline(tokens, token_index);
       }
       (Some(ParseState::FunctionArrow), Some(_), TokenType::Arrow) => {
-        ast_stack.push(AstSymbol::Token(current_token.clone()));
+        ast_stack.push(AstSymbol::OptToken(Some(current_token.clone())));
         token_index = consume_comments_newline(tokens, token_index);
         parser_state_stack.pop();
       }
-      (Some(ParseState::FunctionReturnStart), Some(_), TokenType::LeftParen) => {
+      (Some(ParseState::FunctionArrow), Some(_), _) => {
+        ast_stack.push(AstSymbol::OptToken(None));
+        parser_state_stack.pop();
+      }
+      (Some(ParseState::FunctionReturnStart), Some(AstSymbol::OptToken(Some(_))), TokenType::LeftParen) => {
         parser_state_stack.goto(ParseState::FunctionReturn);
-        ast_stack.push(AstSymbol::Token(current_token.clone()));
+        ast_stack.push(AstSymbol::OptToken(Some(current_token.clone())));
         ast_stack.push(AstSymbol::FunctionReturns(Vec::new()));
         token_index = consume_comments_newline(tokens, token_index);
+      }
+      (Some(ParseState::FunctionReturnStart), Some(AstSymbol::OptToken(None)), _) => {
+        ast_stack.push(AstSymbol::OptToken(None));
+        ast_stack.push(AstSymbol::FunctionReturns(Vec::new()));
+        ast_stack.push(AstSymbol::OptToken(None));
+        parser_state_stack.pop();
       }
       (Some(ParseState::FunctionReturn), Some(_), TokenType::Comment) | (Some(ParseState::FunctionReturn), Some(_), TokenType::Newline) => {
         token_index = consume_comments_newline(tokens, token_index);
@@ -602,11 +612,11 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
         }
       }
       (Some(ParseState::FunctionReturnEnd), Some(AstSymbol::FunctionReturns(_)), TokenType::RightParen) => {
-        ast_stack.push(AstSymbol::Token(current_token.clone()));
+        ast_stack.push(AstSymbol::OptToken(Some(current_token.clone())));
         token_index = consume_comments_newline(tokens, token_index);
         parser_state_stack.pop();
       }
-      (Some(ParseState::FunctionBody), Some(AstSymbol::Token(_)), TokenType::LeftCurly) => {
+      (Some(ParseState::FunctionBody), Some(AstSymbol::OptToken(_)), TokenType::LeftCurly) => {
         parser_state_stack.push(ParseState::CompoundStatement);
       }
       (Some(ParseState::FunctionBody), Some(AstSymbol::CompoundStatement(function_body)), _) => {
@@ -621,7 +631,7 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
         let function_identifier = ast_stack.pop_panic();
         let function_token = ast_stack.pop_panic();
         match (function_token, function_identifier, param_left_token, params, param_right_token, function_arrow, return_left_token, returns, return_right_token) {
-          (AstSymbol::Token(function_token), AstSymbol::Token(function_identifier), AstSymbol::Token(param_left_token), AstSymbol::FunctionParams(params), AstSymbol::Token(param_right_token), AstSymbol::Token(function_arrow), AstSymbol::Token(returns_left_token), AstSymbol::FunctionReturns(returns), AstSymbol::Token(returns_right_token)) => {
+          (AstSymbol::Token(function_token), AstSymbol::Token(function_identifier), AstSymbol::Token(param_left_token), AstSymbol::FunctionParams(params), AstSymbol::Token(param_right_token), AstSymbol::OptToken(function_arrow), AstSymbol::OptToken(returns_left_token), AstSymbol::FunctionReturns(returns), AstSymbol::OptToken(returns_right_token)) => {
             ast_stack.push(AstSymbol::OptStatement(Some(Statement::Function(Function::new(function_token, function_identifier, param_left_token, params, param_right_token, function_arrow, returns_left_token, returns, returns_right_token, Some(function_body))))));
             parser_state_stack.pop();
           }
@@ -639,7 +649,7 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
         let function_identifier = ast_stack.pop_panic();
         let function_token = ast_stack.pop_panic();
         match (function_token.clone(), function_identifier.clone(), param_left_token.clone(), params.clone(), param_right_token.clone(), function_arrow.clone(), return_left_token.clone(), returns.clone(), return_right_token.clone()) {
-          (AstSymbol::Token(function_token), AstSymbol::Token(function_identifier), AstSymbol::Token(param_left_token), AstSymbol::FunctionParams(params), AstSymbol::Token(param_right_token), AstSymbol::Token(function_arrow), AstSymbol::Token(returns_left_token), AstSymbol::FunctionReturns(returns), AstSymbol::Token(returns_right_token)) => {
+          (AstSymbol::Token(function_token), AstSymbol::Token(function_identifier), AstSymbol::Token(param_left_token), AstSymbol::FunctionParams(params), AstSymbol::Token(param_right_token), AstSymbol::OptToken(function_arrow), AstSymbol::OptToken(returns_left_token), AstSymbol::FunctionReturns(returns), AstSymbol::OptToken(returns_right_token)) => {
             ast_stack.push(AstSymbol::OptStatement(Some(Statement::Function(Function::new(function_token, function_identifier, param_left_token, params, param_right_token, function_arrow, returns_left_token, returns, returns_right_token, None)))));
             parser_state_stack.pop();
           }
@@ -1329,7 +1339,7 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
         ast_stack.print();
         parser_state_stack.print();
         println!("TOKEN:::: {}", current_token);
-        panic!("THERE WAS A PARSE ERROR BUT WE DON'T REPORT THE ERROR PROPERLY. REPORT THIS ISSUE WITH THE COMPILER PLEASE :) \nParseState: {:?}\nCurrent AstSymbol: {:?}\nCurrent Token: {:?}", a, b, c);
+        panic!("THERE WAS A PARSE ERROR BUT WE DON'T REPORT THE ERROR PROPERLY. REPORT THIS ISSUE WITH THE COMPILER PLEASE :) \nParseState: {:?}\nCurrent AstSymbol: {:#?}\nCurrent Token: {:?}", a, b, c);
       }
     }
   }

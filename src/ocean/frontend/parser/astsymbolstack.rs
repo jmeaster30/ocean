@@ -80,7 +80,7 @@ impl AstSymbolStack {
   pub fn print(&self) {
     println!("AST STACK:   ");
     for entry in &self.stack {
-      println!("{:?}", entry);
+      println!("{:#?}", entry);
     }
   }
 }
