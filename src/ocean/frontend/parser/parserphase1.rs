@@ -340,11 +340,54 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
         token_index = consume_comments_newline(tokens, token_index);
       }
       (Some(ParseState::InterfaceDeclaration), Some(_), TokenType::Colon) => {
-        todo!()
+        ast_stack.push(AstSymbol::Token(current_token.clone()));
+        ast_stack.push(AstSymbol::InterfaceImpls(Vec::new()));
+        token_index = consume_comments_newline(tokens, token_index);
+        parser_state_stack.push(ParseState::InterfaceImplDeclarations);
+      }
+      (Some(ParseState::InterfaceDeclaration), Some(AstSymbol::InterfaceImpls(interface_impl_declarations)), _) => {
+        ast_stack.pop();
+        let colon_token = ast_stack.pop_panic();
+        match colon_token {
+          AstSymbol::Token(colon_token) => {
+            ast_stack.push(AstSymbol::InterfaceDeclaration(Some(InterfaceDeclaration::new(colon_token, interface_impl_declarations))));
+            parser_state_stack.pop();
+          }
+          _ => panic!("Invalid state"),
+        }
       }
       (Some(ParseState::InterfaceDeclaration), Some(_), _) => {
         ast_stack.push(AstSymbol::InterfaceDeclaration(None));
         parser_state_stack.pop();
+      }
+      (Some(ParseState::InterfaceImplDeclarations), Some(AstSymbol::InterfaceImpls(_)), TokenType::LeftCurly) => {
+        parser_state_stack.pop();
+      }
+      (Some(ParseState::InterfaceImplDeclarations), Some(AstSymbol::InterfaceImpls(_)), _) => {
+         parser_state_stack.push(ParseState::Type);
+      }
+      (Some(ParseState::InterfaceImplDeclarations), Some(AstSymbol::Type(parsed_type)), TokenType::Comma) => {
+        ast_stack.pop();
+        let interface_impls = ast_stack.pop_panic();
+        match interface_impls {
+          AstSymbol::InterfaceImpls(mut interface_impls) => {
+            interface_impls.push(InterfaceImplDeclaration::new(parsed_type, Some(current_token.clone())));
+            ast_stack.push(AstSymbol::InterfaceImpls(interface_impls));
+            token_index = consume_comments_newline(tokens, token_index);
+          }
+          _ => panic!("Invalid parse state"),
+        }
+      }
+      (Some(ParseState::InterfaceImplDeclarations), Some(AstSymbol::Type(parsed_type)), _) => {
+        ast_stack.pop();
+        let interface_impls = ast_stack.pop_panic();
+        match interface_impls {
+          AstSymbol::InterfaceImpls(mut interface_impls) => {
+            interface_impls.push(InterfaceImplDeclaration::new(parsed_type, None));
+            ast_stack.push(AstSymbol::InterfaceImpls(interface_impls));
+          }
+          _ => panic!("Invalid parse state"),
+        }
       }
       //</editor-fold>
 
@@ -364,11 +407,12 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
       (Some(ParseState::UnionBodyEnd), Some(AstSymbol::UnionMembers(union_members)), TokenType::RightCurly) => {
         ast_stack.pop();
         let left_curly_sym = ast_stack.pop_panic();
+        let interface_declaration = ast_stack.pop_panic();
         let custom_type_sym = ast_stack.pop_panic();
         let union_token_sym = ast_stack.pop_panic();
-        match (union_token_sym, custom_type_sym, left_curly_sym) {
-          (AstSymbol::Token(union_token), AstSymbol::Type(Type::Custom(custom_type)), AstSymbol::Token(left_curly)) => {
-            ast_stack.push(AstSymbol::OptStatement(Some(Statement::Union(Union::new(union_token, custom_type, left_curly, union_members, current_token.clone())))));
+        match (union_token_sym, custom_type_sym, interface_declaration, left_curly_sym) {
+          (AstSymbol::Token(union_token), AstSymbol::Type(Type::Custom(custom_type)), AstSymbol::InterfaceDeclaration(interface_declaration), AstSymbol::Token(left_curly)) => {
+            ast_stack.push(AstSymbol::OptStatement(Some(Statement::Union(Union::new(union_token, custom_type, interface_declaration, left_curly, union_members, current_token.clone())))));
             token_index = consume_newline(tokens, token_index);
             parser_state_stack.pop();
           }

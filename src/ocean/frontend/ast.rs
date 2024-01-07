@@ -291,6 +291,7 @@ pub struct PackMember {
 pub struct Union {
   pub union_token: Token<TokenType>,
   pub custom_type: CustomType,
+  pub interface_declaration: Option<InterfaceDeclaration>,
   pub left_curly: Token<TokenType>,
   pub members: Vec<UnionMember>,
   pub right_curly: Token<TokenType>,

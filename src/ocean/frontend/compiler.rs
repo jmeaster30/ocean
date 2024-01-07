@@ -72,7 +72,7 @@ impl Ocean {
     match ast_mode {
       "print" => println!("{:#?}", ast),
       "file" => {
-        let mut file = File::create(file_path.to_string() + ".ast_p2")?;
+        let mut file = File::create(file_path.to_string() + ".ast")?;
         file.write_all(format!("{:#?}", ast).as_bytes())?;
       }
       _ => {}

@@ -26,6 +26,7 @@ pub enum ParseState {
   InterfaceBodyEnd,
 
   InterfaceDeclaration,
+  InterfaceImplDeclarations,
 
   UsingPathIdentifier,
   UsingPathOptionalDot,

@@ -23,6 +23,7 @@ pub enum AstSymbol {
   FunctionReturns(Vec<FunctionReturn>),
 
   InterfaceDeclaration(Option<InterfaceDeclaration>),
+  InterfaceImpls(Vec<InterfaceImplDeclaration>),
 
   Identifier(Identifier),
   Type(Type),
