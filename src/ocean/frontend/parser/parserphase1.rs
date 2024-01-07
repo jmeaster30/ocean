@@ -161,6 +161,7 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
       (Some(ParseState::Statement), Some(AstSymbol::StatementData(_)), TokenType::Pack) => {
         parser_state_stack.goto(ParseState::StatementFinalize);
         parser_state_stack.push(ParseState::PackBodyStart);
+        parser_state_stack.push(ParseState::InterfaceDeclaration);
         parser_state_stack.push(ParseState::PackIdentifier);
         ast_stack.push(AstSymbol::Token(current_token.clone()));
         token_index = consume_comments_newline(tokens, token_index);
@@ -168,6 +169,7 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
       (Some(ParseState::Statement), Some(AstSymbol::StatementData(_)), TokenType::Union) => {
         parser_state_stack.goto(ParseState::StatementFinalize);
         parser_state_stack.push(ParseState::UnionBodyStart);
+        parser_state_stack.push(ParseState::InterfaceDeclaration);
         parser_state_stack.push(ParseState::UnionIdentifier);
         ast_stack.push(AstSymbol::Token(current_token.clone()));
         token_index = consume_comments_newline(tokens, token_index);
@@ -226,11 +228,12 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
       (Some(ParseState::PackBodyEnd), Some(AstSymbol::PackMembers(pack_members)), TokenType::RightCurly) => {
         ast_stack.pop();
         let left_curly_sym = ast_stack.pop_panic();
+        let interface_declaration_sym = ast_stack.pop_panic();
         let custom_type_sym = ast_stack.pop_panic();
         let pack_token_sym = ast_stack.pop_panic();
-        match (pack_token_sym, custom_type_sym, left_curly_sym) {
-          (AstSymbol::Token(pack_token), AstSymbol::Type(Type::Custom(custom_type)), AstSymbol::Token(left_curly)) => {
-            ast_stack.push(AstSymbol::OptStatement(Some(Statement::Pack(Pack::new(pack_token, custom_type, left_curly, pack_members, current_token.clone())))));
+        match (pack_token_sym, custom_type_sym, interface_declaration_sym, left_curly_sym) {
+          (AstSymbol::Token(pack_token), AstSymbol::Type(Type::Custom(custom_type)), AstSymbol::InterfaceDeclaration(interface_dec), AstSymbol::Token(left_curly)) => {
+            ast_stack.push(AstSymbol::OptStatement(Some(Statement::Pack(Pack::new(pack_token, custom_type, interface_dec, left_curly, pack_members, current_token.clone())))));
             token_index = consume_comments_newline(tokens, token_index);
             parser_state_stack.pop();
           }
@@ -335,6 +338,13 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
       }
       (Some(ParseState::InterfaceBody), _, TokenType::Comment) | (Some(ParseState::InterfaceBody), _, TokenType::Newline) => {
         token_index = consume_comments_newline(tokens, token_index);
+      }
+      (Some(ParseState::InterfaceDeclaration), Some(_), TokenType::Colon) => {
+        todo!()
+      }
+      (Some(ParseState::InterfaceDeclaration), Some(_), _) => {
+        ast_stack.push(AstSymbol::InterfaceDeclaration(None));
+        parser_state_stack.pop();
       }
       //</editor-fold>
 

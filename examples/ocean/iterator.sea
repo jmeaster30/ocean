@@ -3,7 +3,7 @@ interface Iterable(auto Subtype) {
     function move(iterator: Iterable(Subtype))
 }
 
-pack ArrayIterable(auto Subtype) {
+pack ArrayIterable(auto Subtype) : Iterable(Subtype) {
     array: Subtype[]
     index: u128
 }
@@ -12,7 +12,7 @@ pack ArrayIterable(auto Subtype) {
 function array_to_array_enumerable(array: auto Subtype[]) -> (result: ArrayIterable(Subtype))
 #    = init ArrayIterable(Subtype) (array, 0))
 
-pack MapIterable(auto Subtype, auto MappedType) {
+pack MapIterable(auto Subtype, auto MappedType) : Iterable(Subtype)  {
     iterator: Iterable(Subtype),
     map_function: function (Subtype) -> (MappedType)
 }

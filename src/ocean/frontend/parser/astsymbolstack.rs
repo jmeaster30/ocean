@@ -22,6 +22,8 @@ pub enum AstSymbol {
   FunctionParams(Vec<FunctionParam>),
   FunctionReturns(Vec<FunctionReturn>),
 
+  InterfaceDeclaration(Option<InterfaceDeclaration>),
+
   Identifier(Identifier),
   Type(Type),
   TypeArguments(Vec<TypeArgument>),

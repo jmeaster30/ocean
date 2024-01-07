@@ -275,6 +275,7 @@ pub struct FunctionReturn {
 pub struct Pack {
   pub pack_token: Token<TokenType>,
   pub custom_type: CustomType,
+  pub interface_declaration: Option<InterfaceDeclaration>,
   pub left_curly: Token<TokenType>,
   pub members: Vec<PackMember>,
   pub right_curly: Token<TokenType>,
@@ -327,6 +328,18 @@ pub struct Interface {
 #[derive(Clone, Debug, New)]
 pub struct InterfaceEntry {
   pub function: Function,
+  pub comma_token: Option<Token<TokenType>>,
+}
+
+#[derive(Clone, Debug, New)]
+pub struct InterfaceDeclaration {
+  pub colon_token: Token<TokenType>,
+  pub implemented_interfaces: Vec<InterfaceImplDeclaration>,
+}
+
+#[derive(Clone, Debug, New)]
+pub struct InterfaceImplDeclaration {
+  pub interface_type: Type,
   pub comma_token: Option<Token<TokenType>>,
 }
 
