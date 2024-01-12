@@ -33,12 +33,13 @@ fn annotation_parser(annotation_content: &String, linked_statement: &Option<Stat
 
   match annotation_name.to_lowercase().as_str() {
     "hydro" => {
-      println!("found some hydro code");
-      AnnotationNode::None
+      AnnotationNode::Hydro
     }
     "annotation" => {
-      println!("found an annotation!");
-      AnnotationNode::None
+      AnnotationNode::FunctionAnnotation
+    }
+    "cast" => {
+      AnnotationNode::Cast
     }
     "operator" => {
       if let Some(Statement::Function(_)) = linked_statement {
@@ -48,7 +49,6 @@ fn annotation_parser(annotation_content: &String, linked_statement: &Option<Stat
       }
     }
     _ => {
-      println!("oooo a custom annotation!");
       AnnotationNode::None
     }
   }

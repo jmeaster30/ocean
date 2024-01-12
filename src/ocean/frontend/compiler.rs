@@ -49,6 +49,7 @@ impl Ocean {
 
     let mut precedence_table = PrecedenceTable::new();
     precedence_table.add_prefix_operator("-", 1000);
+    precedence_table.add_prefix_operator("!", 1000);
     precedence_table.add_binary_operator("=", 0, 1);
     precedence_table.add_binary_operator("&&", 10, 11);
     precedence_table.add_binary_operator("||", 10, 11);
@@ -63,6 +64,7 @@ impl Ocean {
     precedence_table.add_binary_operator("*", 50, 51);
     precedence_table.add_binary_operator("/", 50, 51);
     precedence_table.add_binary_operator("%", 50, 51);
+    precedence_table.add_binary_operator("is", 1_000_000, 2);
     precedence_table.add_binary_operator(".", usize::MAX, usize::MAX - 1);
 
     match parse_phase_two(&mut ast, &mut precedence_table) {

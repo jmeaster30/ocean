@@ -116,10 +116,9 @@ pub struct Match {
 
 #[derive(Clone, Debug, New)]
 pub struct MatchCase {
-  pub pattern: ExpressionNode, // This should be a "Pattern" concept which is similar to an expression but with different bits
+  pub pattern: ExpressionNode,
   pub arrow_token: Token<TokenType>,
-  pub body: Either<ExpressionNode, CompoundStatement>,
-  pub comma_token: Option<Token<TokenType>>,
+  pub body: Either<Statement, CompoundStatement>,
 }
 
 #[derive(Clone, Debug, New)]
@@ -521,7 +520,8 @@ pub struct TernaryOperator {
 pub enum AnnotationNode {
   Operator(AnnotationOperator),
   Hydro,
-  FunctionWrapper,
+  FunctionAnnotation,
+  Cast,
   None,
 }
 

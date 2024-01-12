@@ -8,17 +8,11 @@ union optional(auto subtype) {
     None
 }
 
-function has_value(optional_value: optional(auto subtype)) -> (result: bool = optional_value != None)
+function has_value(optional_value: optional(auto subtype)) -> (result: bool = !(optional_value is None))
 
 function get_value_or_default(optional_value: optional(auto subtype), default_value: lazy subtype) -> (result: subtype) {
-    #match optional_value {
-    #    Some(value) -> result = value;
-    #    None -> result = default_value;
-    #}
-}
-
-function test(hello: String)
-
-function test2(wow: i32) {
-
+    match optional_value {
+        Some(value) => result = value;
+        None => result = default_value;
+    }
 }

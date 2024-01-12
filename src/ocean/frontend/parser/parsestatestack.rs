@@ -67,6 +67,10 @@ pub enum ParseState {
   BranchElseStatement,
   BranchEndStatement,
 
+  MatchBody,
+  MatchArm,
+  MatchCaseArrow,
+
   WhileStatement,
   LoopStatement,
   ForStatement,

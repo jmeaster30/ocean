@@ -13,6 +13,7 @@ pub enum AstSymbol {
   OptCompoundStatement(Option<CompoundStatement>),
   Branch(Branch),
   ElseBranch(ElseBranch),
+  MatchCases(Vec<MatchCase>),
   PackMembers(Vec<PackMember>),
   UnionMembers(Vec<UnionMember>),
   UnionSubTypes(UnionSubTypes),

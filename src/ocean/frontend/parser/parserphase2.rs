@@ -132,8 +132,18 @@ fn parse_phase_two_branch(branch: &mut Branch, precedence_table: &mut Precedence
   ])
 }
 
-fn parse_phase_two_match(_: &mut Match, _: &mut PrecedenceTable) -> Result<(), Vec<Error>> {
-  todo!()
+fn parse_phase_two_match(match_body: &mut Match, precedence_table: &mut PrecedenceTable) -> Result<(), Vec<Error>> {
+  let mut results = vec![ parse_phase_two_expression(&mut match_body.expression, precedence_table) ];
+
+  for match_case in &mut match_body.cases {
+    results.push(parse_phase_two_expression(&mut match_case.pattern, precedence_table));
+    results.push(match &mut match_case.body {
+      Either::Left(statement) => parse_phase_two_statement(statement, precedence_table),
+      Either::Right(compound_statement ) => parse_phase_two_compound(compound_statement, precedence_table),
+    });
+  }
+
+  join_results(results)
 }
 
 fn parse_phase_two_assignment(assignment: &mut Assignment, precedence_table: &mut PrecedenceTable) -> Result<(), Vec<Error>> {
@@ -192,8 +202,6 @@ fn parse_expression(tokens: &Vec<&Token<TokenType>>, token_index: usize, precede
       TokenType::RightParen | TokenType::RightSquare | TokenType::EndOfInput | TokenType::Comma => break,
       _ => {}
     }
-
-    // do postfix here?
 
     if !precedence_table.is_binary_operator(&tokens[current_token_index].lexeme) {
       match tokens[current_token_index].token_type {
