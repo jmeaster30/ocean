@@ -32,6 +32,10 @@ impl PrecedenceTable {
     *self.prefix_op_table.get(operator).unwrap() // I don't think we need to handle if the operator exists or not here yet
   }
 
+  pub fn get_postfix_precedence(&self, operator: &String) -> usize {
+    *self.postfix_op_table.get(operator).unwrap() // I don't think we need to handle if the operator exists or not here yet
+  }
+
   pub fn get_binary_precedence(&self, operator: &String) -> (usize, usize) {
     *self.binary_table.get(operator).unwrap() // TODO handle errors
   }
@@ -42,5 +46,9 @@ impl PrecedenceTable {
 
   pub fn add_prefix_operator(&mut self, operator: &str, right_prec: usize) {
     self.prefix_op_table.insert(operator.to_string(), right_prec);
+  }
+
+  pub fn add_postfix_operator(&mut self, operator: &str, left_prec: usize) {
+    self.postfix_op_table.insert(operator.to_string(), left_prec);
   }
 }

@@ -247,13 +247,18 @@ pub fn lex(input: &String) -> Result<Vec<Token<TokenType>>, Vec<Error>> {
 
         lexeme.clear();
       }
-      '.' | ':' | '~' | '+' | '-' | '>' | '<' | '?' | '/' | '=' | '^' | '&' | '|' | '*' | '!' | '%' | ';' => {
+      ';' => {
+        index += 1;
+        tokens.push(Token::new(";".to_string(), TokenType::Semicolon, (start_index, index), (line_start, line_end), (column_start, column_end)));
+        lexeme.clear();
+      }
+      '.' | ':' | '~' | '+' | '-' | '>' | '<' | '?' | '/' | '=' | '^' | '&' | '|' | '*' | '!' | '%' => {
         lexeme.push_str(&input_chars[index].to_string());
         index += 1;
         while index < input_length - 1 && lexeme.len() < 3 {
           let n = input_chars[index];
           match n {
-            '.' | ':' | '~' | '+' | '-' | '>' | '<' | '?' | '/' | '=' | '^' | '&' | '|' | '*' | '!' | '%' | ';' => {
+            '.' | ':' | '~' | '+' | '-' | '>' | '<' | '?' | '/' | '=' | '^' | '&' | '|' | '*' | '!' | '%' => {
               lexeme.push_str(&n.to_string());
             }
             _ => {

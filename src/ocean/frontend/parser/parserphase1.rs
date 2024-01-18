@@ -1247,7 +1247,7 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
       (Some(ParseState::MatchCaseArrow), Some(AstSymbol::Expression(_)), TokenType::DoubleArrow) => {
         ast_stack.push(AstSymbol::Token(current_token.clone()));
         token_index = consume_comments_newline(tokens, token_index);
-        parser_state_stack.push(ParseState::Statement);
+        parser_state_stack.push(ParseState::MatchCaseBody);
       }
       (Some(ParseState::MatchCaseArrow), Some(AstSymbol::OptStatement(Some(statement))), _) => {
         ast_stack.pop();
@@ -1262,6 +1262,26 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
           }
           _ => panic!("Invalid parse state")
         }
+      }
+      (Some(ParseState::MatchCaseArrow), Some(AstSymbol::CompoundStatement(statement)), _) => {
+        ast_stack.pop();
+        let double_arrow_token = ast_stack.pop_panic();
+        let case_expression = ast_stack.pop_panic();
+        let match_cases = ast_stack.pop_panic();
+        match (match_cases, case_expression, double_arrow_token, statement) {
+          (AstSymbol::MatchCases(mut match_cases), AstSymbol::Expression(expression_node), AstSymbol::Token(double_arrow_token), statement) => {
+            match_cases.push(MatchCase::new(expression_node, double_arrow_token, Either::Right(statement)));
+            ast_stack.push(AstSymbol::MatchCases(match_cases));
+            parser_state_stack.pop();
+          }
+          _ => panic!("Invalid parse state")
+        }
+      }
+      (Some(ParseState::MatchCaseBody), Some(AstSymbol::Token(_)), TokenType::LeftCurly) => {
+        parser_state_stack.goto(ParseState::CompoundStatement);
+      }
+      (Some(ParseState::MatchCaseBody), Some(AstSymbol::Token(_)), _) => {
+        parser_state_stack.goto(ParseState::Statement);
       }
       //</editor-fold>
       //<editor-fold desc="> BranchStatement">

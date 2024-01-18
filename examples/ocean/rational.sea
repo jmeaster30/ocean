@@ -43,7 +43,7 @@ function add (a: rational, b: rational) -> (res: rational) {
   res = ( a.numerator * mul + b.numerator * mul, mul );
 }
 
-@Operator a >. b
+@Operator a - b
 function subtract (a: rational, b: rational) -> (res: rational) {
   let mul: i64 = lcm(a.denominator, b.denominator);
   res = ( numerator: a.numerator * mul - b.numerator * mul, denominator: mul );

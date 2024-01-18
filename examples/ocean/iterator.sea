@@ -9,7 +9,7 @@ pack ArrayIterable(auto Subtype) : Iterable(Subtype) {
 }
 
 @Cast
-function array_to_array_enumerable(array: auto Subtype[]) -> (result: ArrayIterable(Subtype)) = (array, 0))
+function array_to_array_enumerable(array: auto Subtype[]) -> (result: ArrayIterable(Subtype) = (array, 0))
 
 pack MapIterable(auto Subtype, auto MappedType) : Iterable(Subtype) {
     iterator: Iterable(Subtype),
@@ -17,7 +17,7 @@ pack MapIterable(auto Subtype, auto MappedType) : Iterable(Subtype) {
 }
 
 function map(iterator: Iterable(auto Subtype), map_function: function (Subtype) -> (auto MappedType))
-    -> (map_iterator: MapIterable(Subtype, MappedType)) = (iterator: iterator, map_function: map_function))
+    -> (map_iterator: MapIterable(Subtype, MappedType) = (iterator: iterator, map_function: map_function))
 
 function current(map_iterator: MapIterable(auto Subtype)) -> (result: Optional(Subtype)) {
     match map_iterator.iterator.current() {
@@ -26,7 +26,7 @@ function current(map_iterator: MapIterable(auto Subtype)) -> (result: Optional(S
     }
 }
 
-function move(map_iterator: MapIterable(auto Subtype)) -> () {
+function move(map_iterator: MapIterable(auto Subtype)) {
     map_iterator.iterator.move();
 }
 
@@ -36,7 +36,7 @@ pack FilterIterable(auto Subtype) {
 }
 
 function filter(iterator: Iterable(auto Subtype), filter_function: function (Subtype) -> (bool))
-    -> (filter_iterator: FilterIterable(Subtype)) = (iterator: iterator, filter_function: filter_function))
+    -> (filter_iterator: FilterIterable(Subtype) = (iterator: iterator, filter_function: filter_function))
 
 function current(filter_iterator: FilterIterable(auto Subtype)) -> (result: Optional(Subtype)) {
     loop {
@@ -67,6 +67,8 @@ let test = [1, 2, 3, 4, 5, 6] as ArrayIterable;
 for x in test {
     println(x);
 }
+
+1.this!;
 
 # should print:
 # 4

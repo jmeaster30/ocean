@@ -32,9 +32,6 @@ pub enum ParseState {
   UsingPathOptionalDot,
 
   LetAssignment,
-  LetAssignmentEqual,
-  LetAssignmentRightHandSide,
-  LetAssignmentFinal,
 
   IdentifierStart,
   IdentifierOptionalColon,
@@ -50,13 +47,9 @@ pub enum ParseState {
   TypeMut,
   TypeArray,
   TypeArrayEnd,
-  TypeEndParen,
-  TypeEnd,
   TypeFunctionParams,
-  TypeFunctionParamType,
   TypeFunctionOptArrow,
   TypeFunctionReturns,
-  TypeFunctionReturnType,
 
   Expression,
   ExpressionNoComma,
@@ -68,8 +61,8 @@ pub enum ParseState {
   BranchEndStatement,
 
   MatchBody,
-  MatchArm,
   MatchCaseArrow,
+  MatchCaseBody,
 
   WhileStatement,
   LoopStatement,
@@ -83,7 +76,6 @@ pub enum ParseState {
   FunctionArrow,
   FunctionReturnStart,
   FunctionReturn,
-  FunctionReturnExpression,
   FunctionReturnEnd,
   FunctionBody,
 

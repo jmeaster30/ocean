@@ -235,6 +235,16 @@ fn parse_expression(tokens: &Vec<&Token<TokenType>>, token_index: usize, precede
           current_token_index = next_token_index;
           continue;
         }
+        _ if precedence_table.is_postfix_operator(&tokens[current_token_index].lexeme) => {
+          let postfix_power = precedence_table.get_postfix_precedence(&tokens[current_token_index].lexeme);
+          if postfix_power < min_precedence {
+            break;
+          }
+
+          left_hand_side = Expression::PostfixOperation(PostfixOperator::new(Box::new(left_hand_side), tokens[current_token_index].clone()));
+          current_token_index += 1;
+          continue;
+        }
         _ => return Err(vec![Error::new(Severity::Error, tokens[current_token_index].get_span(), "Unexpected operator. Expected a valid binary operator (TODO display binary operators from precedence table or add an extra details section to the error message maybe it is suggestions on how to fix the error?).".to_string())]),
       }
     }
@@ -439,7 +449,7 @@ fn parse_tuple_members(tokens: &Vec<&Token<TokenType>>, token_index: usize, prec
 
 fn parse_type(tokens: &Vec<&Token<TokenType>>, token_index: usize) -> Result<(Type, usize), Vec<Error>> {
   // This is very janky going from ref vec of refs to ref vec of non-refs
-  let mut token_copy = tokens.iter().map(|x| x.clone().clone()).collect::<Vec<Token<TokenType>>>();
+  let mut token_copy = tokens.iter().map(|x| (*x).clone()).collect::<Vec<Token<TokenType>>>();
   token_copy.push(Token::new("".to_string(), TokenType::EndOfInput, (0, 0), (0, 0), (0, 0)));
   let (ast_symbol, next_token_index, mut errors) = parse_phase_one_partial(&token_copy, token_index, ParseState::Type, None);
   match (ast_symbol.clone(), errors.clone()) {
