@@ -1,7 +1,7 @@
 use crate::ocean::frontend::ast::*;
 use crate::ocean::frontend::lexer::lex;
-use crate::ocean::frontend::parser::astsymbolstack::{AstSymbol, AstSymbolStack};
-use crate::ocean::frontend::parser::parsestatestack::{ParseState, ParseStateStack};
+use crate::ocean::frontend::parser::astsymbolstack::AstSymbol;
+use crate::ocean::frontend::parser::parsestatestack::ParseState;
 use crate::ocean::frontend::parser::precedencetable::PrecedenceTable;
 use crate::ocean::frontend::tokentype::TokenType;
 use crate::util::errors::{Error, Severity};
@@ -175,116 +175,146 @@ fn parse_phase_two_function(function: &mut Function, precedence_table: &mut Prec
 }
 
 fn parse_phase_two_expression(expression: &mut ExpressionNode, precedence_table: &mut PrecedenceTable) -> Result<(), Vec<Error>> {
-  let expression_tokens = expression.tokens.iter().filter(|x| x.token_type != TokenType::Newline && x.token_type != TokenType::Comment).collect::<Vec<&Token<TokenType>>>();
+  let expression_tokens = expression.tokens.iter().filter(|x| match x {
+    Either::Left(token) => token.token_type != TokenType::Newline && token.token_type != TokenType::Comment,
+    Either::Right(_) => true,
+  }).collect::<Vec<&Either<Token<TokenType>, Expression>>>();
   let (parsed_expression, _) = parse_expression(&expression_tokens, 0, precedence_table, 0)?;
   expression.parsed_expression = Some(parsed_expression);
   Ok(())
 }
 
-fn parse_expression(tokens: &Vec<&Token<TokenType>>, token_index: usize, precedence_table: &PrecedenceTable, min_precedence: usize) -> Result<(Expression, usize), Vec<Error>> {
-  let (mut left_hand_side, next_token_index) = if is_literal_start_token(tokens[token_index]) {
-    parse_literal(tokens, token_index, precedence_table)?
-  } else if precedence_table.is_prefix_operator(&tokens[token_index].lexeme) {
-    let prefix_precedence = precedence_table.get_prefix_precedence(&tokens[token_index].lexeme);
-    let (parsed_expression, next_index) = parse_expression(tokens, token_index + 1, precedence_table, prefix_precedence)?;
-    (Expression::PrefixOperation(PrefixOperator::new(tokens[token_index].clone(), Box::new(parsed_expression))), next_index)
-  } else {
-    return Err(vec![Error::new(Severity::Error, tokens[token_index].get_span(), "Unexpected token. Expected a literal or a prefix operator.".to_string())])
+fn parse_expression(tokens: &Vec<&Either<Token<TokenType>, Expression>>, token_index: usize, precedence_table: &PrecedenceTable, min_precedence: usize) -> Result<(Expression, usize), Vec<Error>> {
+  let (mut left_hand_side, next_token_index) = match tokens[token_index] {
+    Either::Right(expression) => (expression.clone(), token_index + 1),
+    Either::Left(token) => if is_literal_start_token(token) {
+      parse_literal(tokens, token_index, precedence_table)?
+    } else if precedence_table.is_prefix_operator(&token.lexeme) {
+      let prefix_precedence = precedence_table.get_prefix_precedence(&token.lexeme);
+      let (parsed_expression, next_index) = parse_expression(tokens, token_index + 1, precedence_table, prefix_precedence)?;
+      (Expression::PrefixOperation(PrefixOperator::new(token.clone(), Box::new(parsed_expression))), next_index)
+    } else {
+      return Err(vec![Error::new(Severity::Error, token.get_span(), "Unexpected token. Expected a literal or a prefix operator.".to_string())])
+    }
   };
 
   let mut current_token_index = next_token_index;
   while current_token_index < tokens.len() {
-    if tokens[current_token_index].token_type == TokenType::RightParen || tokens[current_token_index].token_type == TokenType::RightSquare || tokens[current_token_index].token_type == TokenType::EndOfInput {
-      break;
-    }
+    let current_token = match tokens[current_token_index] {
+      Either::Left(token) => token,
+      // TODO add expression span
+      Either::Right(expression) => return Err(vec![Error::new(Severity::Error, (0, 0), "Unexpected expression. Expected ')', ']', ',', or an operator.".to_string())])
+    };
 
-    match tokens[current_token_index].token_type {
+    match current_token.token_type {
       TokenType::RightParen | TokenType::RightSquare | TokenType::EndOfInput | TokenType::Comma => break,
       _ => {}
     }
 
-    if !precedence_table.is_binary_operator(&tokens[current_token_index].lexeme) {
-      match tokens[current_token_index].token_type {
+    if !precedence_table.is_binary_operator(&current_token.lexeme) {
+      match current_token.token_type {
         TokenType::LeftSquare => {
-          let left_square_index = current_token_index;
           current_token_index += 1;
           let (arguments, next_token_index) = parse_arguments(tokens, current_token_index, precedence_table)?;
           current_token_index = next_token_index;
-          if tokens[current_token_index].token_type != TokenType::RightSquare {
-            return Err(vec![Error::new(Severity::Error, tokens[current_token_index].get_span(), "Expected the end of the array index. Missing a ']' right square bracket.".to_string())]);
+          let right_square_token = match tokens[current_token_index] {
+            Either::Left(token) => token,
+            // TODO add expression span
+            Either::Right(expression) => return Err(vec![Error::new(Severity::Error, (0, 0), "Expected the end of the array index. Missing a ']' right square bracket.".to_string())])
+          };
+          if right_square_token.token_type != TokenType::RightSquare {
+            return Err(vec![Error::new(Severity::Error, right_square_token.get_span(), "Expected the end of the array index. Missing a ']' right square bracket.".to_string())]);
           }
-          left_hand_side = Expression::ArrayIndex(ArrayIndex::new(Box::new(left_hand_side), tokens[left_square_index].clone(), arguments, tokens[current_token_index].clone()));
+          left_hand_side = Expression::ArrayIndex(ArrayIndex::new(Box::new(left_hand_side), current_token.clone(), arguments, right_square_token.clone()));
           current_token_index += 1;
           continue;
         }
         TokenType::LeftParen => {
-          let left_paren_index = current_token_index;
           current_token_index += 1;
           let (arguments, next_token_index) = parse_arguments(tokens, current_token_index, precedence_table)?;
           current_token_index = next_token_index;
-          if tokens[current_token_index].token_type != TokenType::RightParen {
-            return Err(vec![Error::new(Severity::Error, tokens[current_token_index].get_span(), "Expected the end of the call. Missing a ')' right parenthesis.".to_string())]);
+          let right_paren_token = match tokens[current_token_index] {
+            Either::Left(token) => token,
+            // TODO add expression span
+            Either::Right(expression) => return Err(vec![Error::new(Severity::Error, (0, 0), "Expected the end of the call. Missing a ')' right parenthesis.".to_string())])
+          };
+          if right_paren_token.token_type != TokenType::RightParen {
+            return Err(vec![Error::new(Severity::Error, right_paren_token.get_span(), "Expected the end of the call. Missing a ')' right parenthesis.".to_string())]);
           }
-          left_hand_side = Expression::Call(Call::new(Box::new(left_hand_side), tokens[left_paren_index].clone(), arguments, tokens[current_token_index].clone()));
+          left_hand_side = Expression::Call(Call::new(Box::new(left_hand_side), current_token.clone(), arguments, right_paren_token.clone()));
           current_token_index += 1;
           continue;
         }
         TokenType::As => {
-          let (parsed_type, next_token_index) = parse_type(tokens, current_token_index + 1)?;
-          left_hand_side = Expression::Cast(Cast::new(Box::new(left_hand_side), tokens[current_token_index].clone(), parsed_type));
+          let parsed_type = match tokens[current_token_index + 1] {
+            Either::Left(token) => return Err(vec![Error::new(Severity::Error, token.get_span(), "Expected a type for the cast expression.".to_string())]),
+            Either::Right(expression) => match expression {
+              Expression::AstNode(AstNodeExpression::Type(parsed_type)) => parsed_type,
+              // TODO add expression span
+              _ => return Err(vec![Error::new(Severity::Error, (0, 0), "Expected a type for the cast expression.".to_string())]),
+            }
+          };
+          left_hand_side = Expression::Cast(Cast::new(Box::new(left_hand_side), current_token.clone(), parsed_type.clone()));
           current_token_index = next_token_index;
           continue;
         }
-        _ if precedence_table.is_postfix_operator(&tokens[current_token_index].lexeme) => {
-          let postfix_power = precedence_table.get_postfix_precedence(&tokens[current_token_index].lexeme);
+        _ if precedence_table.is_postfix_operator(&current_token.lexeme) => {
+          let postfix_power = precedence_table.get_postfix_precedence(&current_token.lexeme);
           if postfix_power < min_precedence {
             break;
           }
 
-          left_hand_side = Expression::PostfixOperation(PostfixOperator::new(Box::new(left_hand_side), tokens[current_token_index].clone()));
+          left_hand_side = Expression::PostfixOperation(PostfixOperator::new(Box::new(left_hand_side), current_token.clone()));
           current_token_index += 1;
           continue;
         }
-        _ => return Err(vec![Error::new(Severity::Error, tokens[current_token_index].get_span(), "Unexpected operator. Expected a valid binary operator (TODO display binary operators from precedence table or add an extra details section to the error message maybe it is suggestions on how to fix the error?).".to_string())]),
+        _ => return Err(vec![Error::new(Severity::Error, current_token.get_span(), "Unexpected operator. Expected a valid binary operator (TODO display binary operators from precedence table or add an extra details section to the error message maybe it is suggestions on how to fix the error?).".to_string())]),
       }
     }
 
-    let (left_precedence, right_precedence) = precedence_table.get_binary_precedence(&tokens[current_token_index].lexeme);
+    let operator_token = match tokens[current_token_index] {
+      Either::Left(token) => token,
+      // TODO add expression span
+      Either::Right(expression) => return Err(vec![Error::new(Severity::Error, (0, 0), "Unexpected expression. Expected operator :(".to_string())])
+    };
+
+    let (left_precedence, right_precedence) = precedence_table.get_binary_precedence(&operator_token.lexeme);
     if left_precedence < min_precedence {
       break;
     }
 
     let (right_hand_side, next_token_index) = parse_expression(tokens, current_token_index + 1, precedence_table, right_precedence)?;
-    left_hand_side = Expression::BinaryOperation(BinaryOperator::new(Box::new(left_hand_side), tokens[current_token_index].clone(), Box::new(right_hand_side)));
+    left_hand_side = Expression::BinaryOperation(BinaryOperator::new(Box::new(left_hand_side), operator_token.clone(), Box::new(right_hand_side)));
     current_token_index = next_token_index
   }
 
   Ok((left_hand_side, current_token_index))
 }
 
-fn parse_literal(tokens: &Vec<&Token<TokenType>>, token_index: usize, precedence_table: &PrecedenceTable) -> Result<(Expression, usize), Vec<Error>> {
-  let (expression, next_token_index) = match tokens[token_index].token_type {
-    TokenType::String => (Expression::String(StringLiteral::new(tokens[token_index].clone())), token_index + 1),
+fn parse_literal(tokens: &Vec<&Either<Token<TokenType>, Expression>>, token_index: usize, precedence_table: &PrecedenceTable) -> Result<(Expression, usize), Vec<Error>> {
+  let token = tokens[token_index].clone().expect_left("Uh oh found an expression :(");
+  let (expression, next_token_index) = match token.token_type {
+    TokenType::String => (Expression::String(StringLiteral::new(token.clone())), token_index + 1),
     TokenType::InterpolatedString => {
-      let parsed_expressions = parse_interpolated_string(&tokens[token_index].lexeme, precedence_table)?;
-      (Expression::InterpolatedString(InterpolatedString::new(tokens[token_index].clone(), parsed_expressions)), token_index + 1)
+      let parsed_expressions = parse_interpolated_string(&token.lexeme, precedence_table)?;
+      (Expression::InterpolatedString(InterpolatedString::new(token.clone(), parsed_expressions)), token_index + 1)
     },
-    TokenType::True | TokenType::False => (Expression::Boolean(Boolean::new(tokens[token_index].clone())), token_index + 1),
-    TokenType::Number => (Expression::Number(Number::new(tokens[token_index].clone())), token_index + 1),
+    TokenType::True | TokenType::False => (Expression::Boolean(Boolean::new(token.clone())), token_index + 1),
+    TokenType::Number => (Expression::Number(Number::new(token.clone())), token_index + 1),
     TokenType::LeftParen => parse_sub_expression_or_tuple(tokens, token_index, precedence_table)?,
-    TokenType::Identifier => (Expression::Variable(Variable::new(tokens[token_index].clone())), token_index + 1),
+    TokenType::Identifier => (Expression::Variable(Variable::new(token.clone())), token_index + 1),
     TokenType::LeftSquare => {
-      let left_square_index = token_index;
-      let mut current_token_index = left_square_index;
+      let mut current_token_index = token_index;
       current_token_index += 1;
       let (arguments, next_token_index) = parse_arguments(tokens, current_token_index, precedence_table)?;
       current_token_index = next_token_index;
-      if tokens[current_token_index].token_type != TokenType::RightSquare {
-        return Err(vec![Error::new(Severity::Error, tokens[current_token_index].get_span(), "Expected the end of the array literal. Missing a ']' right square bracket.".to_string())]);
+      let current_token = tokens[current_token_index].clone().expect_left("Uh oh found an expression here :(");
+      if current_token.token_type != TokenType::RightSquare {
+        return Err(vec![Error::new(Severity::Error, current_token.get_span(), "Expected the end of the array literal. Missing a ']' right square bracket.".to_string())]);
       }
-      (Expression::ArrayLiteral(ArrayLiteral::new(tokens[left_square_index].clone(), arguments, tokens[current_token_index].clone())), current_token_index + 1)
+      (Expression::ArrayLiteral(ArrayLiteral::new(token.clone(), arguments, current_token.clone())), current_token_index + 1)
     }
-    _ => panic!("Unexpected case??? {}", tokens[token_index]),
+    _ => panic!("Unexpected case??? {:?}", tokens[token_index]),
   };
 
   let current_token_index = next_token_index;
@@ -295,22 +325,27 @@ fn parse_literal(tokens: &Vec<&Token<TokenType>>, token_index: usize, precedence
   Ok((expression, current_token_index))
 }
 
-fn parse_arguments(tokens: &Vec<&Token<TokenType>>, token_index: usize, precedence_table: &PrecedenceTable) -> Result<(Vec<Argument>, usize), Vec<Error>> {
+fn parse_arguments(tokens: &Vec<&Either<Token<TokenType>, Expression>>, token_index: usize, precedence_table: &PrecedenceTable) -> Result<(Vec<Argument>, usize), Vec<Error>> {
   let mut current_token_index = token_index;
   let mut arguments = Vec::new();
-  if tokens[current_token_index].token_type == TokenType::RightParen || tokens[current_token_index].token_type == TokenType::RightSquare {
-    return Ok((arguments, current_token_index));
+  if let Either::Left(token) = tokens[current_token_index] {
+    if token.token_type == TokenType::RightParen || token.token_type == TokenType::RightSquare {
+      return Ok((arguments, current_token_index));
+    }
   }
+
   while current_token_index < tokens.len() {
     let (index_expression, next_token_index) = parse_expression(tokens, current_token_index, precedence_table, 0)?;
-    if tokens[next_token_index].token_type == TokenType::Comma {
-      arguments.push(Argument::new(index_expression, Some(tokens[next_token_index].clone())));
-      current_token_index = next_token_index + 1;
-    } else {
-      arguments.push(Argument::new(index_expression, None));
-      current_token_index = next_token_index;
-      break;
+    if let Either::Left(token) = tokens[next_token_index] {
+      if token.token_type == TokenType::Comma {
+        arguments.push(Argument::new(index_expression, Some(token.clone())));
+        current_token_index = next_token_index + 1;
+        continue;
+      }
     }
+    arguments.push(Argument::new(index_expression, None));
+    current_token_index = next_token_index;
+    break;
   }
   Ok((arguments, current_token_index))
 }
@@ -332,13 +367,17 @@ fn parse_interpolated_string(lexeme: &String, precedence_table: &PrecedenceTable
       in_expression = false;
     } else if current_char == '}' && in_expression {
       let tokens = match lex(&current_expression_chars.iter().collect::<String>()) {
-        Ok(tokens) => tokens,
+        Ok(tokens) => tokens.iter()
+          .filter(|x| x.token_type != TokenType::Newline && x.token_type != TokenType::Comment)
+          .map(|x| Either::Left(x.clone()))
+          .collect::<Vec<Either<Token<TokenType>, Expression>>>(),
         Err(mut new_errors) => {
           errors.append(&mut new_errors);
           continue;
         }
       };
-      let clean_tokens = tokens.iter().filter(|x| x.token_type != TokenType::Newline && x.token_type != TokenType::Comment).collect::<Vec<&Token<TokenType>>>();
+      // This is weird
+      let clean_tokens = tokens.iter().collect::<Vec<&Either<Token<TokenType>, Expression>>>();
       let (expression, _) = match parse_expression(&clean_tokens, 0, precedence_table, 0) {
         Ok(a) => a,
         Err(mut new_errors) => {
@@ -365,60 +404,86 @@ fn parse_interpolated_string(lexeme: &String, precedence_table: &PrecedenceTable
   }
 }
 
-fn parse_sub_expression_or_tuple(tokens: &Vec<&Token<TokenType>>, token_index: usize, precedence_table: &PrecedenceTable) -> Result<(Expression, usize), Vec<Error>> {
-  // TODO need to add parsing for tuples here
-  if tokens[token_index].token_type != TokenType::LeftParen {
-    panic!("Unexpected token :( {}", tokens[token_index]);
+fn parse_sub_expression_or_tuple(tokens: &Vec<&Either<Token<TokenType>, Expression>>, token_index: usize, precedence_table: &PrecedenceTable) -> Result<(Expression, usize), Vec<Error>> {
+  let start_token = match tokens[token_index] {
+    Either::Left(token) => token,
+    // TODO add expression span
+    Either::Right(expression) => return Err(vec![Error::new(Severity::Error, (0, 0), "Unexpected expression. Expected left parenthesis :(".to_string())])
+  };
+  if start_token.token_type != TokenType::LeftParen {
+    return Err(vec![Error::new(Severity::Error, start_token.get_span(), "Unexpected token. Expected left parenthesis :(".to_string())])
   }
 
-  let left_paren = tokens[token_index].clone();
+  match (tokens[token_index + 1], tokens[token_index + 2]) {
+    (Either::Left(plus_one), Either::Left(plus_two))
+    if plus_one.token_type == TokenType::Identifier && plus_two.token_type == TokenType::Colon => {
+      let (tuple_members, next_token_index) = parse_tuple_members(tokens, token_index + 1, precedence_table)?;
 
-  if tokens[token_index + 1].token_type == TokenType::Identifier && tokens[token_index + 2].token_type == TokenType::Colon {
-    let (tuple_members, next_token_index) = parse_tuple_members(tokens, token_index + 1, precedence_table)?;
+      let right_paren_token = match tokens[next_token_index] {
+        Either::Left(token) => token,
+        // TODO add expression span
+        Either::Right(expression) => return Err(vec![Error::new(Severity::Error, (0, 0), "Unexpected expression. Expected right paren :(".to_string())])
+      };
 
-    if tokens[next_token_index].token_type != TokenType::RightParen {
-      Err(vec![Error::new(Severity::Error, tokens[next_token_index].get_span(), "Unexpected token. Expected ')' right parenthesis.".to_string())])
-    } else {
-      Ok((Expression::Tuple(Tuple::new(left_paren, tuple_members, tokens[next_token_index].clone())), next_token_index + 1))
-    }
-  } else {
-    let (subexpression, next_token_index) = parse_expression(tokens, token_index + 1, precedence_table, 0)?;
-
-    if tokens[next_token_index].token_type == TokenType::Comma {
-      // also a tuple
-      let (mut tuple_members, new_token_index) = parse_tuple_members(tokens, next_token_index + 1, precedence_table)?;
-      tuple_members.insert(0, TupleMember::new(None, None, subexpression, Some(tokens[next_token_index].clone())));
-
-      if tokens[new_token_index].token_type != TokenType::RightParen {
-        Err(vec![Error::new(Severity::Error, tokens[new_token_index].get_span(), "Unexpected token. Expected ')' right parenthesis.".to_string())])
+      if right_paren_token.token_type != TokenType::RightParen {
+        Err(vec![Error::new(Severity::Error, right_paren_token.get_span(), "Unexpected token. Expected ')' right parenthesis.".to_string())])
       } else {
-        Ok((Expression::Tuple(Tuple::new(left_paren, tuple_members, tokens[new_token_index].clone())), new_token_index + 1))
+        Ok((Expression::Tuple(Tuple::new(start_token.clone(), tuple_members, right_paren_token.clone())), next_token_index + 1))
       }
-    } else {
-      if tokens[next_token_index].token_type != TokenType::RightParen {
-        Err(vec![Error::new(Severity::Error, tokens[next_token_index].get_span(), "Unexpected token. Expected ')' right parenthesis.".to_string())])
+    }
+    _ => {
+      let (subexpression, next_token_index) = parse_expression(tokens, token_index + 1, precedence_table, 0)?;
+
+      let next_token = match tokens[next_token_index] {
+        Either::Left(token) => token,
+        // TODO add expression span
+        Either::Right(expression) => return Err(vec![Error::new(Severity::Error, (0, 0), "Unexpected expression. Expected comma or right parenthesis :(".to_string())])
+      };
+
+      if next_token.token_type == TokenType::Comma {
+        // also a tuple
+        let (mut tuple_members, new_token_index) = parse_tuple_members(tokens, next_token_index + 1, precedence_table)?;
+        tuple_members.insert(0, TupleMember::new(None, None, subexpression, Some(next_token.clone())));
+
+        let end_token = match tokens[new_token_index] {
+          Either::Left(token) => token,
+          // TODO add expression span
+          Either::Right(expression) => return Err(vec![Error::new(Severity::Error, (0, 0), "Unexpected expression. Expected right parenthesis :(".to_string())])
+        };
+
+        if end_token.token_type != TokenType::RightParen {
+          Err(vec![Error::new(Severity::Error, end_token.get_span(), "Unexpected token. Expected ')' right parenthesis.".to_string())])
+        } else {
+          Ok((Expression::Tuple(Tuple::new(start_token.clone(), tuple_members, end_token.clone())), new_token_index + 1))
+        }
       } else {
-        Ok((Expression::SubExpression(SubExpression::new(left_paren, Box::new(subexpression), tokens[next_token_index].clone())), next_token_index + 1))
+        if next_token.token_type != TokenType::RightParen {
+          Err(vec![Error::new(Severity::Error, next_token.get_span(), "Unexpected token. Expected ')' right parenthesis.".to_string())])
+        } else {
+          Ok((Expression::SubExpression(SubExpression::new(start_token.clone(), Box::new(subexpression), next_token.clone())), next_token_index + 1))
+        }
       }
     }
   }
 }
 
-fn parse_tuple_members(tokens: &Vec<&Token<TokenType>>, token_index: usize, precedence_table: &PrecedenceTable) -> Result<(Vec<TupleMember>, usize), Vec<Error>> {
+fn parse_tuple_members(tokens: &Vec<&Either<Token<TokenType>, Expression>>, token_index: usize, precedence_table: &PrecedenceTable) -> Result<(Vec<TupleMember>, usize), Vec<Error>> {
   let mut errors = Vec::new();
   let mut tuple_members = Vec::new();
   let mut current_index = token_index;
   while current_index < tokens.len() {
-    if tokens[current_index].token_type == TokenType::RightParen {
-      break;
+    if let Either::Left(current_token) = tokens[current_index]{
+      if current_token.token_type == TokenType::RightParen {
+        break;
+      }
     }
 
-    let (name, colon) = if tokens[current_index].token_type == TokenType::Identifier && tokens[current_index + 1].token_type == TokenType::Colon {
-      let idx = current_index;
-      current_index += 2;
-      (Some(tokens[idx].clone()), Some(tokens[idx + 1].clone()))
-    } else {
-      (None, None)
+    let (name, colon) = match (tokens[current_index], tokens[current_index + 1]) {
+      (Either::Left(id_token), Either::Left(colon_token)) if id_token.token_type == TokenType::Identifier || colon_token.token_type == TokenType::Colon => {
+        current_index += 2;
+        (Some(id_token.clone()), Some(colon_token.clone()))
+      }
+      _ => (None, None)
     };
 
     let (expression, next_token_index) = match parse_expression(tokens, current_index, precedence_table, 0) {
@@ -429,12 +494,15 @@ fn parse_tuple_members(tokens: &Vec<&Token<TokenType>>, token_index: usize, prec
       }
     };
 
-    let comma_token = if tokens[next_token_index].token_type == TokenType::Comma {
-      current_index = next_token_index + 1;
-      Some(tokens[next_token_index].clone())
-    } else {
-      current_index = next_token_index;
-      None
+    let comma_token = match tokens[next_token_index] {
+      Either::Left(comma_token) if comma_token.token_type == TokenType::Comma => {
+        current_index = next_token_index + 1;
+        Some(comma_token.clone())
+      }
+      _ => {
+        current_index = next_token_index;
+        None
+      }
     };
 
     tuple_members.push(TupleMember::new(name, colon, expression, comma_token));

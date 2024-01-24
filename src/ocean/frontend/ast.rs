@@ -373,12 +373,12 @@ pub struct UsingPathEntry {
 // This may result in multiple sub expressions
 #[derive(Clone, Debug)]
 pub struct ExpressionNode {
-  pub tokens: Vec<Token<TokenType>>,
+  pub tokens: Vec<Either<Token<TokenType>, Expression>>,
   pub parsed_expression: Option<Expression>,
 }
 
 impl ExpressionNode {
-  pub fn new(tokens: Vec<Token<TokenType>>) -> Self {
+  pub fn new(tokens: Vec<Either<Token<TokenType>, Expression>>) -> Self {
     Self { tokens, parsed_expression: None }
   }
 }
@@ -401,6 +401,17 @@ pub enum Expression {
   PrefixOperation(PrefixOperator),
   PostfixOperation(PostfixOperator),
   BinaryOperation(BinaryOperator),
+  AstNode(AstNodeExpression),
+}
+
+#[derive(Clone, Debug)]
+pub enum AstNodeExpression {
+  Match(Box<Match>),
+  Loop(Box<Loop>),
+  ForLoop(Box<ForLoop>),
+  WhileLoop(Box<WhileLoop>),
+  Branch(Box<Branch>),
+  Type(Type),
 }
 
 #[derive(Clone, Debug, New)]

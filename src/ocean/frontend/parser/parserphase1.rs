@@ -1134,7 +1134,7 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
       | (Some(ParseState::ExpressionNoComma), Some(AstSymbol::ExpressionTokenList(mut token_list)), TokenType::Is)
       | (Some(ParseState::ExpressionNoComma), Some(AstSymbol::ExpressionTokenList(mut token_list)), TokenType::Newline) => {
         ast_stack.pop();
-        token_list.push(current_token.clone());
+        token_list.push(Either::Left(current_token.clone()));
         ast_stack.push(AstSymbol::ExpressionTokenList(token_list.clone()));
         token_index += 1;
       }
@@ -1171,7 +1171,7 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
       | (Some(ParseState::Expression), Some(AstSymbol::ExpressionTokenList(mut token_list)), TokenType::Is)
       | (Some(ParseState::Expression), Some(AstSymbol::ExpressionTokenList(mut token_list)), TokenType::Newline) => {
         ast_stack.pop();
-        token_list.push(current_token.clone());
+        token_list.push(Either::Left(current_token.clone()));
         ast_stack.push(AstSymbol::ExpressionTokenList(token_list.clone()));
         token_index += 1;
       }
@@ -1185,7 +1185,7 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
       }
 
       (Some(ParseState::SubExpression), Some(_), TokenType::LeftParen) => {
-        ast_stack.push(AstSymbol::ExpressionTokenList(vec![current_token.clone()]));
+        ast_stack.push(AstSymbol::ExpressionTokenList(vec![Either::Left(current_token.clone())]));
         parser_state_stack.push(ParseState::Expression);
         token_index += 1;
       }
@@ -1194,7 +1194,7 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
         let token_list_sym = ast_stack.pop_panic();
         match token_list_sym {
           AstSymbol::ExpressionTokenList(mut token_list) => {
-            sub_token_list.push(current_token.clone());
+            sub_token_list.push(Either::Left(current_token.clone()));
             token_list.append(&mut sub_token_list);
             ast_stack.push(AstSymbol::ExpressionTokenList(token_list));
             token_index += 1;

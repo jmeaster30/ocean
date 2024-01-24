@@ -27,6 +27,25 @@ fn impl_debuggable_macro(ast: &syn::DeriveInput) -> TokenStream {
   gen.into()
 }
 
+#[proc_macro_derive(AstNode)]
+pub fn ast_node_macro_derive(input: TokenStream) -> TokenStream {
+  let ast = syn::parse(input).unwrap();
+  impl_ast_node_macro(&ast)
+}
+
+fn impl_ast_node_macro(ast: &syn::DeriveInput) -> TokenStream {
+  let name = &ast.ident;
+  let gen = quote! {
+    impl AstNode for #name {
+      fn get_as_expression(&self) -> Expression {
+        Expression::AstNode(self.clone())
+      }
+    }
+  };
+  gen.into()
+}
+
+
 #[proc_macro_derive(New)]
 pub fn new_macro_derive(input: TokenStream) -> TokenStream {
   let ast = syn::parse(input).unwrap();
@@ -80,6 +99,16 @@ fn impl_new_macro(ast: &syn::DeriveInput) -> TokenStream {
     }
     _ => TokenStream::new()
   }
+}
+
+#[proc_macro]
+pub fn gen_get_as_expression(item: TokenStream) -> TokenStream {
+  let quote = quote! {
+    fn get_as_expression(&self) -> Expression {
+      Expression::AstNode(self.clone())
+    }
+  };
+  quote.into()
 }
 
 // TODO I need to think much more deeply about if I want wrapping behavior for these operations

@@ -19,12 +19,12 @@ pack MapIterable(auto Subtype, auto MappedType) : Iterable(Subtype) {
 function map(iterator: Iterable(auto Subtype), map_function: function (Subtype) -> (auto MappedType))
     -> (map_iterator: MapIterable(Subtype, MappedType) = (iterator: iterator, map_function: map_function))
 
-function current(map_iterator: MapIterable(auto Subtype)) -> (result: Optional(Subtype)) {
-    match map_iterator.iterator.current() {
-        Some(value) => result = Some(map_iterator.map_function(value));
-        None => result = None;
-    }
-}
+function current(map_iterator: MapIterable(auto Subtype))
+    -> (result: Optional(Subtype) =
+        match map_iterator.iterator.current() {
+            Some(value) => Some(map_iterator.map_function(value));
+            None => None;
+        })
 
 function move(map_iterator: MapIterable(auto Subtype)) {
     map_iterator.iterator.move();
@@ -40,17 +40,15 @@ function filter(iterator: Iterable(auto Subtype), filter_function: function (Sub
 
 function current(filter_iterator: FilterIterable(auto Subtype)) -> (result: Optional(Subtype)) {
     loop {
-        match filter_iterator.current() {
-            Some(value) && filter_iterator.filter_function(value) => {
-                result = value;
-                break
+        result = match filter_iterator.current() {
+            Some(value) && filter_iterator.filter_function(value) => value;
+            Some(_) => {
+                filter_iterator.move();
+                continue
             }
-            Some(_) => filter_iterator.move();
-            None => {
-                result = None;
-                break
-            }
+            None => None;
         }
+        break
     }
 }
 
@@ -60,9 +58,11 @@ function move(filter_iterator: FilterIterable(auto Subtype)) {
 
 using std.io
 
-let test = [1, 2, 3, 4, 5, 6] as ArrayIterable;
-    #.map(function (x: u32) -> (y: i32 = x * 3 + 1))
-    #.filter(function (x: u32) -> (y: bool = x % 2 == 0))
+#/
+let test = [1, 2, 3, 4, 5, 6] as ArrayIterable
+    .map(function (x: u32) -> (y: i32 = x * 3 + 1))
+    .filter(function (x: u32) -> (y: bool = x % 2 == 0))
+/#
 
 for x in test {
     println(x);
