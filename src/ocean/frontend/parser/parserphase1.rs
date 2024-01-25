@@ -598,13 +598,16 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
         ast_stack.push(AstSymbol::OptToken(None));
         parser_state_stack.pop();
       }
-      (Some(ParseState::FunctionReturn), Some(_), TokenType::Comment) | (Some(ParseState::FunctionReturn), Some(_), TokenType::Newline) => {
+      (Some(ParseState::FunctionReturn), Some(_), TokenType::Comment)
+      | (Some(ParseState::FunctionReturn), Some(_), TokenType::Newline) => {
         token_index = consume_comments_newline(tokens, token_index);
       }
       (Some(ParseState::FunctionReturn), Some(AstSymbol::FunctionReturns(_)), TokenType::RightParen) => {
         parser_state_stack.goto(ParseState::FunctionReturnEnd);
       }
-      (Some(ParseState::FunctionReturn), Some(AstSymbol::FunctionReturns(_)), TokenType::Identifier) | (Some(ParseState::FunctionReturn), Some(AstSymbol::FunctionReturns(_)), TokenType::Type) | (Some(ParseState::FunctionReturn), Some(AstSymbol::FunctionReturns(_)), TokenType::TypePrefix) => {
+      (Some(ParseState::FunctionReturn), Some(AstSymbol::FunctionReturns(_)), TokenType::Identifier)
+      | (Some(ParseState::FunctionReturn), Some(AstSymbol::FunctionReturns(_)), TokenType::Type)
+      | (Some(ParseState::FunctionReturn), Some(AstSymbol::FunctionReturns(_)), TokenType::TypePrefix) => {
         parser_state_stack.push(ParseState::IdentifierStart);
       }
       (Some(ParseState::FunctionReturn), Some(AstSymbol::Identifier(_)), TokenType::Symbol) => {
@@ -822,7 +825,7 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
           _ => panic!("Unexpected type prefix"),
         }
       }
-      (Some(ParseState::Type), _, TokenType::Function) => {
+      (Some(ParseState::Type), _, TokenType::FunctionType) => {
         ast_stack.push(AstSymbol::Token(current_token.clone()));
         token_index = consume_comments_newline(tokens, token_index);
         parser_state_stack.goto(ParseState::TypeFunctionParams);
@@ -1116,6 +1119,82 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
       (Some(ParseState::ExpressionNoComma), Some(AstSymbol::ExpressionTokenList(_)), TokenType::LeftParen) => {
         parser_state_stack.push(ParseState::SubExpression);
       }
+      (Some(ParseState::ExpressionNoComma), Some(AstSymbol::ExpressionTokenList(_)), TokenType::Match) => {
+        ast_stack.push(AstSymbol::Token(current_token.clone()));
+        token_index = consume_comments_newline(tokens, token_index);
+        parser_state_stack.push(ParseState::MatchBody);
+        parser_state_stack.push(ParseState::Expression);
+      }
+      (Some(ParseState::ExpressionNoComma), Some(AstSymbol::ExpressionTokenList(_)), TokenType::Function) => {
+        parser_state_stack.push(ParseState::FunctionBody);
+        parser_state_stack.push(ParseState::FunctionReturnStart);
+        parser_state_stack.push(ParseState::FunctionArrow);
+        parser_state_stack.push(ParseState::FunctionParameterStart);
+        parser_state_stack.push(ParseState::FunctionIdentifier);
+        ast_stack.push(AstSymbol::Token(current_token.clone()));
+        token_index = consume_comments_newline(tokens, token_index);
+      }
+      (Some(ParseState::ExpressionNoComma), Some(AstSymbol::ExpressionTokenList(_)), TokenType::If) => {
+        ast_stack.push(AstSymbol::Token(current_token.clone()));
+        token_index = consume_comments_newline(tokens, token_index);
+        parser_state_stack.push(ParseState::BranchEndStatement);
+        parser_state_stack.push(ParseState::BranchStatement);
+        parser_state_stack.push(ParseState::CompoundStatement);
+        parser_state_stack.push(ParseState::Expression);
+      }
+      (Some(ParseState::ExpressionNoComma), Some(AstSymbol::ExpressionTokenList(_)), TokenType::While) => {
+        ast_stack.push(AstSymbol::Token(current_token.clone()));
+        token_index = consume_comments_newline(tokens, token_index);
+        parser_state_stack.push(ParseState::WhileStatement);
+        parser_state_stack.push(ParseState::CompoundStatement);
+        parser_state_stack.push(ParseState::Expression);
+      }
+      (Some(ParseState::ExpressionNoComma), Some(AstSymbol::ExpressionTokenList(_)), TokenType::Loop) => {
+        ast_stack.push(AstSymbol::Token(current_token.clone()));
+        token_index = consume_comments_newline(tokens, token_index);
+        parser_state_stack.push(ParseState::LoopStatement);
+        parser_state_stack.push(ParseState::CompoundStatement);
+      }
+      (Some(ParseState::ExpressionNoComma), Some(AstSymbol::ExpressionTokenList(_)), TokenType::For) => {
+        ast_stack.push(AstSymbol::Token(current_token.clone()));
+        token_index = consume_comments_newline(tokens, token_index);
+        parser_state_stack.push(ParseState::ForStatement);
+        parser_state_stack.push(ParseState::CompoundStatement);
+        parser_state_stack.push(ParseState::Expression);
+        parser_state_stack.push(ParseState::ForStatementIn);
+        parser_state_stack.push(ParseState::Expression);
+      }
+      (Some(ParseState::ExpressionNoComma), Some(AstSymbol::OptStatement(Some(statement))), _) => {
+        ast_stack.pop();
+        let token_list = ast_stack.pop_panic();
+        match (token_list, statement) {
+          (AstSymbol::ExpressionTokenList(mut token_list), Statement::Match(match_expr)) => {
+            token_list.push(Either::Right(AstNodeExpression::Match(Box::new(match_expr))));
+            ast_stack.push(AstSymbol::ExpressionTokenList(token_list));
+          }
+          (AstSymbol::ExpressionTokenList(mut token_list), Statement::Function(function_expr)) => {
+            token_list.push(Either::Right(AstNodeExpression::Function(Box::new(function_expr))));
+            ast_stack.push(AstSymbol::ExpressionTokenList(token_list));
+          }
+          (AstSymbol::ExpressionTokenList(mut token_list), Statement::ForLoop(for_loop_expr)) => {
+            token_list.push(Either::Right(AstNodeExpression::ForLoop(Box::new(for_loop_expr))));
+            ast_stack.push(AstSymbol::ExpressionTokenList(token_list));
+          }
+          (AstSymbol::ExpressionTokenList(mut token_list), Statement::Loop(loop_expr)) => {
+            token_list.push(Either::Right(AstNodeExpression::Loop(Box::new(loop_expr))));
+            ast_stack.push(AstSymbol::ExpressionTokenList(token_list));
+          }
+          (AstSymbol::ExpressionTokenList(mut token_list), Statement::WhileLoop(while_loop_expr)) => {
+            token_list.push(Either::Right(AstNodeExpression::WhileLoop(Box::new(while_loop_expr))));
+            ast_stack.push(AstSymbol::ExpressionTokenList(token_list));
+          }
+          (AstSymbol::ExpressionTokenList(mut token_list), Statement::Branch(branch_expr)) => {
+            token_list.push(Either::Right(AstNodeExpression::Branch(Box::new(branch_expr))));
+            ast_stack.push(AstSymbol::ExpressionTokenList(token_list));
+          }
+          _ => panic!("Invalid parser state")
+        }
+      }
       (Some(ParseState::ExpressionNoComma), Some(AstSymbol::ExpressionTokenList(mut token_list)), TokenType::Comment)
       | (Some(ParseState::ExpressionNoComma), Some(AstSymbol::ExpressionTokenList(mut token_list)), TokenType::String)
       | (Some(ParseState::ExpressionNoComma), Some(AstSymbol::ExpressionTokenList(mut token_list)), TokenType::InterpolatedString)
@@ -1151,6 +1230,82 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
       }
       (Some(ParseState::Expression), Some(AstSymbol::ExpressionTokenList(_)), TokenType::RightParen) => {
         parser_state_stack.pop();
+      }
+      (Some(ParseState::Expression), Some(AstSymbol::ExpressionTokenList(_)), TokenType::Match) => {
+        ast_stack.push(AstSymbol::Token(current_token.clone()));
+        token_index = consume_comments_newline(tokens, token_index);
+        parser_state_stack.push(ParseState::MatchBody);
+        parser_state_stack.push(ParseState::Expression);
+      }
+      (Some(ParseState::Expression), Some(AstSymbol::ExpressionTokenList(_)), TokenType::Function) => {
+        parser_state_stack.push(ParseState::FunctionBody);
+        parser_state_stack.push(ParseState::FunctionReturnStart);
+        parser_state_stack.push(ParseState::FunctionArrow);
+        parser_state_stack.push(ParseState::FunctionParameterStart);
+        parser_state_stack.push(ParseState::FunctionIdentifier);
+        ast_stack.push(AstSymbol::Token(current_token.clone()));
+        token_index = consume_comments_newline(tokens, token_index);
+      }
+      (Some(ParseState::Expression), Some(AstSymbol::ExpressionTokenList(_)), TokenType::If) => {
+        ast_stack.push(AstSymbol::Token(current_token.clone()));
+        token_index = consume_comments_newline(tokens, token_index);
+        parser_state_stack.push(ParseState::BranchEndStatement);
+        parser_state_stack.push(ParseState::BranchStatement);
+        parser_state_stack.push(ParseState::CompoundStatement);
+        parser_state_stack.push(ParseState::Expression);
+      }
+      (Some(ParseState::Expression), Some(AstSymbol::ExpressionTokenList(_)), TokenType::While) => {
+        ast_stack.push(AstSymbol::Token(current_token.clone()));
+        token_index = consume_comments_newline(tokens, token_index);
+        parser_state_stack.push(ParseState::WhileStatement);
+        parser_state_stack.push(ParseState::CompoundStatement);
+        parser_state_stack.push(ParseState::Expression);
+      }
+      (Some(ParseState::Expression), Some(AstSymbol::ExpressionTokenList(_)), TokenType::Loop) => {
+        ast_stack.push(AstSymbol::Token(current_token.clone()));
+        token_index = consume_comments_newline(tokens, token_index);
+        parser_state_stack.push(ParseState::LoopStatement);
+        parser_state_stack.push(ParseState::CompoundStatement);
+      }
+      (Some(ParseState::Expression), Some(AstSymbol::ExpressionTokenList(_)), TokenType::For) => {
+        ast_stack.push(AstSymbol::Token(current_token.clone()));
+        token_index = consume_comments_newline(tokens, token_index);
+        parser_state_stack.push(ParseState::ForStatement);
+        parser_state_stack.push(ParseState::CompoundStatement);
+        parser_state_stack.push(ParseState::Expression);
+        parser_state_stack.push(ParseState::ForStatementIn);
+        parser_state_stack.push(ParseState::Expression);
+      }
+      (Some(ParseState::Expression), Some(AstSymbol::OptStatement(Some(statement))), _) => {
+        ast_stack.pop();
+        let token_list = ast_stack.pop_panic();
+        match (token_list, statement) {
+          (AstSymbol::ExpressionTokenList(mut token_list), Statement::Match(match_expr)) => {
+            token_list.push(Either::Right(AstNodeExpression::Match(Box::new(match_expr))));
+            ast_stack.push(AstSymbol::ExpressionTokenList(token_list));
+          }
+          (AstSymbol::ExpressionTokenList(mut token_list), Statement::Function(function_expr)) => {
+            token_list.push(Either::Right(AstNodeExpression::Function(Box::new(function_expr))));
+            ast_stack.push(AstSymbol::ExpressionTokenList(token_list));
+          }
+          (AstSymbol::ExpressionTokenList(mut token_list), Statement::ForLoop(for_loop_expr)) => {
+            token_list.push(Either::Right(AstNodeExpression::ForLoop(Box::new(for_loop_expr))));
+            ast_stack.push(AstSymbol::ExpressionTokenList(token_list));
+          }
+          (AstSymbol::ExpressionTokenList(mut token_list), Statement::Loop(loop_expr)) => {
+            token_list.push(Either::Right(AstNodeExpression::Loop(Box::new(loop_expr))));
+            ast_stack.push(AstSymbol::ExpressionTokenList(token_list));
+          }
+          (AstSymbol::ExpressionTokenList(mut token_list), Statement::WhileLoop(while_loop_expr)) => {
+            token_list.push(Either::Right(AstNodeExpression::WhileLoop(Box::new(while_loop_expr))));
+            ast_stack.push(AstSymbol::ExpressionTokenList(token_list));
+          }
+          (AstSymbol::ExpressionTokenList(mut token_list), Statement::Branch(branch_expr)) => {
+            token_list.push(Either::Right(AstNodeExpression::Branch(Box::new(branch_expr))));
+            ast_stack.push(AstSymbol::ExpressionTokenList(token_list));
+          }
+          _ => panic!("Invalid parser state")
+        }
       }
       (Some(ParseState::Expression), Some(AstSymbol::ExpressionTokenList(mut token_list)), TokenType::Comment)
       | (Some(ParseState::Expression), Some(AstSymbol::ExpressionTokenList(mut token_list)), TokenType::String)

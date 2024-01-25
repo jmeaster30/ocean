@@ -373,12 +373,12 @@ pub struct UsingPathEntry {
 // This may result in multiple sub expressions
 #[derive(Clone, Debug)]
 pub struct ExpressionNode {
-  pub tokens: Vec<Either<Token<TokenType>, Expression>>,
+  pub tokens: Vec<Either<Token<TokenType>, AstNodeExpression>>,
   pub parsed_expression: Option<Expression>,
 }
 
 impl ExpressionNode {
-  pub fn new(tokens: Vec<Either<Token<TokenType>, Expression>>) -> Self {
+  pub fn new(tokens: Vec<Either<Token<TokenType>, AstNodeExpression>>) -> Self {
     Self { tokens, parsed_expression: None }
   }
 }
@@ -411,7 +411,8 @@ pub enum AstNodeExpression {
   ForLoop(Box<ForLoop>),
   WhileLoop(Box<WhileLoop>),
   Branch(Box<Branch>),
-  Type(Type),
+  Function(Box<Function>),
+  Type(Type), // TODO I think this isn't as useful as I thought
 }
 
 #[derive(Clone, Debug, New)]

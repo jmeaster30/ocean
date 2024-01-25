@@ -174,20 +174,35 @@ fn parse_phase_two_function(function: &mut Function, precedence_table: &mut Prec
   join_results(parse_results)
 }
 
+fn parse_phase_two_expression_ast_node(node: &mut AstNodeExpression, precedence_table: &mut PrecedenceTable) -> Result<(), Vec<Error>> {
+  match node {
+    AstNodeExpression::Match(match_node) => parse_phase_two_match(match_node, precedence_table),
+    AstNodeExpression::Loop(loop_node) => parse_phase_two_loop(loop_node, precedence_table),
+    AstNodeExpression::ForLoop(loop_node) => parse_phase_two_for(loop_node, precedence_table),
+    AstNodeExpression::WhileLoop(loop_node) => parse_phase_two_while(loop_node, precedence_table),
+    AstNodeExpression::Branch(branch_node) => parse_phase_two_branch(branch_node, precedence_table),
+    AstNodeExpression::Function(function) => parse_phase_two_function(function, precedence_table),
+    _ => todo!()
+  }
+}
+
 fn parse_phase_two_expression(expression: &mut ExpressionNode, precedence_table: &mut PrecedenceTable) -> Result<(), Vec<Error>> {
   let expression_tokens = expression.tokens.iter().filter(|x| match x {
     Either::Left(token) => token.token_type != TokenType::Newline && token.token_type != TokenType::Comment,
     Either::Right(_) => true,
-  }).collect::<Vec<&Either<Token<TokenType>, Expression>>>();
+  }).collect::<Vec<&Either<Token<TokenType>, AstNodeExpression>>>();
   let (parsed_expression, _) = parse_expression(&expression_tokens, 0, precedence_table, 0)?;
   expression.parsed_expression = Some(parsed_expression);
   Ok(())
 }
 
-fn parse_expression(tokens: &Vec<&Either<Token<TokenType>, Expression>>, token_index: usize, precedence_table: &PrecedenceTable, min_precedence: usize) -> Result<(Expression, usize), Vec<Error>> {
-  let (mut left_hand_side, next_token_index) = match tokens[token_index] {
-    Either::Right(expression) => (expression.clone(), token_index + 1),
-    Either::Left(token) => if is_literal_start_token(token) {
+fn parse_expression(tokens: &Vec<&Either<Token<TokenType>, AstNodeExpression>>, token_index: usize, precedence_table: &mut PrecedenceTable, min_precedence: usize) -> Result<(Expression, usize), Vec<Error>> {
+  let (mut left_hand_side, next_token_index) = match tokens[token_index].clone() {
+    Either::Right(mut expression) => {
+      parse_phase_two_expression_ast_node(&mut expression, precedence_table)?;
+      (Expression::AstNode(expression.clone()), token_index + 1)
+    },
+    Either::Left(token) => if is_literal_start_token(&token) {
       parse_literal(tokens, token_index, precedence_table)?
     } else if precedence_table.is_prefix_operator(&token.lexeme) {
       let prefix_precedence = precedence_table.get_prefix_precedence(&token.lexeme);
@@ -203,7 +218,7 @@ fn parse_expression(tokens: &Vec<&Either<Token<TokenType>, Expression>>, token_i
     let current_token = match tokens[current_token_index] {
       Either::Left(token) => token,
       // TODO add expression span
-      Either::Right(expression) => return Err(vec![Error::new(Severity::Error, (0, 0), "Unexpected expression. Expected ')', ']', ',', or an operator.".to_string())])
+      Either::Right(expression) => return Err(vec![Error::new(Severity::Error, (0, 0), "Unexpected expression. Expected ')', ']', ',', or an operator. OR you may have missed a semicolon.".to_string())])
     };
 
     match current_token.token_type {
@@ -246,10 +261,10 @@ fn parse_expression(tokens: &Vec<&Either<Token<TokenType>, Expression>>, token_i
           continue;
         }
         TokenType::As => {
-          let parsed_type = match tokens[current_token_index + 1] {
-            Either::Left(token) => return Err(vec![Error::new(Severity::Error, token.get_span(), "Expected a type for the cast expression.".to_string())]),
+          let (parsed_type, next_token_index) = match tokens[current_token_index + 1] {
+            Either::Left(_) => parse_type(tokens, current_token_index + 1)?,
             Either::Right(expression) => match expression {
-              Expression::AstNode(AstNodeExpression::Type(parsed_type)) => parsed_type,
+              AstNodeExpression::Type(parsed_type) => (parsed_type.clone(), current_token_index + 2),
               // TODO add expression span
               _ => return Err(vec![Error::new(Severity::Error, (0, 0), "Expected a type for the cast expression.".to_string())]),
             }
@@ -291,7 +306,7 @@ fn parse_expression(tokens: &Vec<&Either<Token<TokenType>, Expression>>, token_i
   Ok((left_hand_side, current_token_index))
 }
 
-fn parse_literal(tokens: &Vec<&Either<Token<TokenType>, Expression>>, token_index: usize, precedence_table: &PrecedenceTable) -> Result<(Expression, usize), Vec<Error>> {
+fn parse_literal(tokens: &Vec<&Either<Token<TokenType>, AstNodeExpression>>, token_index: usize, precedence_table: &mut PrecedenceTable) -> Result<(Expression, usize), Vec<Error>> {
   let token = tokens[token_index].clone().expect_left("Uh oh found an expression :(");
   let (expression, next_token_index) = match token.token_type {
     TokenType::String => (Expression::String(StringLiteral::new(token.clone())), token_index + 1),
@@ -325,7 +340,7 @@ fn parse_literal(tokens: &Vec<&Either<Token<TokenType>, Expression>>, token_inde
   Ok((expression, current_token_index))
 }
 
-fn parse_arguments(tokens: &Vec<&Either<Token<TokenType>, Expression>>, token_index: usize, precedence_table: &PrecedenceTable) -> Result<(Vec<Argument>, usize), Vec<Error>> {
+fn parse_arguments(tokens: &Vec<&Either<Token<TokenType>, AstNodeExpression>>, token_index: usize, precedence_table: &mut PrecedenceTable) -> Result<(Vec<Argument>, usize), Vec<Error>> {
   let mut current_token_index = token_index;
   let mut arguments = Vec::new();
   if let Either::Left(token) = tokens[current_token_index] {
@@ -350,7 +365,7 @@ fn parse_arguments(tokens: &Vec<&Either<Token<TokenType>, Expression>>, token_in
   Ok((arguments, current_token_index))
 }
 
-fn parse_interpolated_string(lexeme: &String, precedence_table: &PrecedenceTable) -> Result<Vec<Expression>, Vec<Error>> {
+fn parse_interpolated_string(lexeme: &String, precedence_table: &mut PrecedenceTable) -> Result<Vec<Expression>, Vec<Error>> {
   let chars = lexeme.chars().collect::<Vec<char>>();
   let mut errors = Vec::new();
 
@@ -370,14 +385,14 @@ fn parse_interpolated_string(lexeme: &String, precedence_table: &PrecedenceTable
         Ok(tokens) => tokens.iter()
           .filter(|x| x.token_type != TokenType::Newline && x.token_type != TokenType::Comment)
           .map(|x| Either::Left(x.clone()))
-          .collect::<Vec<Either<Token<TokenType>, Expression>>>(),
+          .collect::<Vec<Either<Token<TokenType>, AstNodeExpression>>>(),
         Err(mut new_errors) => {
           errors.append(&mut new_errors);
           continue;
         }
       };
       // This is weird
-      let clean_tokens = tokens.iter().collect::<Vec<&Either<Token<TokenType>, Expression>>>();
+      let clean_tokens = tokens.iter().collect::<Vec<&Either<Token<TokenType>, AstNodeExpression>>>();
       let (expression, _) = match parse_expression(&clean_tokens, 0, precedence_table, 0) {
         Ok(a) => a,
         Err(mut new_errors) => {
@@ -404,7 +419,7 @@ fn parse_interpolated_string(lexeme: &String, precedence_table: &PrecedenceTable
   }
 }
 
-fn parse_sub_expression_or_tuple(tokens: &Vec<&Either<Token<TokenType>, Expression>>, token_index: usize, precedence_table: &PrecedenceTable) -> Result<(Expression, usize), Vec<Error>> {
+fn parse_sub_expression_or_tuple(tokens: &Vec<&Either<Token<TokenType>, AstNodeExpression>>, token_index: usize, precedence_table: &mut PrecedenceTable) -> Result<(Expression, usize), Vec<Error>> {
   let start_token = match tokens[token_index] {
     Either::Left(token) => token,
     // TODO add expression span
@@ -467,7 +482,7 @@ fn parse_sub_expression_or_tuple(tokens: &Vec<&Either<Token<TokenType>, Expressi
   }
 }
 
-fn parse_tuple_members(tokens: &Vec<&Either<Token<TokenType>, Expression>>, token_index: usize, precedence_table: &PrecedenceTable) -> Result<(Vec<TupleMember>, usize), Vec<Error>> {
+fn parse_tuple_members(tokens: &Vec<&Either<Token<TokenType>, AstNodeExpression>>, token_index: usize, precedence_table: &mut PrecedenceTable) -> Result<(Vec<TupleMember>, usize), Vec<Error>> {
   let mut errors = Vec::new();
   let mut tuple_members = Vec::new();
   let mut current_index = token_index;
@@ -479,7 +494,7 @@ fn parse_tuple_members(tokens: &Vec<&Either<Token<TokenType>, Expression>>, toke
     }
 
     let (name, colon) = match (tokens[current_index], tokens[current_index + 1]) {
-      (Either::Left(id_token), Either::Left(colon_token)) if id_token.token_type == TokenType::Identifier || colon_token.token_type == TokenType::Colon => {
+      (Either::Left(id_token), Either::Left(colon_token)) if id_token.token_type == TokenType::Identifier && colon_token.token_type == TokenType::Colon => {
         current_index += 2;
         (Some(id_token.clone()), Some(colon_token.clone()))
       }
@@ -515,15 +530,15 @@ fn parse_tuple_members(tokens: &Vec<&Either<Token<TokenType>, Expression>>, toke
   }
 }
 
-fn parse_type(tokens: &Vec<&Token<TokenType>>, token_index: usize) -> Result<(Type, usize), Vec<Error>> {
+fn parse_type(tokens: &Vec<&Either<Token<TokenType>, AstNodeExpression>>, token_index: usize) -> Result<(Type, usize), Vec<Error>> {
   // This is very janky going from ref vec of refs to ref vec of non-refs
-  let mut token_copy = tokens.iter().map(|x| (*x).clone()).collect::<Vec<Token<TokenType>>>();
+  let mut token_copy = tokens.iter().filter(|x| x.is_left()).map(|x| (*x).clone().expect_left("woah")).collect::<Vec<Token<TokenType>>>();
   token_copy.push(Token::new("".to_string(), TokenType::EndOfInput, (0, 0), (0, 0), (0, 0)));
   let (ast_symbol, next_token_index, mut errors) = parse_phase_one_partial(&token_copy, token_index, ParseState::Type, None);
   match (ast_symbol.clone(), errors.clone()) {
     (AstSymbol::Type(parsed_type), errors) if errors.len() == 0 => Ok((parsed_type, next_token_index)),
     _ => {
-      errors.push(Error::new(Severity::Error, (tokens[token_index].get_span().0, tokens[next_token_index - 1].get_span().1), format!("Type parser produced an unexpected ast node :( {:?}", ast_symbol).to_string()));
+      errors.push(Error::new(Severity::Error, (token_copy[token_index].get_span().0, token_copy[next_token_index - 1].get_span().1), format!("Type parser produced an unexpected ast node :( {:?}", ast_symbol).to_string()));
       Err(errors)
     }
   }

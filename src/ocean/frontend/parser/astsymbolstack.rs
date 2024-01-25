@@ -38,7 +38,7 @@ pub enum AstSymbol {
 
   Token(Token<TokenType>),
   OptToken(Option<Token<TokenType>>),
-  ExpressionTokenList(Vec<Either<Token<TokenType>, Expression>>),
+  ExpressionTokenList(Vec<Either<Token<TokenType>, AstNodeExpression>>),
 }
 
 #[derive(Debug)]
