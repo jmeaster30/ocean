@@ -16,7 +16,12 @@ impl Spanned for Program {
 
 impl Spanned for StatementNode {
   fn get_span(&self) -> (usize, usize) {
-    todo!()
+    match (self.data.first(), &self.statement) {
+      (Some(first), Some(statement)) => (first.get_span().0, statement.get_span().1),
+      (Some(first), None) => (first.get_span().0, self.data.last().unwrap().get_span().1),
+      (None, Some(statement)) => statement.get_span(),
+      (None, None) => (0, 0)
+    }
   }
 }
 
@@ -44,6 +49,28 @@ impl Spanned for Annotation {
 impl Spanned for CompoundStatement {
   fn get_span(&self) -> (usize, usize) {
     (self.left_curly.get_span().0, self.right_curly.get_span().1)
+  }
+}
+
+impl Spanned for Statement {
+  fn get_span(&self) -> (usize, usize) {
+    match self {
+      Statement::WhileLoop(x) => x.get_span(),
+      Statement::ForLoop(x) => x.get_span(),
+      Statement::Loop(x) => x.get_span(),
+      Statement::Branch(x) => x.get_span(),
+      Statement::Match(x) => x.get_span(),
+      Statement::Assignment(x) => x.get_span(),
+      Statement::Function(x) => x.get_span(),
+      Statement::Pack(x) => x.get_span(),
+      Statement::Union(x) => x.get_span(),
+      Statement::Interface(x) => x.get_span(),
+      Statement::Return(x) => x.get_span(),
+      Statement::Break(x) => x.get_span(),
+      Statement::Continue(x) => x.get_span(),
+      Statement::Using(x) => x.get_span(),
+      Statement::Expression(x) => x.get_span(),
+    }
   }
 }
 
@@ -117,25 +144,31 @@ impl Spanned for Identifier {
 
 impl Spanned for Function {
   fn get_span(&self) -> (usize, usize) {
-    todo!()
+    (self.function_token.get_span().0, match &self.compound_statement {
+      Some(compound) => compound.get_span(),
+      None => match &self.result_right_paren {
+        Some(result_right_paren) => result_right_paren.get_span(),
+        None => self.param_right_paren.get_span()
+      }
+    }.0)
   }
 }
 
 impl Spanned for Pack {
   fn get_span(&self) -> (usize, usize) {
-    todo!()
+    (self.pack_token.get_span().0, self.right_curly.get_span().1)
   }
 }
 
 impl Spanned for Union {
   fn get_span(&self) -> (usize, usize) {
-    todo!()
+    (self.union_token.get_span().0, self.right_curly.get_span().1)
   }
 }
 
 impl Spanned for Interface {
   fn get_span(&self) -> (usize, usize) {
-    todo!()
+    (self.interface_token.get_span().0, self.right_curly_token.get_span().1)
   }
 }
 

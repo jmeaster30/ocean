@@ -60,7 +60,7 @@ using std.io
 
 let test = [1, 2, 3, 4, 5, 6] as ArrayIterable
     .map(function a(x: u32) -> (y: i32 = x * 3 + 1))
-    .filter(function a(x: u32) -> (y: bool = x % 2 == 0))
+    .filter(function a(x: u32) -> (y: bool = x % 2 == 0));
 
 for x in test {
     println(x);
