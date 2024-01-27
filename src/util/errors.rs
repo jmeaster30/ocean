@@ -38,7 +38,7 @@ pub struct Error {
 }
 
 impl Error {
-  pub fn display_message(&self, file_contents: &[u8], file_name: &String) {
+  pub fn display_message(&self, file_contents: &[u8], file_name: &String, context: usize) {
     eprintln!("\u{001b}[{};1m{}: \u{001b}[95;1m{}\u{001b}[0m", self.severity.ansi_color_code(), self.severity.name(), self.message);
 
     let line_spans = Error::line_spans(file_contents);
@@ -53,8 +53,10 @@ impl Error {
         let column_index = self.span.0 - line_spans[line_index].0;
         eprintln!("{}+----[\u{001b}[{}m{}:{}:{}\u{001b}[0m]----", " ".repeat(width + 2), self.severity.ansi_color_code(), file_name, line_index + 1, column_index + 1);
         eprintln!("{}|", " ".repeat(width + 2));
-        if line_index > 0 {
-          Error::print_source_line(&self.severity, file_contents, line_spans[line_index - 1], self.span.0, self.span.1, line_index - 1, largest_line_number);
+        let mut offset = context;
+        while line_index - offset >= 0 && offset > 0 {
+          Error::print_source_line(&self.severity, file_contents, line_spans[line_index - offset], self.span.0, self.span.1, line_index - offset, largest_line_number);
+          offset -= 1;
         }
         Error::print_source_line(&self.severity, file_contents, line_spans[line_index], self.span.0, self.span.1, line_index, largest_line_number);
 
@@ -67,6 +69,12 @@ impl Error {
             break;
           }
           Error::print_source_line(&self.severity, file_contents, line_spans[line_index], self.span.0, self.span.1, line_index, largest_line_number);
+        }
+
+        let mut offset = 1;
+        while line_index + offset < largest_line_number && offset <= context {
+          Error::print_source_line(&self.severity, file_contents, line_spans[line_index + offset], self.span.0, self.span.1, line_index + offset, largest_line_number);
+          offset += 1;
         }
 
         break;

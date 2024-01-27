@@ -4,3 +4,4 @@ mod lexer;
 mod parser;
 mod semanticanalysis;
 pub mod tokentype;
+mod span;

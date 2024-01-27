@@ -11,6 +11,11 @@ use std::{env, fs, io};
 
 impl Ocean {
   pub fn compile(file_path: &str, token_mode: &str, ast_mode: &str) -> Result<(), io::Error> {
+    let error_context_size = match env::var("OCEAN_ERROR_LINE_CONTEXT") {
+      Ok(value) => value.parse::<usize>().unwrap(),
+      Err(_) => 2,
+    };
+
     let path = Path::new(file_path);
     println!("Compiling '{}' (absolute '{:?}' from '{:?}')", path.display(), fs::canonicalize(path), env::current_dir());
 
@@ -22,7 +27,7 @@ impl Ocean {
       Ok(tokens) => tokens,
       Err(errors) => {
         for error in errors {
-          error.display_message(file_contents.as_bytes(), &file_path.to_string());
+          error.display_message(file_contents.as_bytes(), &file_path.to_string(), error_context_size);
         }
         return Ok(()); // TODO I don't know if this is really okay though hmmm
       }
@@ -83,7 +88,7 @@ impl Ocean {
 
     if !parse_errors.is_empty() {
       for error in parse_errors {
-        error.display_message(file_contents.as_bytes(), &file_path.to_string());
+        error.display_message(file_contents.as_bytes(), &file_path.to_string(), error_context_size);
       }
     }
 

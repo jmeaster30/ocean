@@ -217,8 +217,7 @@ fn parse_expression(tokens: &Vec<&Either<Token<TokenType>, AstNodeExpression>>, 
   while current_token_index < tokens.len() {
     let current_token = match tokens[current_token_index] {
       Either::Left(token) => token,
-      // TODO add expression span
-      Either::Right(expression) => return Err(vec![Error::new(Severity::Error, (0, 0), "Unexpected expression. Expected ')', ']', ',', or an operator. OR you may have missed a semicolon.".to_string())])
+      Either::Right(expression) => return Err(vec![Error::new(Severity::Error, expression.get_span(), "Unexpected expression. Expected ')', ']', ',', or an operator. OR you may have missed a semicolon.".to_string())])
     };
 
     match current_token.token_type {
@@ -234,8 +233,7 @@ fn parse_expression(tokens: &Vec<&Either<Token<TokenType>, AstNodeExpression>>, 
           current_token_index = next_token_index;
           let right_square_token = match tokens[current_token_index] {
             Either::Left(token) => token,
-            // TODO add expression span
-            Either::Right(expression) => return Err(vec![Error::new(Severity::Error, (0, 0), "Expected the end of the array index. Missing a ']' right square bracket.".to_string())])
+            Either::Right(expression) => return Err(vec![Error::new(Severity::Error, expression.get_span(), "Expected the end of the array index. Missing a ']' right square bracket.".to_string())])
           };
           if right_square_token.token_type != TokenType::RightSquare {
             return Err(vec![Error::new(Severity::Error, right_square_token.get_span(), "Expected the end of the array index. Missing a ']' right square bracket.".to_string())]);
@@ -250,8 +248,7 @@ fn parse_expression(tokens: &Vec<&Either<Token<TokenType>, AstNodeExpression>>, 
           current_token_index = next_token_index;
           let right_paren_token = match tokens[current_token_index] {
             Either::Left(token) => token,
-            // TODO add expression span
-            Either::Right(expression) => return Err(vec![Error::new(Severity::Error, (0, 0), "Expected the end of the call. Missing a ')' right parenthesis.".to_string())])
+            Either::Right(expression) => return Err(vec![Error::new(Severity::Error, expression.get_span(), "Expected the end of the call. Missing a ')' right parenthesis.".to_string())])
           };
           if right_paren_token.token_type != TokenType::RightParen {
             return Err(vec![Error::new(Severity::Error, right_paren_token.get_span(), "Expected the end of the call. Missing a ')' right parenthesis.".to_string())]);
@@ -265,8 +262,7 @@ fn parse_expression(tokens: &Vec<&Either<Token<TokenType>, AstNodeExpression>>, 
             Either::Left(_) => parse_type(tokens, current_token_index + 1)?,
             Either::Right(expression) => match expression {
               AstNodeExpression::Type(parsed_type) => (parsed_type.clone(), current_token_index + 2),
-              // TODO add expression span
-              _ => return Err(vec![Error::new(Severity::Error, (0, 0), "Expected a type for the cast expression.".to_string())]),
+              _ => return Err(vec![Error::new(Severity::Error, expression.get_span(), "Expected a type for the cast expression.".to_string())]),
             }
           };
           left_hand_side = Expression::Cast(Cast::new(Box::new(left_hand_side), current_token.clone(), parsed_type.clone()));
@@ -289,8 +285,7 @@ fn parse_expression(tokens: &Vec<&Either<Token<TokenType>, AstNodeExpression>>, 
 
     let operator_token = match tokens[current_token_index] {
       Either::Left(token) => token,
-      // TODO add expression span
-      Either::Right(expression) => return Err(vec![Error::new(Severity::Error, (0, 0), "Unexpected expression. Expected operator :(".to_string())])
+      Either::Right(expression) => return Err(vec![Error::new(Severity::Error, expression.get_span(), "Unexpected expression. Expected operator :(".to_string())])
     };
 
     let (left_precedence, right_precedence) = precedence_table.get_binary_precedence(&operator_token.lexeme);
@@ -422,8 +417,7 @@ fn parse_interpolated_string(lexeme: &String, precedence_table: &mut PrecedenceT
 fn parse_sub_expression_or_tuple(tokens: &Vec<&Either<Token<TokenType>, AstNodeExpression>>, token_index: usize, precedence_table: &mut PrecedenceTable) -> Result<(Expression, usize), Vec<Error>> {
   let start_token = match tokens[token_index] {
     Either::Left(token) => token,
-    // TODO add expression span
-    Either::Right(expression) => return Err(vec![Error::new(Severity::Error, (0, 0), "Unexpected expression. Expected left parenthesis :(".to_string())])
+    Either::Right(expression) => return Err(vec![Error::new(Severity::Error, expression.get_span(), "Unexpected expression. Expected left parenthesis :(".to_string())])
   };
   if start_token.token_type != TokenType::LeftParen {
     return Err(vec![Error::new(Severity::Error, start_token.get_span(), "Unexpected token. Expected left parenthesis :(".to_string())])
@@ -436,8 +430,7 @@ fn parse_sub_expression_or_tuple(tokens: &Vec<&Either<Token<TokenType>, AstNodeE
 
       let right_paren_token = match tokens[next_token_index] {
         Either::Left(token) => token,
-        // TODO add expression span
-        Either::Right(expression) => return Err(vec![Error::new(Severity::Error, (0, 0), "Unexpected expression. Expected right paren :(".to_string())])
+        Either::Right(expression) => return Err(vec![Error::new(Severity::Error, expression.get_span(), "Unexpected expression. Expected right paren :(".to_string())])
       };
 
       if right_paren_token.token_type != TokenType::RightParen {
@@ -451,8 +444,7 @@ fn parse_sub_expression_or_tuple(tokens: &Vec<&Either<Token<TokenType>, AstNodeE
 
       let next_token = match tokens[next_token_index] {
         Either::Left(token) => token,
-        // TODO add expression span
-        Either::Right(expression) => return Err(vec![Error::new(Severity::Error, (0, 0), "Unexpected expression. Expected comma or right parenthesis :(".to_string())])
+        Either::Right(expression) => return Err(vec![Error::new(Severity::Error, expression.get_span(), "Unexpected expression. Expected comma or right parenthesis :(".to_string())])
       };
 
       if next_token.token_type == TokenType::Comma {
@@ -462,8 +454,7 @@ fn parse_sub_expression_or_tuple(tokens: &Vec<&Either<Token<TokenType>, AstNodeE
 
         let end_token = match tokens[new_token_index] {
           Either::Left(token) => token,
-          // TODO add expression span
-          Either::Right(expression) => return Err(vec![Error::new(Severity::Error, (0, 0), "Unexpected expression. Expected right parenthesis :(".to_string())])
+          Either::Right(expression) => return Err(vec![Error::new(Severity::Error, expression.get_span(), "Unexpected expression. Expected right parenthesis :(".to_string())])
         };
 
         if end_token.token_type != TokenType::RightParen {
