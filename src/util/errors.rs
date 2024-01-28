@@ -54,7 +54,11 @@ impl Error {
         eprintln!("{}+----[\u{001b}[{}m{}:{}:{}\u{001b}[0m]----", " ".repeat(width + 2), self.severity.ansi_color_code(), file_name, line_index + 1, column_index + 1);
         eprintln!("{}|", " ".repeat(width + 2));
         let mut offset = context;
-        while line_index - offset >= 0 && offset > 0 {
+        while offset > 0 {
+          if line_index < offset {
+            offset -= 1;
+            continue
+          }
           Error::print_source_line(&self.severity, file_contents, line_spans[line_index - offset], self.span.0, self.span.1, line_index - offset, largest_line_number);
           offset -= 1;
         }

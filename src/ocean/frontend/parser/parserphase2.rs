@@ -160,9 +160,10 @@ fn parse_phase_two_function(function: &mut Function, precedence_table: &mut Prec
   let mut new_precedence_table = precedence_table.clone();
   let mut parse_results = Vec::new();
 
-  for result in &mut function.results {
-    parse_results.push(match &mut result.expression {
-      Some(expression) => parse_phase_two_expression(expression, &mut new_precedence_table),
+  for result in &mut function.results.iter_mut() {
+    //println!("function return: {:?}", result);
+    parse_results.push(match result.expression.as_mut() {
+      Some(mut expression) => parse_phase_two_expression(&mut expression, &mut new_precedence_table),
       None => Ok(()),
     });
   }
@@ -182,17 +183,29 @@ fn parse_phase_two_expression_ast_node(node: &mut AstNodeExpression, precedence_
     AstNodeExpression::WhileLoop(loop_node) => parse_phase_two_while(loop_node, precedence_table),
     AstNodeExpression::Branch(branch_node) => parse_phase_two_branch(branch_node, precedence_table),
     AstNodeExpression::Function(function) => parse_phase_two_function(function, precedence_table),
-    _ => todo!()
   }
 }
 
 fn parse_phase_two_expression(expression: &mut ExpressionNode, precedence_table: &mut PrecedenceTable) -> Result<(), Vec<Error>> {
-  let expression_tokens = expression.tokens.iter().filter(|x| match x {
+  //println!("entering phase two expression {:?}", expression);
+  let mut expression_tokens = expression.tokens.iter().filter(|x| match x {
     Either::Left(token) => token.token_type != TokenType::Newline && token.token_type != TokenType::Comment,
     Either::Right(_) => true,
-  }).collect::<Vec<&Either<Token<TokenType>, AstNodeExpression>>>();
-  let (parsed_expression, _) = parse_expression(&expression_tokens, 0, precedence_table, 0)?;
+  }).map(|x| x.clone()).collect::<Vec<Either<Token<TokenType>, AstNodeExpression>>>();
+  let mut errors = Vec::new();
+  for exp_token in expression_tokens.iter_mut() {
+    match exp_token.as_mut() {
+      Either::Left(_) => {}
+      Either::Right(mut exp) => match parse_phase_two_expression_ast_node(&mut exp, precedence_table) {
+        Ok(_) => {}
+        Err(mut new_errors) => errors.append(&mut new_errors),
+      }
+    }
+  }
+  let immutable_expression_tokens = expression_tokens.iter().map(|x| &*x).collect::<Vec<&Either<Token<TokenType>, AstNodeExpression>>>();
+  let (parsed_expression, _) = parse_expression(&immutable_expression_tokens, 0, precedence_table, 0)?;
   expression.parsed_expression = Some(parsed_expression);
+  //println!("exiting phase two expression {:#?}", expression);
   Ok(())
 }
 
@@ -260,10 +273,7 @@ fn parse_expression(tokens: &Vec<&Either<Token<TokenType>, AstNodeExpression>>, 
         TokenType::As => {
           let (parsed_type, next_token_index) = match tokens[current_token_index + 1] {
             Either::Left(_) => parse_type(tokens, current_token_index + 1)?,
-            Either::Right(expression) => match expression {
-              AstNodeExpression::Type(parsed_type) => (parsed_type.clone(), current_token_index + 2),
-              _ => return Err(vec![Error::new(Severity::Error, expression.get_span(), "Expected a type for the cast expression.".to_string())]),
-            }
+            Either::Right(expression) => return Err(vec![Error::new(Severity::Error, expression.get_span(), "Expected a type for the cast expression.".to_string())])
           };
           left_hand_side = Expression::Cast(Cast::new(Box::new(left_hand_side), current_token.clone(), parsed_type.clone()));
           current_token_index = next_token_index;

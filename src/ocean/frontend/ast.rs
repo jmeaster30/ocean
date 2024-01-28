@@ -150,7 +150,6 @@ pub enum Type {
   Ref(RefType),
   Mutable(MutType),
   Function(FunctionType),
-  Sub(SubType),
   Array(ArrayType),
   VariableType(VariableType),
 }
@@ -412,7 +411,6 @@ pub enum AstNodeExpression {
   WhileLoop(Box<WhileLoop>),
   Branch(Box<Branch>),
   Function(Box<Function>),
-  Type(Type), // TODO I think this isn't as useful as I thought
 }
 
 #[derive(Clone, Debug, New)]

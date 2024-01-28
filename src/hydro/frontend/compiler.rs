@@ -58,7 +58,7 @@ impl Hydro {
     let mut resolved = CompilationUnit::new();
 
     let mut modules = parser.unwrap().parse();
-    for mut module in &mut modules {
+    for module in &mut modules {
       for unresolved_module in &module.unresolved_modules {
         match Hydro::resolve_module(unresolved_module.as_str(), &resolved, project_root, std_root.clone(), module.name.clone()) {
           Ok((target_module, mut new_found_modules)) => {

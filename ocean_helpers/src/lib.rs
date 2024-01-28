@@ -101,16 +101,6 @@ fn impl_new_macro(ast: &syn::DeriveInput) -> TokenStream {
   }
 }
 
-#[proc_macro]
-pub fn gen_get_as_expression(item: TokenStream) -> TokenStream {
-  let quote = quote! {
-    fn get_as_expression(&self) -> Expression {
-      Expression::AstNode(self.clone())
-    }
-  };
-  quote.into()
-}
-
 // TODO I need to think much more deeply about if I want wrapping behavior for these operations
 #[proc_macro]
 pub fn make_add_operations(item: TokenStream) -> TokenStream {

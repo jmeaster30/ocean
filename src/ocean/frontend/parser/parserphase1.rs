@@ -969,7 +969,7 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
       }
       (Some(ParseState::TypeArguments), Some(AstSymbol::Type(type_symbol)), TokenType::Comma) => {
         ast_stack.pop();
-        let mut type_arguments = ast_stack.pop_panic();
+        let type_arguments = ast_stack.pop_panic();
         match type_arguments {
           AstSymbol::TypeArguments(mut type_arguments) => {
             type_arguments.push(TypeArgument::new(type_symbol, Some(current_token.clone())));
@@ -981,7 +981,7 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
       }
       (Some(ParseState::TypeArguments), Some(AstSymbol::Type(type_symbol)), TokenType::RightParen) => {
         ast_stack.pop();
-        let mut type_arguments = ast_stack.pop_panic();
+        let type_arguments = ast_stack.pop_panic();
         match type_arguments {
           AstSymbol::TypeArguments(mut type_arguments) => {
             type_arguments.push(TypeArgument::new(type_symbol, None));

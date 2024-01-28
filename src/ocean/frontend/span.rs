@@ -230,7 +230,6 @@ impl Spanned for AstNodeExpression {
       AstNodeExpression::ForLoop(for_exp) => for_exp.get_span(),
       AstNodeExpression::WhileLoop(while_exp) => while_exp.get_span(),
       AstNodeExpression::Function(func) => func.get_span(),
-      AstNodeExpression::Type(typ) => typ.get_span()
     }
   }
 }
@@ -246,7 +245,6 @@ impl Spanned for Type {
       Type::Ref(ref_type) => ref_type.get_span(),
       Type::Mutable(mutable_type) => mutable_type.get_span(),
       Type::Function(function_type) => function_type.get_span(),
-      Type::Sub(sub_type) => sub_type.get_span(),
       Type::Array(array_type) => array_type.get_span(),
       Type::VariableType(var_type) => var_type.get_span(),
     }

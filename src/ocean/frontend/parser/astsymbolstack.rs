@@ -11,7 +11,6 @@ pub enum AstSymbol {
 
   UsingPathEntries(Vec<UsingPathEntry>),
   CompoundStatement(CompoundStatement),
-  OptCompoundStatement(Option<CompoundStatement>),
   Branch(Branch),
   ElseBranch(ElseBranch),
   MatchCases(Vec<MatchCase>),
@@ -31,7 +30,6 @@ pub enum AstSymbol {
   Type(Type),
   TypeArguments(Vec<TypeArgument>),
   TypeParameters(TypeParameters),
-  FunctionTypeArgument(FunctionTypeArgument),
   FunctionTypeArguments(Vec<FunctionTypeArgument>),
 
   Expression(ExpressionNode),

@@ -8,9 +8,13 @@ use std::fs::File;
 use std::io::{Read, Write};
 use std::path::Path;
 use std::{env, fs, io};
+use std::time::Instant;
+use crate::ocean::frontend::ast::Program;
+use crate::util::errors::Error;
 
 impl Ocean {
   pub fn compile(file_path: &str, token_mode: &str, ast_mode: &str) -> Result<(), io::Error> {
+    let now = Instant::now();
     let error_context_size = match env::var("OCEAN_ERROR_LINE_CONTEXT") {
       Ok(value) => value.parse::<usize>().unwrap(),
       Err(_) => 2,
@@ -23,15 +27,25 @@ impl Ocean {
     let mut file_contents = String::new();
     file.read_to_string(&mut file_contents)?;
 
-    let tokens = match lex(&file_contents) {
-      Ok(tokens) => tokens,
-      Err(errors) => {
-        for error in errors {
+    match Ocean::internal_compile(file_path, &file_contents, token_mode, ast_mode) {
+      Ok(_) => {
+        let new_now = Instant::now();
+        println!("Compilation Completed In: {:?}", new_now.duration_since(now));
+        Ok(())
+      }
+      Err(parse_errors) => {
+        let new_now = Instant::now();
+        println!("Compilation Completed In: {:?}", new_now.duration_since(now));
+        for error in parse_errors {
           error.display_message(file_contents.as_bytes(), &file_path.to_string(), error_context_size);
         }
-        return Ok(()); // TODO I don't know if this is really okay though hmmm
+        Ok(()) // TODO unsure if this is "Ok"
       }
-    };
+    }
+  }
+
+  fn internal_compile(file_path: &str, file_contents: &String, token_mode: &str, ast_mode: &str) -> Result<Program, Vec<Error>> {
+    let tokens = lex(&file_contents)?;
 
     match token_mode {
       "print" => {
@@ -40,9 +54,9 @@ impl Ocean {
         }
       }
       "file" => {
-        let mut file = File::create(file_path.to_string() + ".tokens")?;
+        let mut file = File::create(file_path.to_string() + ".tokens").unwrap();
         for token in &tokens {
-          file.write_all(format!("{}\n", token).as_bytes())?;
+          file.write_all(format!("{}\n", token).as_bytes()).unwrap();
         }
       }
       _ => {}
@@ -80,18 +94,11 @@ impl Ocean {
     match ast_mode {
       "print" => println!("{:#?}", ast),
       "file" => {
-        let mut file = File::create(file_path.to_string() + ".ast")?;
-        file.write_all(format!("{:#?}", ast).as_bytes())?;
+        let mut file = File::create(file_path.to_string() + ".ast").unwrap();
+        file.write_all(format!("{:#?}", ast).as_bytes()).unwrap();
       }
       _ => {}
     }
-
-    if !parse_errors.is_empty() {
-      for error in parse_errors {
-        error.display_message(file_contents.as_bytes(), &file_path.to_string(), error_context_size);
-      }
-    }
-
-    Ok(())
+    Ok(ast)
   }
 }
