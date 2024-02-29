@@ -15,4 +15,5 @@ itertools = "0.11.0"
 lazy_static = "1.4.0"
 ocean_helpers = { path = "ocean_helpers" }
 rustyline = "12.0.0"
+uuid = "1.7.0"
 which = "5.0.0"

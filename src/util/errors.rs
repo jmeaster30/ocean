@@ -30,14 +30,58 @@ impl Severity {
   }
 }
 
-#[derive(Debug, Clone, New)]
+#[derive(Debug, Clone)]
+pub struct ErrorMetadata {
+  suggestions: Vec<String>,
+  extra_code_spans: Vec<((usize, usize), String)>
+}
+
+impl ErrorMetadata {
+  pub fn new() -> Self {
+    Self {
+      suggestions: Vec::new(),
+      extra_code_spans: Vec::new(),
+    }
+  }
+
+  pub fn suggestion(mut self, message: String) -> Self {
+    self.suggestions.push(message);
+    self
+  }
+
+  pub fn extra_highlighted_info(mut self, span: (usize, usize), message: String) -> Self {
+    self.extra_code_spans.push((span, message));
+    self
+  }
+}
+
+#[derive(Debug, Clone)]
 pub struct Error {
   pub severity: Severity,
   pub span: (usize, usize),
   pub message: String,
+  pub metadata: Option<ErrorMetadata>,
 }
 
 impl Error {
+  pub fn new(severity: Severity, span: (usize, usize), message: String) -> Self {
+    Self {
+      severity,
+      span,
+      message,
+      metadata: None,
+    }
+  }
+
+  pub fn new_with_metadata(severity: Severity, span: (usize, usize), message: String, metadata: ErrorMetadata) -> Self {
+    Self {
+      severity,
+      span,
+      message,
+      metadata: Some(metadata),
+    }
+  }
+
   pub fn display_message(&self, file_contents: &[u8], file_name: &String, context: usize) {
     eprintln!("\u{001b}[{};1m{}: \u{001b}[95;1m{}\u{001b}[0m", self.severity.ansi_color_code(), self.severity.name(), self.message);
 
@@ -88,6 +132,8 @@ impl Error {
     }
 
     eprintln!("\u{001b}[0m{}+-----{}-----", " ".repeat(width + 2), "-".repeat(file_name.len() + 4));
+
+
   }
 
   fn print_source_line(severity: &Severity, file_contents: &[u8], file_span: (usize, usize), start_offset: usize, end_offset: usize, line_number: usize, largest_line_number: usize) {

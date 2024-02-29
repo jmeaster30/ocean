@@ -123,7 +123,7 @@ pub struct MatchCase {
 
 #[derive(Clone, Debug, New)]
 pub struct Assignment {
-  pub left_expression: Either<LetTarget, ExpressionNode>, // This expression node must result in 1 left expression
+  pub left_expression: Either<LetTarget, ExpressionNode>,
   pub equal_token: Token<TokenType>,
   pub right_expression: ExpressionStatement,
 }

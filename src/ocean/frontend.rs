@@ -5,3 +5,4 @@ mod parser;
 mod semanticanalysis;
 pub mod tokentype;
 mod span;
+mod symboltable;
