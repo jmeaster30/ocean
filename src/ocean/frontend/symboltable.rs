@@ -1,4 +1,6 @@
+use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
+use std::rc::Rc;
 use ocean_helpers::New;
 use uuid::Uuid;
 use crate::util::errors::{Error, ErrorMetadata, Severity};
@@ -86,8 +88,9 @@ enum SymbolTableEntryType {
   Interface(String),
 }
 
-pub struct SymbolTable<'a, 'b: 'a> {
-  parent: Option<&'b mut SymbolTable<'a, 'b>>,
+#[derive(Clone)]
+pub struct SymbolTable {
+  parent: Option<Rc<RefCell<SymbolTable>>>,
   hard_scope: bool,
   uuid_map: HashMap<Uuid, SymbolTableEntryType>,
   variables: HashMap<String, Variable>,
@@ -97,9 +100,9 @@ pub struct SymbolTable<'a, 'b: 'a> {
   interfaces: HashMap<String, Interface>,
 }
 
-impl<'a, 'b: 'a> SymbolTable<'a, 'b> {
-  pub fn soft_scope(parent_scope: Option<&'b mut SymbolTable<'a, 'b>>) -> Self {
-    Self {
+impl SymbolTable {
+  pub fn soft_scope(parent_scope: Option<Rc<RefCell<SymbolTable>>>) -> Rc<RefCell<Self>> {
+    Rc::new(RefCell::new(Self {
       parent: parent_scope,
       hard_scope: false,
       uuid_map: HashMap::new(),
@@ -108,11 +111,11 @@ impl<'a, 'b: 'a> SymbolTable<'a, 'b> {
       unions: HashMap::new(),
       functions: HashMap::new(),
       interfaces: HashMap::new(),
-    }
+    }))
   }
 
-  pub fn hard_scope(parent_scope: Option<&'b mut SymbolTable<'a, 'b>>) -> Self {
-    Self {
+  pub fn hard_scope(parent_scope: Option<Rc<RefCell<SymbolTable>>>) -> Rc<RefCell<Self>> {
+    Rc::new(RefCell::new(Self {
       parent: parent_scope,
       hard_scope: true,
       uuid_map: HashMap::new(),
@@ -121,15 +124,15 @@ impl<'a, 'b: 'a> SymbolTable<'a, 'b> {
       unions: HashMap::new(),
       functions: HashMap::new(),
       interfaces: HashMap::new(),
-    }
+    }))
   }
 
   pub fn check_for_variable(&self, variable_name: String, only_check_current_scope: bool) -> Option<Variable> {
     match self.variables.get(&*variable_name) {
       Some(x) => Some(x.clone()),
       None if self.hard_scope || only_check_current_scope => None,
-      None if !self.hard_scope => match &self.parent {
-        Some(parent ) => parent.check_for_variable(variable_name, only_check_current_scope),
+      None if !self.hard_scope => match self.parent.clone() {
+        Some(parent ) => parent.borrow().check_for_variable(variable_name, only_check_current_scope),
         None => None,
       },
       _ => panic!("shouldn't get here")
@@ -138,7 +141,6 @@ impl<'a, 'b: 'a> SymbolTable<'a, 'b> {
 
   pub fn add_variable(&mut self, variable_name: String, variable_decl_span: (usize, usize), variable_type: Uuid) -> Result<(), Error> {
     if let Some(variable_data) = self.check_for_variable(variable_name.clone(), false) {
-      // TODO add metadata to errors so I can also display the line where the variable was declared
       return Err(Error::new_with_metadata(
         Severity::Error,
         variable_decl_span,
