@@ -16,6 +16,7 @@ pub struct StatementNode {
 
 #[derive(Clone, Debug)]
 pub enum StatementNodeData {
+  #[deprecated(note="I am too lazy to fully remove this but comments should be tracked as trivia now")]
   Comment(Comment),
   Annotation(Annotation),
 }

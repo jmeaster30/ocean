@@ -2,7 +2,7 @@
 pub enum TokenType {
   EndOfInput,
   Error,
-  Newline,
+  Whitespace,
   Comment,
   Annotation,
   AnnotationBlock,

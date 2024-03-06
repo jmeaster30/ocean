@@ -13,6 +13,7 @@ pub fn lex(input: &String) -> Result<Vec<Token<TokenType>>, Vec<Error>> {
   let line_end = 1;
   let column_start = 1;
   let column_end = 1;
+  let mut trivia = Vec::new();
   while index < input_length {
     let start_index = index;
     let c = input_chars[index];
@@ -60,9 +61,9 @@ pub fn lex(input: &String) -> Result<Vec<Token<TokenType>>, Vec<Error>> {
           _ => TokenType::Identifier,
         };
 
-        tokens.push(Token::new(lexeme.clone(), token_type, (start_index, index), (line_start, line_end), (column_start, column_end)));
-
+        tokens.push(Token::new_with_trivia(lexeme.clone(), token_type, (start_index, index), (line_start, line_end), (column_start, column_end), trivia.clone()));
         lexeme.clear();
+        trivia.clear();
       }
       '0'..='9' => {
         lexeme.push_str(&c.to_string());
@@ -93,8 +94,9 @@ pub fn lex(input: &String) -> Result<Vec<Token<TokenType>>, Vec<Error>> {
           index -= 1;
         }
 
-        tokens.push(Token::new(lexeme.clone(), TokenType::Number, (start_index, index), (line_start, line_end), (column_start, column_end)));
+        tokens.push(Token::new_with_trivia(lexeme.clone(), TokenType::Number, (start_index, index), (line_start, line_end), (column_start, column_end), trivia.clone()));
         lexeme.clear();
+        trivia.clear();
       }
       '@' => {
         lexeme.push_str(&c.to_string());
@@ -124,7 +126,7 @@ pub fn lex(input: &String) -> Result<Vec<Token<TokenType>>, Vec<Error>> {
           if !found_end {
             panic!("Unending block macro")
           } else {
-            tokens.push(Token::new(lexeme.clone(), TokenType::AnnotationBlock, (start_index, index), (line_start, line_end), (column_start, column_end)));
+            tokens.push(Token::new_with_trivia(lexeme.clone(), TokenType::AnnotationBlock, (start_index, index), (line_start, line_end), (column_start, column_end), trivia.clone()));
           }
         } else {
           while index < input_length {
@@ -135,8 +137,9 @@ pub fn lex(input: &String) -> Result<Vec<Token<TokenType>>, Vec<Error>> {
             }
             index += 1;
           }
-          tokens.push(Token::new(lexeme.clone(), TokenType::Annotation, (start_index, index), (line_start, line_end), (column_start, column_end)));
+          tokens.push(Token::new_with_trivia(lexeme.clone(), TokenType::Annotation, (start_index, index), (line_start, line_end), (column_start, column_end), trivia.clone()));
         }
+        trivia.clear();
         lexeme.clear();
       }
       '\"' | '\'' | '`' => {
@@ -184,7 +187,7 @@ pub fn lex(input: &String) -> Result<Vec<Token<TokenType>>, Vec<Error>> {
                   'n' => lexeme.push_str(&"\n".to_string()),
                   'r' => lexeme.push_str(&"\r".to_string()),
                   't' => lexeme.push_str(&"\t".to_string()),
-                  //need to add excape characters for octal, hex, and unicode
+                  //need to add escape characters for octal, hex, and unicode
                   _ => lexeme.push_str(&x.to_string()),
                 }
               }
@@ -195,13 +198,14 @@ pub fn lex(input: &String) -> Result<Vec<Token<TokenType>>, Vec<Error>> {
         }
 
         if !found_end {
-          tokens.push(Token::new(lexeme.clone(), TokenType::Error, (start_index, index), (line_start, line_end), (column_start, column_end)));
+          tokens.push(Token::new_with_trivia(lexeme.clone(), TokenType::Error, (start_index, index), (line_start, line_end), (column_start, column_end), trivia.clone()));
           errors.push(Error::new(Severity::Error, (start_index, index), "Unending string.".to_string()));
         } else if delim == '`' {
-          tokens.push(Token::new(lexeme.clone(), TokenType::InterpolatedString, (start_index, index), (line_start, line_end), (column_start, column_end)))
+          tokens.push(Token::new_with_trivia(lexeme.clone(), TokenType::InterpolatedString, (start_index, index), (line_start, line_end), (column_start, column_end), trivia.clone()))
         } else {
-          tokens.push(Token::new(lexeme.clone(), TokenType::String, (start_index, index), (line_start, line_end), (column_start, column_end)));
+          tokens.push(Token::new_with_trivia(lexeme.clone(), TokenType::String, (start_index, index), (line_start, line_end), (column_start, column_end), trivia.clone()));
         }
+        trivia.clear();
         lexeme.clear();
       }
       '#' => {
@@ -226,10 +230,10 @@ pub fn lex(input: &String) -> Result<Vec<Token<TokenType>>, Vec<Error>> {
             }
           }
           if !found_end {
-            tokens.push(Token::new(lexeme.clone(), TokenType::Error, (start_index, index), (line_start, line_end), (column_start, column_end)));
+            trivia.push(Token::new(lexeme.clone(), TokenType::Error, (start_index, index), (line_start, line_end), (column_start, column_end)));
             errors.push(Error::new(Severity::Warning, (start_index, index), "Unending comment block.".to_string()));
           } else {
-            tokens.push(Token::new(lexeme.clone(), TokenType::Comment, (start_index, index), (line_start, line_end), (column_start, column_end)));
+            trivia.push(Token::new(lexeme.clone(), TokenType::Comment, (start_index, index), (line_start, line_end), (column_start, column_end)));
           }
         } else {
           while index < input_length - 1 {
@@ -243,15 +247,16 @@ pub fn lex(input: &String) -> Result<Vec<Token<TokenType>>, Vec<Error>> {
               _ => lexeme.push_str(&n.to_string()),
             }
           }
-          tokens.push(Token::new(lexeme.clone(), TokenType::Comment, (start_index, index), (line_start, line_end), (column_start, column_end)));
+          trivia.push(Token::new(lexeme.clone(), TokenType::Comment, (start_index, index), (line_start, line_end), (column_start, column_end)));
         }
 
         lexeme.clear();
       }
       ';' => {
         index += 1;
-        tokens.push(Token::new(";".to_string(), TokenType::Semicolon, (start_index, index), (line_start, line_end), (column_start, column_end)));
+        tokens.push(Token::new_with_trivia(";".to_string(), TokenType::Semicolon, (start_index, index), (line_start, line_end), (column_start, column_end), trivia.clone()));
         lexeme.clear();
+        trivia.clear();
       }
       '.' | ':' | '~' | '+' | '-' | '>' | '<' | '?' | '/' | '=' | '^' | '&' | '|' | '*' | '!' | '%' => {
         lexeme.push_str(&input_chars[index].to_string());
@@ -283,17 +288,21 @@ pub fn lex(input: &String) -> Result<Vec<Token<TokenType>>, Vec<Error>> {
           ";" => TokenType::Semicolon,
           _ => TokenType::Symbol,
         };
-        tokens.push(Token::new(lexeme.clone(), token_type, (start_index, index), (line_start, line_end), (column_start, column_end)));
+        tokens.push(Token::new_with_trivia(lexeme.clone(), token_type, (start_index, index), (line_start, line_end), (column_start, column_end), trivia.clone()));
         lexeme.clear();
+        trivia.clear();
       }
-      ',' => tokens.push(Token::new(",".to_string(), TokenType::Comma, (start_index, index), (line_start, line_end), (column_start, column_end))),
-      '\r' | '\n' => {
+      ',' => {
+        tokens.push(Token::new_with_trivia(",".to_string(), TokenType::Comma, (start_index, index), (line_start, line_end), (column_start, column_end), trivia.clone()));
+        trivia.clear();
+      },
+      ' ' | '\t' | '\r' | '\n' => {
         lexeme.push_str(&input_chars[index].to_string());
         index += 1;
         while index < input_length {
           let n = input_chars[index];
           match n {
-            '\r' | '\n' => {
+            ' ' | '\t' | '\r' | '\n' => {
               lexeme.push_str(&n.to_string());
             }
             _ => {
@@ -304,25 +313,42 @@ pub fn lex(input: &String) -> Result<Vec<Token<TokenType>>, Vec<Error>> {
           index += 1;
         }
 
-        tokens.push(Token::new(lexeme.clone(), TokenType::Newline, (start_index, index), (line_start, line_end), (column_start, column_end)));
+        trivia.push(Token::new(lexeme.clone(), TokenType::Whitespace, (start_index, index), (line_start, line_end), (column_start, column_end)));
         lexeme.clear();
       }
-      '(' => tokens.push(Token::new("(".to_string(), TokenType::LeftParen, (start_index, index), (line_start, line_end), (column_start, column_end))),
-      ')' => tokens.push(Token::new(")".to_string(), TokenType::RightParen, (start_index, index), (line_start, line_end), (column_start, column_end))),
-      '[' => tokens.push(Token::new("[".to_string(), TokenType::LeftSquare, (start_index, index), (line_start, line_end), (column_start, column_end))),
-      ']' => tokens.push(Token::new("]".to_string(), TokenType::RightSquare, (start_index, index), (line_start, line_end), (column_start, column_end))),
-      '{' => tokens.push(Token::new("{".to_string(), TokenType::LeftCurly, (start_index, index), (line_start, line_end), (column_start, column_end))),
-      '}' => tokens.push(Token::new("}".to_string(), TokenType::RightCurly, (start_index, index), (line_start, line_end), (column_start, column_end))),
-      ' ' | '\t' => {}
+      '(' => {
+        tokens.push(Token::new_with_trivia("(".to_string(), TokenType::LeftParen, (start_index, index), (line_start, line_end), (column_start, column_end), trivia.clone()));
+        trivia.clear();
+      },
+      ')' => {
+        tokens.push(Token::new_with_trivia(")".to_string(), TokenType::RightParen, (start_index, index), (line_start, line_end), (column_start, column_end), trivia.clone()));
+        trivia.clear();
+      },
+      '[' => {
+        tokens.push(Token::new_with_trivia("[".to_string(), TokenType::LeftSquare, (start_index, index), (line_start, line_end), (column_start, column_end), trivia.clone()));
+        trivia.clear();
+      },
+      ']' => {
+        tokens.push(Token::new_with_trivia("]".to_string(), TokenType::RightSquare, (start_index, index), (line_start, line_end), (column_start, column_end), trivia.clone()));
+        trivia.clear();
+      },
+      '{' => {
+        tokens.push(Token::new_with_trivia("{".to_string(), TokenType::LeftCurly, (start_index, index), (line_start, line_end), (column_start, column_end), trivia.clone()));
+        trivia.clear();
+      },
+      '}' => {
+        tokens.push(Token::new_with_trivia("}".to_string(), TokenType::RightCurly, (start_index, index), (line_start, line_end), (column_start, column_end), trivia.clone()));
+        trivia.clear();
+      },
       _ => {
-        tokens.push(Token::new(input_chars[index].to_string(), TokenType::Error, (start_index, index), (line_start, line_end), (column_start, column_end)));
+        tokens.push(Token::new_with_trivia(input_chars[index].to_string(), TokenType::Error, (start_index, index), (line_start, line_end), (column_start, column_end), trivia.clone()));
         errors.push(Error::new(Severity::Error, (start_index, index), "Unknown token.".to_string()));
       }
     }
     index += 1;
   }
 
-  tokens.push(Token::new("".to_string(), TokenType::EndOfInput, (index, index), (line_start, line_end), (column_start, column_end)));
+  tokens.push(Token::new_with_trivia("".to_string(), TokenType::EndOfInput, (index, index), (line_start, line_end), (column_start, column_end), trivia.clone()));
 
   if errors.is_empty() {
     Ok(tokens)

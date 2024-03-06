@@ -188,10 +188,7 @@ fn parse_phase_two_expression_ast_node(node: &mut AstNodeExpression, precedence_
 
 fn parse_phase_two_expression(expression: &mut ExpressionNode, precedence_table: &mut PrecedenceTable) -> Result<(), Vec<Error>> {
   //println!("entering phase two expression {:?}", expression);
-  let mut expression_tokens = expression.tokens.iter().filter(|x| match x {
-    Either::Left(token) => token.token_type != TokenType::Newline && token.token_type != TokenType::Comment,
-    Either::Right(_) => true,
-  }).map(|x| x.clone()).collect::<Vec<Either<Token<TokenType>, AstNodeExpression>>>();
+  let mut expression_tokens = expression.tokens.iter().map(|x| x.clone()).collect::<Vec<Either<Token<TokenType>, AstNodeExpression>>>();
   let mut errors = Vec::new();
   for exp_token in expression_tokens.iter_mut() {
     match exp_token.as_mut() {
@@ -388,7 +385,6 @@ fn parse_interpolated_string(lexeme: &String, precedence_table: &mut PrecedenceT
     } else if current_char == '}' && in_expression {
       let tokens = match lex(&current_expression_chars.iter().collect::<String>()) {
         Ok(tokens) => tokens.iter()
-          .filter(|x| x.token_type != TokenType::Newline && x.token_type != TokenType::Comment)
           .map(|x| Either::Left(x.clone()))
           .collect::<Vec<Either<Token<TokenType>, AstNodeExpression>>>(),
         Err(mut new_errors) => {

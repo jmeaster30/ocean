@@ -49,10 +49,7 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
       (None, Some(AstSymbol::StatementList(_)), TokenType::RightCurly) => {
         parser_state_stack.push(ParseState::StatementList);
         errors.push(Error::new(Severity::Error, current_token.get_span(), "Unexpected right curly brace. Either this is extraneous or there is a missing left curly brace prior to this curly brace.".to_string()));
-        token_index = consume_comments_newline(tokens, token_index);
-      }
-      (Some(ParseState::StatementList), _, TokenType::Newline) => {
-        token_index = consume_newline(tokens, token_index);
+        token_index = consume(token_index);
       }
       (Some(ParseState::StatementList), _, _) => {
         parser_state_stack.push(ParseState::PreStatement);
@@ -65,22 +62,13 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
         ast_stack.push(AstSymbol::StatementData(statement_data));
         ast_stack.push(AstSymbol::OptStatement(None));
         parser_state_stack.goto(ParseState::StatementFinalize);
-        token_index = consume_newline(tokens, token_index);
+        token_index = consume(token_index);
       }
       (Some(ParseState::PreStatement), Some(AstSymbol::StatementData(mut statement_data)), TokenType::Annotation) => {
         ast_stack.pop();
         statement_data.push(StatementNodeData::Annotation(Annotation::new(current_token.clone())));
         ast_stack.push(AstSymbol::StatementData(statement_data));
-        token_index = consume_newline(tokens, token_index);
-      }
-      (Some(ParseState::PreStatement), Some(AstSymbol::StatementData(mut statement_data)), TokenType::Comment) => {
-        ast_stack.pop();
-        statement_data.push(StatementNodeData::Comment(Comment::new(current_token.clone())));
-        ast_stack.push(AstSymbol::StatementData(statement_data));
-        token_index = consume_newline(tokens, token_index);
-      }
-      (Some(ParseState::PreStatement), Some(AstSymbol::StatementData(_)), TokenType::Newline) => {
-        token_index = consume_newline(tokens, token_index);
+        token_index = consume(token_index);
       }
       (Some(ParseState::PreStatement), Some(AstSymbol::StatementData(_)), _) => {
         parser_state_stack.goto(ParseState::StatementFinalize);
@@ -100,18 +88,18 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
       (Some(ParseState::Statement), Some(_), TokenType::Using) => {
         ast_stack.push(AstSymbol::Token(current_token.clone()));
         ast_stack.push(AstSymbol::UsingPathEntries(Vec::new()));
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
         parser_state_stack.goto(ParseState::UsingPathIdentifier);
       }
       (Some(ParseState::Statement), Some(_), TokenType::Let) => {
         ast_stack.push(AstSymbol::Token(current_token.clone()));
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
         parser_state_stack.goto(ParseState::LetAssignment);
         parser_state_stack.push(ParseState::IdentifierStart);
       }
       (Some(ParseState::Statement), Some(_), TokenType::If) => {
         ast_stack.push(AstSymbol::Token(current_token.clone()));
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
         parser_state_stack.goto(ParseState::BranchEndStatement);
         parser_state_stack.push(ParseState::BranchStatement);
         parser_state_stack.push(ParseState::CompoundStatement);
@@ -119,26 +107,26 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
       }
       (Some(ParseState::Statement), Some(_), TokenType::Match) => {
         ast_stack.push(AstSymbol::Token(current_token.clone()));
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
         parser_state_stack.goto(ParseState::MatchBody);
         parser_state_stack.push(ParseState::Expression);
       }
       (Some(ParseState::Statement), Some(_), TokenType::While) => {
         ast_stack.push(AstSymbol::Token(current_token.clone()));
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
         parser_state_stack.goto(ParseState::WhileStatement);
         parser_state_stack.push(ParseState::CompoundStatement);
         parser_state_stack.push(ParseState::Expression);
       }
       (Some(ParseState::Statement), Some(_), TokenType::Loop) => {
         ast_stack.push(AstSymbol::Token(current_token.clone()));
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
         parser_state_stack.goto(ParseState::LoopStatement);
         parser_state_stack.push(ParseState::CompoundStatement);
       }
       (Some(ParseState::Statement), Some(_), TokenType::For) => {
         ast_stack.push(AstSymbol::Token(current_token.clone()));
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
         parser_state_stack.goto(ParseState::ForStatement);
         parser_state_stack.push(ParseState::CompoundStatement);
         parser_state_stack.push(ParseState::Expression);
@@ -147,17 +135,17 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
       }
       (Some(ParseState::Statement), Some(_), TokenType::Break) => {
         ast_stack.push(AstSymbol::OptStatement(Some(Statement::Break(Break::new(current_token.clone())))));
-        token_index = consume_newline(tokens, token_index);
+        token_index = consume(token_index);
         parser_state_stack.pop();
       }
       (Some(ParseState::Statement), Some(_), TokenType::Continue) => {
         ast_stack.push(AstSymbol::OptStatement(Some(Statement::Continue(Continue::new(current_token.clone())))));
-        token_index = consume_newline(tokens, token_index);
+        token_index = consume(token_index);
         parser_state_stack.pop();
       }
       (Some(ParseState::Statement), Some(_), TokenType::Return) => {
         ast_stack.push(AstSymbol::OptStatement(Some(Statement::Return(Return::new(current_token.clone())))));
-        token_index = consume_newline(tokens, token_index);
+        token_index = consume(token_index);
         parser_state_stack.pop();
       }
       (Some(ParseState::Statement), Some(_), TokenType::Pack) => {
@@ -165,18 +153,18 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
         parser_state_stack.push(ParseState::InterfaceDeclaration);
         parser_state_stack.push(ParseState::PackIdentifier);
         ast_stack.push(AstSymbol::Token(current_token.clone()));
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
       }
       (Some(ParseState::Statement), Some(_), TokenType::Union) => {
         parser_state_stack.goto(ParseState::UnionBodyStart);
         parser_state_stack.push(ParseState::InterfaceDeclaration);
         parser_state_stack.push(ParseState::UnionIdentifier);
         ast_stack.push(AstSymbol::Token(current_token.clone()));
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
       }
       (Some(ParseState::Statement), Some(_), TokenType::Interface) => {
         ast_stack.push(AstSymbol::Token(current_token.clone()));
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
         parser_state_stack.goto(ParseState::InterfaceBodyStart);
         parser_state_stack.push(ParseState::InterfaceIdentifier);
       }
@@ -187,7 +175,7 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
         parser_state_stack.push(ParseState::FunctionParameterStart);
         parser_state_stack.push(ParseState::FunctionIdentifier);
         ast_stack.push(AstSymbol::Token(current_token.clone()));
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
       }
       (Some(ParseState::Statement), Some(_), TokenType::LeftParen)
       | (Some(ParseState::Statement), Some(_), TokenType::RightParen)
@@ -203,8 +191,7 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
       | (Some(ParseState::Statement), Some(_), TokenType::Dot)
       | (Some(ParseState::Statement), Some(_), TokenType::Comma)
       | (Some(ParseState::Statement), Some(_), TokenType::Colon)
-      | (Some(ParseState::Statement), Some(_), TokenType::Symbol)
-      | (Some(ParseState::Statement), Some(_), TokenType::Newline) => {
+      | (Some(ParseState::Statement), Some(_), TokenType::Symbol) => {
         parser_state_stack.goto(ParseState::ExpressionStatement);
         parser_state_stack.push(ParseState::Expression);
       }
@@ -212,14 +199,14 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
       //<editor-fold desc="> Pack">
       (Some(ParseState::PackIdentifier), Some(_), TokenType::Identifier) => {
         ast_stack.push(AstSymbol::Token(current_token.clone()));
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
         parser_state_stack.goto(ParseState::TypeCustom);
         parser_state_stack.push(ParseState::TypeArguments);
       }
       (Some(ParseState::PackBodyStart), Some(_), TokenType::LeftCurly) => {
         ast_stack.push(AstSymbol::Token(current_token.clone()));
         ast_stack.push(AstSymbol::PackMembers(Vec::new()));
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
         parser_state_stack.goto(ParseState::PackBody);
       }
       (Some(ParseState::PackBodyEnd), Some(AstSymbol::PackMembers(pack_members)), TokenType::RightCurly) => {
@@ -231,7 +218,7 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
         match (pack_token_sym, custom_type_sym, interface_declaration_sym, left_curly_sym) {
           (AstSymbol::Token(pack_token), AstSymbol::Type(Type::Custom(custom_type)), AstSymbol::InterfaceDeclaration(interface_dec), AstSymbol::Token(left_curly)) => {
             ast_stack.push(AstSymbol::OptStatement(Some(Statement::Pack(Pack::new(pack_token, custom_type, interface_dec, left_curly, pack_members, current_token.clone())))));
-            token_index = consume_comments_newline(tokens, token_index);
+            token_index = consume(token_index);
             parser_state_stack.pop();
           }
           _ => panic!("Invalid state"),
@@ -250,7 +237,7 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
           AstSymbol::PackMembers(mut pack_members) => {
             pack_members.push(PackMember::new(identifier, Some(current_token.clone())));
             ast_stack.push(AstSymbol::PackMembers(pack_members));
-            token_index = consume_comments_newline(tokens, token_index);
+            token_index = consume(token_index);
           }
           _ => panic!("Invalid state"),
         }
@@ -266,22 +253,19 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
           _ => panic!("Invalid state"),
         }
       }
-      (Some(ParseState::PackBody), _, TokenType::Comment) | (Some(ParseState::PackBody), _, TokenType::Newline) => {
-        token_index = consume_comments_newline(tokens, token_index);
-      }
       //</editor-fold>
 
       //<editor-fold desc="> Interface">
       (Some(ParseState::InterfaceIdentifier), Some(_), TokenType::Identifier) => {
         ast_stack.push(AstSymbol::Token(current_token.clone()));
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
         parser_state_stack.goto(ParseState::TypeCustom);
         parser_state_stack.push(ParseState::TypeArguments);
       }
       (Some(ParseState::InterfaceBodyStart), Some(_), TokenType::LeftCurly) => {
         ast_stack.push(AstSymbol::Token(current_token.clone()));
         ast_stack.push(AstSymbol::InterfaceMembers(Vec::new()));
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
         parser_state_stack.goto(ParseState::InterfaceBody);
       }
       (Some(ParseState::InterfaceBodyEnd), Some(AstSymbol::InterfaceMembers(interface_members)), TokenType::RightCurly) => {
@@ -292,7 +276,7 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
         match (interface_token_sym, custom_type_sym, left_curly_sym) {
           (AstSymbol::Token(interface_token), AstSymbol::Type(Type::Custom(custom_type)), AstSymbol::Token(left_curly)) => {
             ast_stack.push(AstSymbol::OptStatement(Some(Statement::Interface(Interface::new(interface_token, custom_type, left_curly, interface_members, current_token.clone())))));
-            token_index = consume_comments_newline(tokens, token_index);
+            token_index = consume(token_index);
             parser_state_stack.pop();
           }
           _ => panic!("Invalid state"),
@@ -305,7 +289,7 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
         parser_state_stack.push(ParseState::FunctionParameterStart);
         parser_state_stack.push(ParseState::FunctionIdentifier);
         ast_stack.push(AstSymbol::Token(current_token.clone()));
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
       }
       (Some(ParseState::InterfaceBody), Some(AstSymbol::InterfaceMembers(_)), TokenType::RightCurly) => {
         parser_state_stack.goto(ParseState::InterfaceBodyEnd);
@@ -317,7 +301,7 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
           AstSymbol::InterfaceMembers(mut interface_entries) => {
             interface_entries.push(InterfaceEntry::new(function, Some(current_token.clone())));
             ast_stack.push(AstSymbol::InterfaceMembers(interface_entries));
-            token_index = consume_comments_newline(tokens, token_index);
+            token_index = consume(token_index);
           }
           _ => panic!("Invalid state"),
         }
@@ -333,13 +317,10 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
           _ => panic!("Invalid state"),
         }
       }
-      (Some(ParseState::InterfaceBody), _, TokenType::Comment) | (Some(ParseState::InterfaceBody), _, TokenType::Newline) => {
-        token_index = consume_comments_newline(tokens, token_index);
-      }
       (Some(ParseState::InterfaceDeclaration), Some(_), TokenType::Colon) => {
         ast_stack.push(AstSymbol::Token(current_token.clone()));
         ast_stack.push(AstSymbol::InterfaceImpls(Vec::new()));
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
         parser_state_stack.push(ParseState::InterfaceImplDeclarations);
       }
       (Some(ParseState::InterfaceDeclaration), Some(AstSymbol::InterfaceImpls(interface_impl_declarations)), _) => {
@@ -370,7 +351,7 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
           AstSymbol::InterfaceImpls(mut interface_impls) => {
             interface_impls.push(InterfaceImplDeclaration::new(parsed_type, Some(current_token.clone())));
             ast_stack.push(AstSymbol::InterfaceImpls(interface_impls));
-            token_index = consume_comments_newline(tokens, token_index);
+            token_index = consume(token_index);
           }
           _ => panic!("Invalid parse state"),
         }
@@ -391,14 +372,14 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
       //<editor-fold desc="> Union Statement">
       (Some(ParseState::UnionIdentifier), _, TokenType::Identifier) => {
         ast_stack.push(AstSymbol::Token(current_token.clone()));
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
         parser_state_stack.goto(ParseState::TypeCustom);
         parser_state_stack.push(ParseState::TypeArguments);
       }
       (Some(ParseState::UnionBodyStart), Some(_), TokenType::LeftCurly) => {
         ast_stack.push(AstSymbol::Token(current_token.clone()));
         ast_stack.push(AstSymbol::UnionMembers(Vec::new()));
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
         parser_state_stack.goto(ParseState::UnionBody);
       }
       (Some(ParseState::UnionBodyEnd), Some(AstSymbol::UnionMembers(union_members)), TokenType::RightCurly) => {
@@ -410,30 +391,24 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
         match (union_token_sym, custom_type_sym, interface_declaration, left_curly_sym) {
           (AstSymbol::Token(union_token), AstSymbol::Type(Type::Custom(custom_type)), AstSymbol::InterfaceDeclaration(interface_declaration), AstSymbol::Token(left_curly)) => {
             ast_stack.push(AstSymbol::OptStatement(Some(Statement::Union(Union::new(union_token, custom_type, interface_declaration, left_curly, union_members, current_token.clone())))));
-            token_index = consume_newline(tokens, token_index);
+            token_index = consume(token_index);
             parser_state_stack.pop();
           }
           _ => panic!("Invalid state"),
         }
       }
-      (Some(ParseState::UnionBody), Some(AstSymbol::UnionMembers(_)), TokenType::Newline) | (Some(ParseState::UnionBody), Some(AstSymbol::UnionMembers(_)), TokenType::Comment) => {
-        token_index = consume_comments_newline(tokens, token_index);
-      }
       (Some(ParseState::UnionBody), Some(AstSymbol::UnionMembers(_)), TokenType::Identifier) => {
         ast_stack.push(AstSymbol::Token(current_token.clone()));
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
         parser_state_stack.push(ParseState::UnionSubTypeStart);
       }
       (Some(ParseState::UnionBody), Some(AstSymbol::UnionMembers(_)), TokenType::RightCurly) => {
         parser_state_stack.goto(ParseState::UnionBodyEnd);
       }
-      (Some(ParseState::UnionSubTypeStart), Some(_), TokenType::Newline) | (Some(ParseState::UnionSubTypeStart), Some(_), TokenType::Comment) => {
-        token_index = consume_comments_newline(tokens, token_index);
-      }
       (Some(ParseState::UnionSubTypeStart), _, TokenType::LeftParen) => {
         ast_stack.push(AstSymbol::Token(current_token.clone()));
         ast_stack.push(AstSymbol::UnionSubTypeEntries(Vec::new()));
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
         parser_state_stack.push(ParseState::UnionSubType);
       }
       (Some(ParseState::UnionSubTypeStart), Some(AstSymbol::Token(_)), TokenType::RightCurly) | (Some(ParseState::UnionSubTypeStart), Some(AstSymbol::Token(_)), TokenType::Identifier) => {
@@ -442,7 +417,7 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
       }
       (Some(ParseState::UnionSubTypeStart), Some(AstSymbol::Token(_)), TokenType::Comma) => {
         ast_stack.push(AstSymbol::OptToken(Some(current_token.clone())));
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
         parser_state_stack.goto(ParseState::UnionMemberNoSubType);
       }
       (Some(ParseState::UnionSubTypeStart), Some(AstSymbol::UnionSubTypes(_)), TokenType::RightCurly) | (Some(ParseState::UnionSubTypeStart), Some(AstSymbol::UnionSubTypes(_)), TokenType::Identifier) => {
@@ -451,14 +426,11 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
       }
       (Some(ParseState::UnionSubTypeStart), Some(AstSymbol::UnionSubTypes(_)), TokenType::Comma) => {
         ast_stack.push(AstSymbol::OptToken(Some(current_token.clone())));
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
         parser_state_stack.goto(ParseState::UnionMemberSubType);
       }
       (Some(ParseState::UnionSubType), Some(AstSymbol::UnionSubTypeEntries(_)), TokenType::Identifier) | (Some(ParseState::UnionSubType), Some(AstSymbol::UnionSubTypeEntries(_)), TokenType::Type) | (Some(ParseState::UnionSubType), Some(AstSymbol::UnionSubTypeEntries(_)), TokenType::TypePrefix) => {
         parser_state_stack.push(ParseState::Type);
-      }
-      (Some(ParseState::UnionSubType), Some(_), TokenType::Newline) => {
-        token_index = consume_comments_newline(tokens, token_index);
       }
       (Some(ParseState::UnionSubType), Some(AstSymbol::Type(sub_type)), TokenType::Comma) => {
         ast_stack.pop();
@@ -466,7 +438,7 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
         match union_member_subtypes {
           AstSymbol::UnionSubTypeEntries(mut union_member_subtypes) => {
             union_member_subtypes.push(UnionSubTypeEntry::new(sub_type, Some(current_token.clone())));
-            token_index = consume_comments_newline(tokens, token_index);
+            token_index = consume(token_index);
             ast_stack.push(AstSymbol::UnionSubTypeEntries(union_member_subtypes));
           }
           _ => panic!("Invalid state :("),
@@ -490,7 +462,7 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
         match left_paren_token {
           AstSymbol::Token(left_paren_token) => {
             ast_stack.push(AstSymbol::UnionSubTypes(UnionSubTypes::new(left_paren_token, sub_type_entries, current_token.clone())));
-            token_index = consume_comments_newline(tokens, token_index);
+            token_index = consume(token_index);
             parser_state_stack.pop();
           }
           _ => panic!("Invalid state :("),
@@ -529,16 +501,13 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
       (Some(ParseState::FunctionIdentifier), Some(_), TokenType::Identifier) => {
         parser_state_stack.pop();
         ast_stack.push(AstSymbol::Token(current_token.clone()));
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
       }
       (Some(ParseState::FunctionParameterStart), Some(_), TokenType::LeftParen) => {
         parser_state_stack.goto(ParseState::FunctionParameter);
         ast_stack.push(AstSymbol::Token(current_token.clone()));
         ast_stack.push(AstSymbol::FunctionParams(Vec::new()));
-        token_index = consume_comments_newline(tokens, token_index);
-      }
-      (Some(ParseState::FunctionParameter), Some(_), TokenType::Comment) | (Some(ParseState::FunctionParameter), Some(_), TokenType::Newline) => {
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
       }
       (Some(ParseState::FunctionParameter), Some(AstSymbol::FunctionParams(_)), TokenType::RightParen) => {
         parser_state_stack.goto(ParseState::FunctionParameterEnd);
@@ -553,7 +522,7 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
           AstSymbol::FunctionParams(mut function_params) => {
             function_params.push(FunctionParam::new(identifier, Some(current_token.clone())));
             ast_stack.push(AstSymbol::FunctionParams(function_params));
-            token_index = consume_comments_newline(tokens, token_index);
+            token_index = consume(token_index);
           }
           _ => panic!("Invalid State :("),
         }
@@ -571,15 +540,12 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
       }
       (Some(ParseState::FunctionParameterEnd), Some(AstSymbol::FunctionParams(_)), TokenType::RightParen) => {
         ast_stack.push(AstSymbol::Token(current_token.clone()));
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
         parser_state_stack.pop();
-      }
-      (Some(ParseState::FunctionArrow), Some(_), TokenType::Comment) | (Some(ParseState::FunctionArrow), Some(_), TokenType::Newline) => {
-        token_index = consume_comments_newline(tokens, token_index);
       }
       (Some(ParseState::FunctionArrow), Some(_), TokenType::Arrow) => {
         ast_stack.push(AstSymbol::OptToken(Some(current_token.clone())));
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
         parser_state_stack.pop();
       }
       (Some(ParseState::FunctionArrow), Some(_), _) => {
@@ -590,17 +556,13 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
         parser_state_stack.goto(ParseState::FunctionReturn);
         ast_stack.push(AstSymbol::OptToken(Some(current_token.clone())));
         ast_stack.push(AstSymbol::FunctionReturns(Vec::new()));
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
       }
       (Some(ParseState::FunctionReturnStart), Some(AstSymbol::OptToken(None)), _) => {
         ast_stack.push(AstSymbol::OptToken(None));
         ast_stack.push(AstSymbol::FunctionReturns(Vec::new()));
         ast_stack.push(AstSymbol::OptToken(None));
         parser_state_stack.pop();
-      }
-      (Some(ParseState::FunctionReturn), Some(_), TokenType::Comment)
-      | (Some(ParseState::FunctionReturn), Some(_), TokenType::Newline) => {
-        token_index = consume_comments_newline(tokens, token_index);
       }
       (Some(ParseState::FunctionReturn), Some(AstSymbol::FunctionReturns(_)), TokenType::RightParen) => {
         parser_state_stack.goto(ParseState::FunctionReturnEnd);
@@ -612,7 +574,7 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
       }
       (Some(ParseState::FunctionReturn), Some(AstSymbol::Identifier(_)), TokenType::Symbol) => {
         ast_stack.push(AstSymbol::Token(current_token.clone()));
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
         parser_state_stack.push(ParseState::ExpressionNoComma);
       }
       (Some(ParseState::FunctionReturn), Some(AstSymbol::Identifier(identifier)), TokenType::Comma) => {
@@ -622,7 +584,7 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
           AstSymbol::FunctionReturns(mut function_returns) => {
             function_returns.push(FunctionReturn::new(identifier, None, None, Some(current_token.clone())));
             ast_stack.push(AstSymbol::FunctionReturns(function_returns));
-            token_index = consume_comments_newline(tokens, token_index);
+            token_index = consume(token_index);
           }
           _ => panic!("Invalid State :("),
         }
@@ -636,7 +598,7 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
           (AstSymbol::FunctionReturns(mut function_returns), AstSymbol::Identifier(identifier), AstSymbol::Token(assignment_symbol)) => {
             function_returns.push(FunctionReturn::new(identifier, Some(assignment_symbol), Some(expression_node), Some(current_token.clone())));
             ast_stack.push(AstSymbol::FunctionReturns(function_returns));
-            token_index = consume_comments_newline(tokens, token_index);
+            token_index = consume(token_index);
           }
           _ => panic!("Invalid State :("),
         }
@@ -667,7 +629,7 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
       }
       (Some(ParseState::FunctionReturnEnd), Some(AstSymbol::FunctionReturns(_)), TokenType::RightParen) => {
         ast_stack.push(AstSymbol::OptToken(Some(current_token.clone())));
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
         parser_state_stack.pop();
       }
       (Some(ParseState::FunctionBody), Some(AstSymbol::OptToken(_)), TokenType::LeftCurly) => {
@@ -715,7 +677,7 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
       //<editor-fold desc="> Using Statement">
       (Some(ParseState::UsingPathIdentifier), Some(AstSymbol::UsingPathEntries(_)), TokenType::Identifier) => {
         ast_stack.push(AstSymbol::Token(current_token.clone()));
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
         parser_state_stack.push(ParseState::UsingPathOptionalDot);
       }
       (Some(ParseState::UsingPathIdentifier), Some(AstSymbol::UsingPathEntries(entries)), _) => {
@@ -736,7 +698,7 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
           AstSymbol::UsingPathEntries(mut entries) => {
             entries.push(UsingPathEntry::new(identifier, Some(current_token.clone())));
             ast_stack.push(AstSymbol::UsingPathEntries(entries));
-            token_index = consume_comments_newline(tokens, token_index);
+            token_index = consume(token_index);
             parser_state_stack.pop();
           }
           _ => panic!("Invalid state"),
@@ -758,12 +720,12 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
       //<editor-fold desc="> Identifier">
       (Some(ParseState::IdentifierStart), _, TokenType::Identifier) => {
         ast_stack.push(AstSymbol::Token(current_token.clone()));
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
         parser_state_stack.goto(ParseState::IdentifierOptionalColon);
       }
       (Some(ParseState::IdentifierOptionalColon), Some(AstSymbol::Token(_)), TokenType::Colon) => {
         ast_stack.push(AstSymbol::OptToken(Some(current_token.clone())));
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
         parser_state_stack.goto(ParseState::IdentifierEnd);
         parser_state_stack.push(ParseState::Type)
       }
@@ -791,19 +753,19 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
         parser_state_stack.push(ParseState::TypeCustom);
         parser_state_stack.push(ParseState::TypeArguments);
         ast_stack.push(AstSymbol::Token(current_token.clone()));
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
       }
       (Some(ParseState::Type), _, TokenType::Type) => {
         parser_state_stack.goto(ParseState::TypeArray);
         ast_stack.push(AstSymbol::Type(Type::Base(BaseType::new(current_token.clone()))));
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
       }
       (Some(ParseState::Type), _, TokenType::RightSquare) => {
         parser_state_stack.pop();
       }
       (Some(ParseState::Type), _, TokenType::TypePrefix) => {
         ast_stack.push(AstSymbol::Token(current_token.clone()));
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
         parser_state_stack.goto(ParseState::TypeArray);
         match current_token.lexeme.as_str() {
           "auto" => {
@@ -827,17 +789,14 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
       }
       (Some(ParseState::Type), _, TokenType::FunctionType) => {
         ast_stack.push(AstSymbol::Token(current_token.clone()));
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
         parser_state_stack.goto(ParseState::TypeFunctionParams);
       }
       (Some(ParseState::TypeFunctionParams), Some(AstSymbol::FunctionTypeArguments(_)), TokenType::Identifier) | (Some(ParseState::TypeFunctionParams), Some(AstSymbol::FunctionTypeArguments(_)), TokenType::Type) | (Some(ParseState::TypeFunctionParams), Some(AstSymbol::FunctionTypeArguments(_)), TokenType::TypePrefix) => {
         parser_state_stack.push(ParseState::Type);
       }
-      (Some(ParseState::TypeFunctionParams), Some(_), TokenType::Newline) | (Some(ParseState::TypeFunctionParams), Some(_), TokenType::Comment) => {
-        token_index = consume_comments_newline(tokens, token_index);
-      }
       (Some(ParseState::TypeFunctionParams), Some(AstSymbol::Type(param_type)), TokenType::Comma) => {
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
         ast_stack.pop();
         let args_sym = ast_stack.pop_panic();
         match args_sym {
@@ -850,7 +809,7 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
       }
       (Some(ParseState::TypeFunctionParams), Some(_), TokenType::LeftParen) => {
         ast_stack.push(AstSymbol::Token(current_token.clone()));
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
         ast_stack.push(AstSymbol::FunctionTypeArguments(Vec::new()));
       }
       (Some(ParseState::TypeFunctionParams), Some(AstSymbol::Type(param_type)), TokenType::RightParen) => {
@@ -861,7 +820,7 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
             args.push(FunctionTypeArgument::new(param_type, None));
             ast_stack.push(AstSymbol::FunctionTypeArguments(args));
             ast_stack.push(AstSymbol::Token(current_token.clone()));
-            token_index = consume_comments_newline(tokens, token_index);
+            token_index = consume(token_index);
             parser_state_stack.goto(ParseState::TypeFunctionOptArrow);
           }
           _ => panic!("invalid state :("),
@@ -869,12 +828,12 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
       }
       (Some(ParseState::TypeFunctionParams), Some(AstSymbol::FunctionTypeArguments(_)), TokenType::RightParen) => {
         ast_stack.push(AstSymbol::Token(current_token.clone()));
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
         parser_state_stack.goto(ParseState::TypeFunctionOptArrow);
       }
       (Some(ParseState::TypeFunctionOptArrow), Some(_), TokenType::Arrow) => {
         ast_stack.push(AstSymbol::Token(current_token.clone()));
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
         parser_state_stack.goto(ParseState::TypeFunctionReturns);
       }
       (Some(ParseState::TypeFunctionOptArrow), Some(AstSymbol::Token(right_paren)), _) => {
@@ -893,11 +852,8 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
       (Some(ParseState::TypeFunctionReturns), Some(AstSymbol::FunctionTypeArguments(_)), TokenType::Identifier) | (Some(ParseState::TypeFunctionReturns), Some(AstSymbol::FunctionTypeArguments(_)), TokenType::Type) | (Some(ParseState::TypeFunctionReturns), Some(AstSymbol::FunctionTypeArguments(_)), TokenType::TypePrefix) => {
         parser_state_stack.push(ParseState::Type);
       }
-      (Some(ParseState::TypeFunctionReturns), Some(_), TokenType::Newline) | (Some(ParseState::TypeFunctionReturns), Some(_), TokenType::Comment) => {
-        token_index = consume_comments_newline(tokens, token_index);
-      }
       (Some(ParseState::TypeFunctionReturns), Some(AstSymbol::Type(param_type)), TokenType::Comma) => {
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
         ast_stack.pop();
         let args_sym = ast_stack.pop_panic();
         match args_sym {
@@ -910,7 +866,7 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
       }
       (Some(ParseState::TypeFunctionReturns), Some(_), TokenType::LeftParen) => {
         ast_stack.push(AstSymbol::Token(current_token.clone()));
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
         ast_stack.push(AstSymbol::FunctionTypeArguments(Vec::new()));
       }
       (Some(ParseState::TypeFunctionReturns), Some(AstSymbol::Type(param_type)), TokenType::RightParen) => {
@@ -935,14 +891,14 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
         match (function_sym.clone(), left_paren_sym.clone(), params_sym.clone(), right_paren_sym.clone(), arrow_sym.clone(), return_left_paren_sym.clone()) {
           (AstSymbol::Token(function_token), AstSymbol::Token(left_paren), AstSymbol::FunctionTypeArguments(params), AstSymbol::Token(right_paren), AstSymbol::Token(arrow_token), AstSymbol::Token(return_left_paren)) => {
             ast_stack.push(AstSymbol::Type(Type::Function(FunctionType::new(function_token, left_paren, params, right_paren, Some(arrow_token), Some(return_left_paren), return_args, Some(current_token.clone())))));
-            token_index = consume_comments_newline(tokens, token_index);
+            token_index = consume(token_index);
             parser_state_stack.goto(ParseState::TypeArray);
           }
           _ => panic!("invalid state :(\n{:?}\n{:?}\n{:?}\n{:?}\n{:?}\n{:?}", function_sym, left_paren_sym, params_sym, right_paren_sym, arrow_sym, return_left_paren_sym),
         }
       }
       (Some(ParseState::TypeIdentifier), Some(_), TokenType::Identifier) => {
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
         ast_stack.push(AstSymbol::Token(current_token.clone()));
         parser_state_stack.pop();
       }
@@ -965,7 +921,7 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
       (Some(ParseState::TypeArguments), Some(AstSymbol::Token(_)), TokenType::LeftParen) => {
         ast_stack.push(AstSymbol::Token(current_token.clone()));
         ast_stack.push(AstSymbol::TypeArguments(Vec::new()));
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
       }
       (Some(ParseState::TypeArguments), Some(AstSymbol::Type(type_symbol)), TokenType::Comma) => {
         ast_stack.pop();
@@ -973,7 +929,7 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
         match type_arguments {
           AstSymbol::TypeArguments(mut type_arguments) => {
             type_arguments.push(TypeArgument::new(type_symbol, Some(current_token.clone())));
-            token_index = consume_comments_newline(tokens, token_index);
+            token_index = consume(token_index);
             ast_stack.push(AstSymbol::TypeArguments(type_arguments));
           }
           _ => panic!("Invalid parse state :(")
@@ -996,7 +952,7 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
         match left_paren_token {
           AstSymbol::Token(left_paren_token) => {
             ast_stack.push(AstSymbol::TypeParameters(TypeParameters::new(left_paren_token.clone(), type_arguments, current_token.clone())));
-            token_index = consume_comments_newline(tokens, token_index);
+            token_index = consume(token_index);
             parser_state_stack.pop();
           }
           _ => panic!("Invalid parse state :("),
@@ -1054,14 +1010,14 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
       }
       (Some(ParseState::TypeArray), Some(_), TokenType::LeftSquare) => {
         ast_stack.push(AstSymbol::Token(current_token.clone()));
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
         parser_state_stack.goto(ParseState::TypeArrayEnd);
         parser_state_stack.push(ParseState::Type);
       }
       (Some(ParseState::TypeArray), Some(AstSymbol::Type(base_type)), TokenType::Spread) => {
         ast_stack.pop();
         ast_stack.push(AstSymbol::Type(Type::VariableType(VariableType::new(Box::new(base_type), current_token.clone()))));
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
         parser_state_stack.pop();
       }
       (Some(ParseState::TypeArray), Some(_), _) => {
@@ -1072,7 +1028,7 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
         let left_square_sym = ast_stack.pop_panic();
         let main_type_sym = ast_stack.pop_panic();
         parser_state_stack.pop();
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
         match (main_type_sym, left_square_sym) {
           (AstSymbol::Type(main_type), AstSymbol::Token(left_square)) => {
             ast_stack.push(AstSymbol::Type(Type::Array(ArrayType::new(Box::new(main_type), left_square, Some(Box::new(subtype)), current_token.clone()))));
@@ -1084,7 +1040,7 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
         ast_stack.pop();
         let main_type_sym = ast_stack.pop_panic();
         parser_state_stack.pop();
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
         match main_type_sym {
           AstSymbol::Type(main_type) => {
             ast_stack.push(AstSymbol::Type(Type::Array(ArrayType::new(Box::new(main_type), left_square, None, current_token.clone()))));
@@ -1097,7 +1053,7 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
       (Some(ParseState::LetAssignment), Some(AstSymbol::Identifier(_)), TokenType::Symbol) => {
         // TODO may need to determine if we have an assignment token here
         ast_stack.push(AstSymbol::Token(current_token.clone()));
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
         parser_state_stack.push(ParseState::ExpressionStatement);
         parser_state_stack.push(ParseState::Expression);
       }
@@ -1121,7 +1077,7 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
       }
       (Some(ParseState::ExpressionNoComma), Some(AstSymbol::ExpressionTokenList(_)), TokenType::Match) => {
         ast_stack.push(AstSymbol::Token(current_token.clone()));
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
         parser_state_stack.push(ParseState::MatchBody);
         parser_state_stack.push(ParseState::Expression);
       }
@@ -1132,11 +1088,11 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
         parser_state_stack.push(ParseState::FunctionParameterStart);
         parser_state_stack.push(ParseState::FunctionIdentifier);
         ast_stack.push(AstSymbol::Token(current_token.clone()));
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
       }
       (Some(ParseState::ExpressionNoComma), Some(AstSymbol::ExpressionTokenList(_)), TokenType::If) => {
         ast_stack.push(AstSymbol::Token(current_token.clone()));
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
         parser_state_stack.push(ParseState::BranchEndStatement);
         parser_state_stack.push(ParseState::BranchStatement);
         parser_state_stack.push(ParseState::CompoundStatement);
@@ -1144,20 +1100,20 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
       }
       (Some(ParseState::ExpressionNoComma), Some(AstSymbol::ExpressionTokenList(_)), TokenType::While) => {
         ast_stack.push(AstSymbol::Token(current_token.clone()));
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
         parser_state_stack.push(ParseState::WhileStatement);
         parser_state_stack.push(ParseState::CompoundStatement);
         parser_state_stack.push(ParseState::Expression);
       }
       (Some(ParseState::ExpressionNoComma), Some(AstSymbol::ExpressionTokenList(_)), TokenType::Loop) => {
         ast_stack.push(AstSymbol::Token(current_token.clone()));
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
         parser_state_stack.push(ParseState::LoopStatement);
         parser_state_stack.push(ParseState::CompoundStatement);
       }
       (Some(ParseState::ExpressionNoComma), Some(AstSymbol::ExpressionTokenList(_)), TokenType::For) => {
         ast_stack.push(AstSymbol::Token(current_token.clone()));
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
         parser_state_stack.push(ParseState::ForStatement);
         parser_state_stack.push(ParseState::CompoundStatement);
         parser_state_stack.push(ParseState::Expression);
@@ -1195,8 +1151,7 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
           _ => panic!("Invalid parser state")
         }
       }
-      (Some(ParseState::ExpressionNoComma), Some(AstSymbol::ExpressionTokenList(mut token_list)), TokenType::Comment)
-      | (Some(ParseState::ExpressionNoComma), Some(AstSymbol::ExpressionTokenList(mut token_list)), TokenType::String)
+      (Some(ParseState::ExpressionNoComma), Some(AstSymbol::ExpressionTokenList(mut token_list)), TokenType::String)
       | (Some(ParseState::ExpressionNoComma), Some(AstSymbol::ExpressionTokenList(mut token_list)), TokenType::InterpolatedString)
       | (Some(ParseState::ExpressionNoComma), Some(AstSymbol::ExpressionTokenList(mut token_list)), TokenType::Number)
       | (Some(ParseState::ExpressionNoComma), Some(AstSymbol::ExpressionTokenList(mut token_list)), TokenType::Identifier)
@@ -1210,8 +1165,7 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
       | (Some(ParseState::ExpressionNoComma), Some(AstSymbol::ExpressionTokenList(mut token_list)), TokenType::Dot)
       | (Some(ParseState::ExpressionNoComma), Some(AstSymbol::ExpressionTokenList(mut token_list)), TokenType::Colon)
       | (Some(ParseState::ExpressionNoComma), Some(AstSymbol::ExpressionTokenList(mut token_list)), TokenType::Symbol)
-      | (Some(ParseState::ExpressionNoComma), Some(AstSymbol::ExpressionTokenList(mut token_list)), TokenType::Is)
-      | (Some(ParseState::ExpressionNoComma), Some(AstSymbol::ExpressionTokenList(mut token_list)), TokenType::Newline) => {
+      | (Some(ParseState::ExpressionNoComma), Some(AstSymbol::ExpressionTokenList(mut token_list)), TokenType::Is) => {
         ast_stack.pop();
         token_list.push(Either::Left(current_token.clone()));
         ast_stack.push(AstSymbol::ExpressionTokenList(token_list.clone()));
@@ -1233,7 +1187,7 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
       }
       (Some(ParseState::Expression), Some(AstSymbol::ExpressionTokenList(_)), TokenType::Match) => {
         ast_stack.push(AstSymbol::Token(current_token.clone()));
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
         parser_state_stack.push(ParseState::MatchBody);
         parser_state_stack.push(ParseState::Expression);
       }
@@ -1244,11 +1198,11 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
         parser_state_stack.push(ParseState::FunctionParameterStart);
         parser_state_stack.push(ParseState::FunctionIdentifier);
         ast_stack.push(AstSymbol::Token(current_token.clone()));
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
       }
       (Some(ParseState::Expression), Some(AstSymbol::ExpressionTokenList(_)), TokenType::If) => {
         ast_stack.push(AstSymbol::Token(current_token.clone()));
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
         parser_state_stack.push(ParseState::BranchEndStatement);
         parser_state_stack.push(ParseState::BranchStatement);
         parser_state_stack.push(ParseState::CompoundStatement);
@@ -1256,20 +1210,20 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
       }
       (Some(ParseState::Expression), Some(AstSymbol::ExpressionTokenList(_)), TokenType::While) => {
         ast_stack.push(AstSymbol::Token(current_token.clone()));
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
         parser_state_stack.push(ParseState::WhileStatement);
         parser_state_stack.push(ParseState::CompoundStatement);
         parser_state_stack.push(ParseState::Expression);
       }
       (Some(ParseState::Expression), Some(AstSymbol::ExpressionTokenList(_)), TokenType::Loop) => {
         ast_stack.push(AstSymbol::Token(current_token.clone()));
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
         parser_state_stack.push(ParseState::LoopStatement);
         parser_state_stack.push(ParseState::CompoundStatement);
       }
       (Some(ParseState::Expression), Some(AstSymbol::ExpressionTokenList(_)), TokenType::For) => {
         ast_stack.push(AstSymbol::Token(current_token.clone()));
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
         parser_state_stack.push(ParseState::ForStatement);
         parser_state_stack.push(ParseState::CompoundStatement);
         parser_state_stack.push(ParseState::Expression);
@@ -1307,8 +1261,7 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
           _ => panic!("Invalid parser state")
         }
       }
-      (Some(ParseState::Expression), Some(AstSymbol::ExpressionTokenList(mut token_list)), TokenType::Comment)
-      | (Some(ParseState::Expression), Some(AstSymbol::ExpressionTokenList(mut token_list)), TokenType::String)
+      (Some(ParseState::Expression), Some(AstSymbol::ExpressionTokenList(mut token_list)), TokenType::String)
       | (Some(ParseState::Expression), Some(AstSymbol::ExpressionTokenList(mut token_list)), TokenType::InterpolatedString)
       | (Some(ParseState::Expression), Some(AstSymbol::ExpressionTokenList(mut token_list)), TokenType::Number)
       | (Some(ParseState::Expression), Some(AstSymbol::ExpressionTokenList(mut token_list)), TokenType::Identifier)
@@ -1323,8 +1276,7 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
       | (Some(ParseState::Expression), Some(AstSymbol::ExpressionTokenList(mut token_list)), TokenType::Comma)
       | (Some(ParseState::Expression), Some(AstSymbol::ExpressionTokenList(mut token_list)), TokenType::Colon)
       | (Some(ParseState::Expression), Some(AstSymbol::ExpressionTokenList(mut token_list)), TokenType::Symbol)
-      | (Some(ParseState::Expression), Some(AstSymbol::ExpressionTokenList(mut token_list)), TokenType::Is)
-      | (Some(ParseState::Expression), Some(AstSymbol::ExpressionTokenList(mut token_list)), TokenType::Newline) => {
+      | (Some(ParseState::Expression), Some(AstSymbol::ExpressionTokenList(mut token_list)), TokenType::Is) => {
         ast_stack.pop();
         token_list.push(Either::Left(current_token.clone()));
         ast_stack.push(AstSymbol::ExpressionTokenList(token_list.clone()));
@@ -1361,7 +1313,7 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
       (Some(ParseState::ExpressionStatement), Some(AstSymbol::Expression(expression_node)), TokenType::Semicolon) => {
         ast_stack.pop();
         ast_stack.push(AstSymbol::OptStatement(Some(Statement::Expression(ExpressionStatement::new(expression_node, current_token.clone())))));
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
         parser_state_stack.pop();
       }
       (Some(ParseState::ExpressionStatement), Some(AstSymbol::Expression(_)), _) => {
@@ -1375,7 +1327,7 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
       (Some(ParseState::MatchBody), Some(AstSymbol::Expression(_)), TokenType::LeftCurly) => {
         ast_stack.push(AstSymbol::Token(current_token.clone()));
         ast_stack.push(AstSymbol::MatchCases(Vec::new()));
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
       }
       (Some(ParseState::MatchBody), Some(AstSymbol::Token(_)), _) => {
         parser_state_stack.push(ParseState::MatchCaseArrow);
@@ -1389,7 +1341,7 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
         match (match_token, match_expression, left_curly_token) {
           (AstSymbol::Token(match_token), AstSymbol::Expression(match_expression), AstSymbol::Token(left_curly_token)) => {
             ast_stack.push(AstSymbol::OptStatement(Some(Statement::Match(Match::new(match_token, match_expression, left_curly_token, match_cases, current_token.clone())))));
-            token_index = consume_comments_newline(tokens, token_index);
+            token_index = consume(token_index);
             parser_state_stack.pop();
           }
           _ => panic!("Invalid parse state")
@@ -1401,7 +1353,7 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
       }
       (Some(ParseState::MatchCaseArrow), Some(AstSymbol::Expression(_)), TokenType::DoubleArrow) => {
         ast_stack.push(AstSymbol::Token(current_token.clone()));
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
         parser_state_stack.push(ParseState::MatchCaseBody);
       }
       (Some(ParseState::MatchCaseArrow), Some(AstSymbol::OptStatement(Some(statement))), _) => {
@@ -1442,12 +1394,8 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
       //<editor-fold desc="> BranchStatement">
       (Some(ParseState::BranchStatement), Some(AstSymbol::CompoundStatement(_)), TokenType::Else) => {
         ast_stack.push(AstSymbol::Token(current_token.clone()));
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
         parser_state_stack.push(ParseState::BranchElseStatement);
-      }
-      (Some(ParseState::BranchStatement), Some(AstSymbol::CompoundStatement(_)), TokenType::Comment) | (Some(ParseState::BranchStatement), Some(AstSymbol::CompoundStatement(_)), TokenType::Newline) => {
-        // TODO need to record these somewhere
-        token_index = consume_comments_newline(tokens, token_index);
       }
       (Some(ParseState::BranchStatement), Some(AstSymbol::CompoundStatement(compound_statement)), _) => {
         ast_stack.pop();
@@ -1479,16 +1427,12 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
         ast_stack.push(AstSymbol::OptStatement(Some(Statement::Branch(branch))));
         parser_state_stack.pop();
       }
-      (Some(ParseState::BranchElseStatement), Some(AstSymbol::Token(_)), TokenType::Comment) | (Some(ParseState::BranchElseStatement), Some(AstSymbol::Token(_)), TokenType::Newline) => {
-        // TODO need to record these somewhere
-        token_index = consume_comments_newline(tokens, token_index);
-      }
       (Some(ParseState::BranchElseStatement), Some(AstSymbol::Token(_)), TokenType::LeftCurly) => {
         parser_state_stack.push(ParseState::CompoundStatement);
       }
       (Some(ParseState::BranchElseStatement), Some(AstSymbol::Token(_)), TokenType::If) => {
         ast_stack.push(AstSymbol::Token(current_token.clone()));
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
         parser_state_stack.push(ParseState::BranchStatement);
         parser_state_stack.push(ParseState::CompoundStatement);
         parser_state_stack.push(ParseState::Expression);
@@ -1517,13 +1461,10 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
       }
       //</editor-fold>
       //<editor-fold desc="> CompoundStatement">
-      (Some(ParseState::CompoundStatement), Some(_), TokenType::Newline) => {
-        token_index = consume_newline(tokens, token_index);
-      }
       (Some(ParseState::CompoundStatement), Some(_), TokenType::LeftCurly) => {
         ast_stack.push(AstSymbol::Token(current_token.clone()));
         ast_stack.push(AstSymbol::StatementList(vec![]));
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
         parser_state_stack.push(ParseState::StatementList);
       }
       (Some(ParseState::CompoundStatement), Some(AstSymbol::StatementList(compound_statement)), TokenType::RightCurly) => {
@@ -1532,7 +1473,7 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
         match left_curly_sym {
           AstSymbol::Token(left_curly) => {
             ast_stack.push(AstSymbol::CompoundStatement(CompoundStatement::new(left_curly, compound_statement, current_token.clone())));
-            token_index = consume_newline(tokens, token_index);
+            token_index = consume(token_index);
             parser_state_stack.pop();
           }
           _ => panic!("Invalid state :("),
@@ -1591,7 +1532,7 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
       }
       (Some(ParseState::ForStatementIn), Some(AstSymbol::Expression(_)), TokenType::In) => {
         ast_stack.push(AstSymbol::Token(current_token.clone()));
-        token_index = consume_comments_newline(tokens, token_index);
+        token_index = consume(token_index);
         parser_state_stack.pop();
       }
       //</editor-fold>
@@ -1628,18 +1569,6 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
   (symbol, token_index, errors)
 }
 
-fn consume_comments_newline(tokens: &Vec<Token<TokenType>>, current_index: usize) -> usize {
-  let mut result = current_index + 1;
-  while result < tokens.len() && (tokens[result].token_type == TokenType::Newline || tokens[result].token_type == TokenType::Comment) {
-    result += 1;
-  }
-  result
-}
-
-fn consume_newline(tokens: &Vec<Token<TokenType>>, current_index: usize) -> usize {
-  let mut result = current_index + 1;
-  while result < tokens.len() && tokens[result].token_type == TokenType::Newline {
-    result += 1;
-  }
-  result
+fn consume(current_index: usize) -> usize {
+  current_index + 1
 }

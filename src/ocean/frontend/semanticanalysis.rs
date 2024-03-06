@@ -1,3 +1,5 @@
+#![allow(unused_variables)]
+
 use itertools::Either;
 use uuid::Uuid;
 use crate::ocean::frontend::ast::*;
@@ -7,11 +9,11 @@ use crate::util::errors::{Error, Severity};
 use crate::util::span::Spanned;
 
 pub trait SemanticallyAnalyzable {
-  fn analyze(&self, table: & mut SymbolTable, context: AnalyzerContext) -> (Option<Uuid>, Vec<Error>);
+  fn analyze(&self, table: &mut SymbolTable, context: AnalyzerContext) -> (Option<Uuid>, Vec<Error>);
 }
 
 impl SemanticallyAnalyzable for Program {
-  fn analyze(&self, table: & mut SymbolTable, context: AnalyzerContext) -> (Option<Uuid>, Vec<Error>) {
+  fn analyze(&self, table: &mut SymbolTable, context: AnalyzerContext) -> (Option<Uuid>, Vec<Error>) {
     let mut results = Vec::new();
 
     for statement in self.statements.iter()
@@ -49,7 +51,7 @@ impl SemanticallyAnalyzable for Program {
 }
 
 impl SemanticallyAnalyzable for StatementNode {
-  fn analyze(&self, table: & mut SymbolTable, context: AnalyzerContext) -> (Option<Uuid>, Vec<Error>) {
+  fn analyze(&self, table: &mut SymbolTable, context: AnalyzerContext) -> (Option<Uuid>, Vec<Error>) {
     match &self.statement {
       Some(x) => x.analyze(table, context),
       None => (None, Vec::new()),
@@ -58,7 +60,7 @@ impl SemanticallyAnalyzable for StatementNode {
 }
 
 impl SemanticallyAnalyzable for Statement {
-  fn analyze(&self, table: & mut SymbolTable, context: AnalyzerContext) -> (Option<Uuid>, Vec<Error>) {
+  fn analyze(&self, table: &mut SymbolTable, context: AnalyzerContext) -> (Option<Uuid>, Vec<Error>) {
     match self {
       Statement::WhileLoop(x) => x.analyze(table, context),
       Statement::ForLoop(x) => x.analyze(table, context),
@@ -80,13 +82,13 @@ impl SemanticallyAnalyzable for Statement {
 }
 
 impl SemanticallyAnalyzable for ExpressionStatement {
-  fn analyze(&self, table: & mut SymbolTable, context: AnalyzerContext) -> (Option<Uuid>, Vec<Error>) {
+  fn analyze(&self, table: &mut SymbolTable, context: AnalyzerContext) -> (Option<Uuid>, Vec<Error>) {
     self.expression_node.analyze(table, context)
   }
 }
 
 impl SemanticallyAnalyzable for CompoundStatement {
-  fn analyze(&self, table: & mut SymbolTable, context: AnalyzerContext) -> (Option<Uuid>, Vec<Error>) {
+  fn analyze(&self, table: &mut SymbolTable, context: AnalyzerContext) -> (Option<Uuid>, Vec<Error>) {
     let mut results = Vec::new();
 
     for statement in self.body.iter()
@@ -124,7 +126,7 @@ impl SemanticallyAnalyzable for CompoundStatement {
 }
 
 impl SemanticallyAnalyzable for WhileLoop {
-  fn analyze(&self, table: & mut SymbolTable, context: AnalyzerContext) -> (Option<Uuid>, Vec<Error>) {
+  fn analyze(&self, table: &mut SymbolTable, context: AnalyzerContext) -> (Option<Uuid>, Vec<Error>) {
     let (_condition_type, mut results) = self.condition.analyze(table, context);
 
     let mut new_table = SymbolTable::soft_scope(Some(table));
@@ -135,7 +137,7 @@ impl SemanticallyAnalyzable for WhileLoop {
 }
 
 impl SemanticallyAnalyzable for ForLoop {
-  fn analyze(&self, table: & mut SymbolTable, context: AnalyzerContext) -> (Option<Uuid>, Vec<Error>) {
+  fn analyze(&self, table: &mut SymbolTable, context: AnalyzerContext) -> (Option<Uuid>, Vec<Error>) {
     let mut new_table = SymbolTable::soft_scope(Some(table));
 
     let (iterable_type, mut results) = self.iterable.analyze(&mut new_table, context);
@@ -147,17 +149,17 @@ impl SemanticallyAnalyzable for ForLoop {
 }
 
 impl SemanticallyAnalyzable for Loop {
-  fn analyze(&self, table: & mut SymbolTable, context: AnalyzerContext) -> (Option<Uuid>, Vec<Error>) {
+  fn analyze(&self, table: &mut SymbolTable, context: AnalyzerContext) -> (Option<Uuid>, Vec<Error>) {
     let mut new_table = SymbolTable::soft_scope(Some(table));
     self.body.analyze(&mut new_table, context.create_in_loop())
   }
 }
 
 impl SemanticallyAnalyzable for Branch {
-  fn analyze(&self, table: & mut SymbolTable, context: AnalyzerContext) -> (Option<Uuid>, Vec<Error>) {
+  fn analyze(&self, table: &mut SymbolTable, context: AnalyzerContext) -> (Option<Uuid>, Vec<Error>) {
     let (_condition_type, mut results) = self.condition.analyze(table, context);
 
-    let mut true_table = SymbolTable::soft_scope(Some(&mut table));
+    let mut true_table = SymbolTable::soft_scope(Some(table));
     join_errors(&mut results, &mut self.body.analyze(&mut true_table, context));
 
     if let Some(else_branch) = &self.else_branch {
@@ -169,7 +171,7 @@ impl SemanticallyAnalyzable for Branch {
 }
 
 impl SemanticallyAnalyzable for ElseBranch {
-  fn analyze(&self, table: & mut SymbolTable, context: AnalyzerContext) -> (Option<Uuid>, Vec<Error>) {
+  fn analyze(&self, table: &mut SymbolTable, context: AnalyzerContext) -> (Option<Uuid>, Vec<Error>) {
     match &self.body {
       Either::Left(compound) => {
         let mut new_table = SymbolTable::soft_scope(Some(table));
@@ -181,13 +183,13 @@ impl SemanticallyAnalyzable for ElseBranch {
 }
 
 impl SemanticallyAnalyzable for Match {
-  fn analyze(&self, table: & mut SymbolTable, context: AnalyzerContext) -> (Option<Uuid>, Vec<Error>) {
+  fn analyze(&self, table: &mut SymbolTable, context: AnalyzerContext) -> (Option<Uuid>, Vec<Error>) {
     todo!()
   }
 }
 
 impl SemanticallyAnalyzable for Assignment {
-  fn analyze(&self, table: & mut SymbolTable, context: AnalyzerContext) -> (Option<Uuid>, Vec<Error>) {
+  fn analyze(&self, table: &mut SymbolTable, context: AnalyzerContext) -> (Option<Uuid>, Vec<Error>) {
     let (rhs_type, mut results) = self.right_expression.analyze(table, context);
 
     let (lhs_type, mut left_results) = match &self.left_expression {
@@ -201,7 +203,7 @@ impl SemanticallyAnalyzable for Assignment {
 }
 
 impl SemanticallyAnalyzable for Function {
-  fn analyze(&self, table: & mut SymbolTable, context: AnalyzerContext) -> (Option<Uuid>, Vec<Error>) {
+  fn analyze(&self, table: &mut SymbolTable, context: AnalyzerContext) -> (Option<Uuid>, Vec<Error>) {
     let mut results = Vec::new();
     let mut param_types = Vec::new();
     let mut return_types = Vec::new();
@@ -259,49 +261,49 @@ impl SemanticallyAnalyzable for Function {
 }
 
 impl SemanticallyAnalyzable for FunctionParam {
-  fn analyze(&self, table: & mut SymbolTable, context: AnalyzerContext) -> (Option<Uuid>, Vec<Error>) {
+  fn analyze(&self, table: &mut SymbolTable, context: AnalyzerContext) -> (Option<Uuid>, Vec<Error>) {
     todo!()
   }
 }
 
 impl SemanticallyAnalyzable for FunctionReturn {
-  fn analyze(&self, table: & mut SymbolTable, context: AnalyzerContext) -> (Option<Uuid>, Vec<Error>) {
+  fn analyze(&self, table: &mut SymbolTable, context: AnalyzerContext) -> (Option<Uuid>, Vec<Error>) {
     todo!()
   }
 }
 
 impl SemanticallyAnalyzable for Pack {
-  fn analyze(&self, table: & mut SymbolTable, context: AnalyzerContext) -> (Option<Uuid>, Vec<Error>) {
+  fn analyze(&self, table: &mut SymbolTable, context: AnalyzerContext) -> (Option<Uuid>, Vec<Error>) {
     todo!()
   }
 }
 
 impl SemanticallyAnalyzable for Union {
-  fn analyze(&self, table: & mut SymbolTable, context: AnalyzerContext) -> (Option<Uuid>, Vec<Error>) {
+  fn analyze(&self, table: &mut SymbolTable, context: AnalyzerContext) -> (Option<Uuid>, Vec<Error>) {
     todo!()
   }
 }
 
 impl SemanticallyAnalyzable for Interface {
-  fn analyze(&self, table: & mut SymbolTable, context: AnalyzerContext) -> (Option<Uuid>, Vec<Error>) {
+  fn analyze(&self, table: &mut SymbolTable, context: AnalyzerContext) -> (Option<Uuid>, Vec<Error>) {
     todo!()
   }
 }
 
 impl SemanticallyAnalyzable for Using {
-  fn analyze(&self, table: & mut SymbolTable, context: AnalyzerContext) -> (Option<Uuid>, Vec<Error>) {
+  fn analyze(&self, table: &mut SymbolTable, context: AnalyzerContext) -> (Option<Uuid>, Vec<Error>) {
     todo!()
   }
 }
 
 impl SemanticallyAnalyzable for Return {
-  fn analyze(&self, table: & mut SymbolTable, context: AnalyzerContext) -> (Option<Uuid>, Vec<Error>) {
+  fn analyze(&self, table: &mut SymbolTable, context: AnalyzerContext) -> (Option<Uuid>, Vec<Error>) {
     (None, Vec::new()) // ?? is there anything we should check here?
   }
 }
 
 impl SemanticallyAnalyzable for Break {
-  fn analyze(&self, table: & mut SymbolTable, context: AnalyzerContext) -> (Option<Uuid>, Vec<Error>) {
+  fn analyze(&self, table: &mut SymbolTable, context: AnalyzerContext) -> (Option<Uuid>, Vec<Error>) {
     if !context.in_loop {
       (None, vec![Error::new(Severity::Error, self.break_token.get_span(), "Cannot use a 'break' statement outside of a loop.".to_string())])
     } else {
@@ -311,7 +313,7 @@ impl SemanticallyAnalyzable for Break {
 }
 
 impl SemanticallyAnalyzable for Continue {
-  fn analyze(&self, table: & mut SymbolTable, context: AnalyzerContext) -> (Option<Uuid>, Vec<Error>) {
+  fn analyze(&self, table: &mut SymbolTable, context: AnalyzerContext) -> (Option<Uuid>, Vec<Error>) {
     if !context.in_loop {
       (None, vec![Error::new(Severity::Error, self.continue_token.get_span(), "Cannot use a 'continue' statement outside of a loop.".to_string())])
     } else {
@@ -327,13 +329,13 @@ impl SemanticallyAnalyzable for LetTarget {
 }
 
 impl SemanticallyAnalyzable for ExpressionNode {
-  fn analyze(&self, table: & mut SymbolTable, context: AnalyzerContext) -> (Option<Uuid>, Vec<Error>) {
+  fn analyze(&self, table: &mut SymbolTable, context: AnalyzerContext) -> (Option<Uuid>, Vec<Error>) {
     todo!()
   }
 }
 
 impl SemanticallyAnalyzable for Expression {
-  fn analyze(&self, table: & mut SymbolTable, context: AnalyzerContext) -> (Option<Uuid>, Vec<Error>) {
+  fn analyze(&self, table: &mut SymbolTable, context: AnalyzerContext) -> (Option<Uuid>, Vec<Error>) {
     todo!()
   }
 }

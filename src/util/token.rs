@@ -14,6 +14,7 @@ pub struct Token<TokenType> {
   pub offset: (usize, usize),
   pub line: (usize, usize),
   pub column: (usize, usize),
+  pub trivia: Vec<Token<TokenType>>,
 }
 
 impl<TokenType: PartialEq + Debug> TokenTrait<TokenType> for Token<TokenType> {
@@ -34,13 +35,17 @@ impl<TokenType> Spanned for Token<TokenType> {
 
 impl<TokenType> Token<TokenType> {
   pub fn new(lexeme: String, token_type: TokenType, offset: (usize, usize), line: (usize, usize), column: (usize, usize)) -> Self {
-    Self { lexeme, token_type, offset, line, column }
+    Self { lexeme, token_type, offset, line, column, trivia: Vec::new() }
+  }
+
+  pub fn new_with_trivia(lexeme: String, token_type: TokenType, offset: (usize, usize), line: (usize, usize), column: (usize, usize), trivia: Vec<Token<TokenType>>) -> Self {
+    Self { lexeme, token_type, offset, line, column, trivia }
   }
 }
 
 impl<TokenType: Debug> Display for Token<TokenType> {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    write!(f, "<[{:?}] '{}' {} {}>", self.token_type, self.lexeme.escape_default(), self.offset.0, self.offset.1)
+    write!(f, "<[{:?}] '{}' {} {} :: {:?}>", self.token_type, self.lexeme.escape_default(), self.offset.0, self.offset.1, self.trivia)
   }
 }
 

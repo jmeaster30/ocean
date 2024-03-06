@@ -86,8 +86,8 @@ enum SymbolTableEntryType {
   Interface(String),
 }
 
-pub struct SymbolTable<'a> {
-  parent: Option<&'a mut SymbolTable<'a>>,
+pub struct SymbolTable<'a, 'b: 'a> {
+  parent: Option<&'b mut SymbolTable<'a, 'b>>,
   hard_scope: bool,
   uuid_map: HashMap<Uuid, SymbolTableEntryType>,
   variables: HashMap<String, Variable>,
@@ -97,8 +97,8 @@ pub struct SymbolTable<'a> {
   interfaces: HashMap<String, Interface>,
 }
 
-impl<'a> SymbolTable<'a> {
-  pub fn soft_scope(parent_scope: Option<&'a mut SymbolTable<'a>>) -> Self {
+impl<'a, 'b: 'a> SymbolTable<'a, 'b> {
+  pub fn soft_scope(parent_scope: Option<&'b mut SymbolTable<'a, 'b>>) -> Self {
     Self {
       parent: parent_scope,
       hard_scope: false,
@@ -111,7 +111,7 @@ impl<'a> SymbolTable<'a> {
     }
   }
 
-  pub fn hard_scope(parent_scope: Option<&'a mut SymbolTable<'a>>) -> Self {
+  pub fn hard_scope(parent_scope: Option<&'b mut SymbolTable<'a, 'b>>) -> Self {
     Self {
       parent: parent_scope,
       hard_scope: true,
