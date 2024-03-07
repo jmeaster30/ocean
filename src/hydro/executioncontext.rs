@@ -2,7 +2,7 @@ use super::value::Value;
 
 use crate::hydro::exception::Exception;
 use crate::hydro::value::Reference;
-use ocean_helpers::{make_add_operations, make_bit_operations, make_comparison_operations};
+use ocean_macros::{make_add_operations, make_bit_operations, make_comparison_operations};
 use std::collections::HashMap;
 use std::ops::Deref;
 

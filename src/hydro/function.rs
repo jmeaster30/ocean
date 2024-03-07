@@ -2,6 +2,7 @@ use crate::hydro::function::Target::{Index, Label};
 use crate::hydro::instruction::*;
 use crate::hydro::value::{Reference, Type, Value, VariableRef};
 use std::collections::HashMap;
+use ocean_macros::New;
 
 #[derive(Debug, Clone)]
 pub enum Target {
@@ -9,19 +10,16 @@ pub enum Target {
   Index(usize),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, New)]
 pub struct Function {
   pub name: String,
   pub parameters: Vec<Type>,
   pub body: Vec<Instruction>,
+  #[default(HashMap::new())]
   pub jump_labels: HashMap<String, usize>,
 }
 
 impl Function {
-  pub fn new(name: String, parameters: Vec<Type>, body: Vec<Instruction>) -> Self {
-    Self { name, parameters, body, jump_labels: HashMap::new() }
-  }
-
   pub fn get_target_pointer(&self, target: Target) -> Result<usize, String> {
     match target {
       Label(label_name) => match self.jump_labels.get(label_name.as_str()) {

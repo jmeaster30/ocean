@@ -1,10 +1,10 @@
 [package]
-name = "ocean_helpers"
+name = "ocean-macros"
 version = "0.1.0"
 edition = "2021"
 
 [lib]
-name = "ocean_helpers"
+name = "ocean_macros"
 path = "src/lib.rs"
 proc-macro = true
 

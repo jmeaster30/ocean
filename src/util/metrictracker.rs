@@ -2,17 +2,15 @@ use itertools::Itertools;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
+use ocean_macros::New;
 
+#[derive(New)]
 pub struct MetricTracker {
-  current_metrics: HashMap<(Vec<String>, String), Vec<Metric>>,
-  finished_metrics: HashMap<(Vec<String>, String), Vec<Metric>>,
+  #[default(HashMap::new())] current_metrics: HashMap<(Vec<String>, String), Vec<Metric>>,
+  #[default(HashMap::new())] finished_metrics: HashMap<(Vec<String>, String), Vec<Metric>>,
 }
 
 impl MetricTracker {
-  pub fn new() -> Self {
-    Self { current_metrics: HashMap::new(), finished_metrics: HashMap::new() }
-  }
-
   pub fn start(&mut self, stack: Vec<String>, metric_name: String) {
     let mut new_metric = Metric::new();
 
@@ -175,7 +173,7 @@ impl MetricTracker {
   }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, New)]
 pub struct Flamegraph {
   pub stack: Vec<String>,
   pub metric_name: String,
@@ -185,10 +183,6 @@ pub struct Flamegraph {
 }
 
 impl Flamegraph {
-  pub fn new(stack: Vec<String>, metric_name: String, start: Instant, duration: Duration, subgraph: Vec<Flamegraph>) -> Self {
-    Self { stack, metric_name, start, duration, subgraph }
-  }
-
   pub fn print(&self, units: String) {
     self.print_internal("".to_string(), units);
   }
@@ -301,20 +295,16 @@ impl MetricResults {
   }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, New)]
 pub struct Metric {
-  start_time: Option<Instant>,
+  #[default(None)] start_time: Option<Instant>,
   // if the metric wasn't paused this is just a single Duration
-  durations: Vec<Duration>,
-  current_instant: Option<Instant>,
-  is_paused: bool,
+  #[default(Vec::new())] durations: Vec<Duration>,
+  #[default(None)] current_instant: Option<Instant>,
+  #[default(false)] is_paused: bool,
 }
 
 impl Metric {
-  pub fn new() -> Self {
-    Self { start_time: None, durations: Vec::new(), current_instant: None, is_paused: false }
-  }
-
   pub fn start(&mut self) {
     self.start_time = match self.start_time {
       Some(instant) => Some(instant),

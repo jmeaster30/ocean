@@ -1,7 +1,7 @@
 use super::value::Value;
 use crate::hydro::function::Target;
 use crate::hydro::value::Type;
-use ocean_helpers::Debuggable;
+use ocean_macros::Debuggable;
 // Intellij thinks these are unused but they are used by the Debuggable derive macro
 use crate::hydro::compilationunit::CompilationUnit;
 use crate::hydro::debugcontext::DebugContext;

@@ -45,8 +45,7 @@ fn impl_ast_node_macro(ast: &syn::DeriveInput) -> TokenStream {
   gen.into()
 }
 
-
-#[proc_macro_derive(New)]
+#[proc_macro_derive(New, attributes(default))]
 pub fn new_macro_derive(input: TokenStream) -> TokenStream {
   let ast = syn::parse(input).unwrap();
   impl_new_macro(&ast)
@@ -65,9 +64,16 @@ fn impl_new_macro(ast: &syn::DeriveInput) -> TokenStream {
       match &struct_data.fields {
         Fields::Named(named_fields) => {
           for field in &named_fields.named {
+            let default_value_attribute = field.attrs.iter().filter(|x| x.path.segments.len() == 1 && x.path.segments[0].ident == "default").nth(0);
+            let optional_default_value = if let Some(attr) = default_value_attribute {
+              Some(attr.tokens.to_token_stream())
+            } else {
+              None
+            };
+
             match &field.ident {
               Some(field_name) => {
-                typed_args.push((field_name.to_string(), field.ty.to_token_stream()))
+                typed_args.push((field_name.to_string(), field.ty.to_token_stream(), optional_default_value))
               }
               None => {}
             }
@@ -77,7 +83,9 @@ fn impl_new_macro(ast: &syn::DeriveInput) -> TokenStream {
       }
 
       token_stream += "pub fn new(";
-      for (idx, (arg_name, arg_type)) in typed_args.iter().enumerate() {
+      for (idx, (arg_name, arg_type, arg_default_value)) in typed_args.iter().enumerate() {
+        if arg_default_value.is_some() { continue }
+
         token_stream += arg_name.to_string().as_str();
         token_stream += ": ";
         token_stream += arg_type.to_string().as_str();
@@ -86,8 +94,12 @@ fn impl_new_macro(ast: &syn::DeriveInput) -> TokenStream {
         }
       }
       token_stream += ") -> Self { Self { ";
-      for (idx, (arg_name, _)) in typed_args.iter().enumerate() {
+      for (idx, (arg_name, _, arg_default_value)) in typed_args.iter().enumerate() {
         token_stream += arg_name;
+        if let Some(value) = arg_default_value {
+          token_stream += ": ";
+          token_stream += value.to_string().as_str();
+        }
         if idx != typed_args.len() - 1 {
           token_stream += ", "
         }

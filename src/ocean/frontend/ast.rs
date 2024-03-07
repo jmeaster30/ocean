@@ -1,7 +1,7 @@
 use crate::ocean::frontend::tokentype::TokenType;
 use crate::util::token::Token;
 use itertools::Either;
-use ocean_helpers::New;
+use ocean_macros::New;
 
 #[derive(Clone, Debug, New)]
 pub struct Program {
@@ -26,16 +26,11 @@ pub struct Comment {
   pub token: Token<TokenType>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, New)]
 pub struct Annotation {
   pub token: Token<TokenType>,
+  #[default(None)]
   pub annotation_ast: Option<AnnotationNode>,
-}
-
-impl Annotation {
-  pub fn new(token: Token<TokenType>) -> Self {
-    Self { token, annotation_ast: None }
-  }
 }
 
 #[derive(Clone, Debug)]
@@ -370,17 +365,11 @@ pub struct UsingPathEntry {
   pub dot_token: Option<Token<TokenType>>,
 }
 
-// This may result in multiple sub expressions
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, New)]
 pub struct ExpressionNode {
   pub tokens: Vec<Either<Token<TokenType>, AstNodeExpression>>,
+  #[default(None)]
   pub parsed_expression: Option<Expression>,
-}
-
-impl ExpressionNode {
-  pub fn new(tokens: Vec<Either<Token<TokenType>, AstNodeExpression>>) -> Self {
-    Self { tokens, parsed_expression: None }
-  }
 }
 
 // Expression ast nodes

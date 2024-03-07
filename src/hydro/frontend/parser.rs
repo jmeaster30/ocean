@@ -502,7 +502,7 @@ impl Parser {
   fn create_default_value_from_type_string(type_lexeme: String) -> Value {
     match type_lexeme.as_str() {
       "bool" => Value::Boolean(false),
-      "string" => Value::Array(Array::new(Type::Unsigned8, Box::new(Value::Unsigned8(0)))),
+      "string" => Value::Array(Array::new(Type::Unsigned8, Box::new(Value::Unsigned8(0)), Vec::new())),
       "u8" => Value::Unsigned8(0),
       "u16" => Value::Unsigned16(0),
       "u32" => Value::Unsigned32(0),

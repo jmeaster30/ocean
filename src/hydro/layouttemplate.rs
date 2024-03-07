@@ -1,17 +1,14 @@
 use crate::hydro::value::{Layout, Type, Value};
 use std::collections::HashMap;
+use ocean_macros::New;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, New)]
 pub struct LayoutTemplate {
   pub name: String,
   pub members: HashMap<String, Value>,
 }
 
 impl LayoutTemplate {
-  pub fn new(name: String, members: HashMap<String, Value>) -> Self {
-    Self { name, members }
-  }
-
   pub fn build(name: &str) -> Self {
     Self { name: name.to_string(), members: HashMap::new() }
   }

@@ -4,14 +4,14 @@ on:
   push:
     branches: [ "main" ]
     paths:
-      - ocean_helpers/**
+      - ocean-macros/**
       - src/**
       - std/**
       - examples/**
   pull_request:
     branches: [ "main" ]
     paths:
-      - ocean_helpers/**
+      - ocean-macros/**
       - src/**
       - std/**
       - examples/**

@@ -1,9 +1,9 @@
-use ocean_helpers::New;
-
 /*
     this was taken from the SerentiyOS/jakt repo and
     modified slightly to work how I wanted it to.
 */
+
+use ocean_macros::New;
 
 #[derive(Clone, Debug)]
 pub enum Severity {
@@ -30,20 +30,15 @@ impl Severity {
   }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, New)]
 pub struct ErrorMetadata {
+  #[default(Vec::new())]
   suggestions: Vec<String>,
+  #[default(Vec::new())]
   extra_code_spans: Vec<((usize, usize), String)>
 }
 
 impl ErrorMetadata {
-  pub fn new() -> Self {
-    Self {
-      suggestions: Vec::new(),
-      extra_code_spans: Vec::new(),
-    }
-  }
-
   pub fn suggestion(mut self, message: String) -> Self {
     self.suggestions.push(message);
     self
@@ -55,24 +50,16 @@ impl ErrorMetadata {
   }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, New)]
 pub struct Error {
   pub severity: Severity,
   pub span: (usize, usize),
   pub message: String,
+  #[default(None)]
   pub metadata: Option<ErrorMetadata>,
 }
 
 impl Error {
-  pub fn new(severity: Severity, span: (usize, usize), message: String) -> Self {
-    Self {
-      severity,
-      span,
-      message,
-      metadata: None,
-    }
-  }
-
   pub fn new_with_metadata(severity: Severity, span: (usize, usize), message: String, metadata: ErrorMetadata) -> Self {
     Self {
       severity,

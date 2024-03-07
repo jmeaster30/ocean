@@ -1,5 +1,6 @@
 use std::cmp::Ordering;
 use std::collections::HashMap;
+use ocean_macros::New;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Type {
@@ -143,7 +144,7 @@ pub enum Value {
 impl Value {
   pub fn string(value: String) -> Value {
     let bytes = value.clone().into_bytes().iter().map(|x| Value::Unsigned8(*x)).collect::<Vec<Value>>();
-    Value::Array(Array::create(Type::Unsigned8, Box::new(Value::Unsigned64(value.len() as u64)), bytes))
+    Value::Array(Array::new(Type::Unsigned8, Box::new(Value::Unsigned64(value.len() as u64)), bytes))
   }
 
   pub fn type_of(&self) -> Type {
@@ -330,16 +331,10 @@ impl Value {
   }
 }
 
-#[derive(Debug, Clone, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, PartialEq, PartialOrd, New)]
 pub struct FunctionPointer {
   pub module: Option<String>,
   pub function: String,
-}
-
-impl FunctionPointer {
-  pub fn new(module: Option<String>, function: String) -> Self {
-    Self { module, function }
-  }
 }
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
@@ -349,69 +344,35 @@ pub enum Reference {
   LayoutIndex(LayoutIndexRef),
 }
 
-#[derive(Debug, Clone, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, PartialEq, PartialOrd, New)]
 pub struct VariableRef {
   pub name: String,
 }
 
-impl VariableRef {
-  pub fn new(name: String) -> Self {
-    Self { name }
-  }
-}
-
-#[derive(Debug, Clone, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, PartialEq, PartialOrd, New)]
 pub struct ArrayIndexRef {
   pub reference: Box<Value>,
   pub index: Box<Value>,
 }
 
-impl ArrayIndexRef {
-  pub fn new(reference: Box<Value>, index: Box<Value>) -> Self {
-    Self { reference, index }
-  }
-}
-
-#[derive(Debug, Clone, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, PartialEq, PartialOrd, New)]
 pub struct LayoutIndexRef {
   pub reference: Box<Value>,
   pub index: String,
 }
 
-impl LayoutIndexRef {
-  pub fn new(reference: Box<Value>, index: String) -> Self {
-    Self { reference, index }
-  }
-}
-
-#[derive(Debug, Clone, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, PartialEq, PartialOrd, New)]
 pub struct Array {
   pub value_type: Type,
   pub length: Box<Value>,
   pub values: Vec<Value>,
 }
 
-impl Array {
-  pub fn new(value_type: Type, length: Box<Value>) -> Self {
-    Self { value_type, length, values: Vec::new() }
-  }
-
-  pub fn create(value_type: Type, length: Box<Value>, values: Vec<Value>) -> Self {
-    Self { value_type, length, values }
-  }
-}
-
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, New)]
 pub struct Layout {
   pub module_name: String,
   pub layout_name: String,
   pub values: HashMap<String, Value>,
-}
-
-impl Layout {
-  pub fn new(module_name: String, layout_name: String, values: HashMap<String, Value>) -> Self {
-    Self { module_name, layout_name, values }
-  }
 }
 
 impl PartialOrd for Layout {

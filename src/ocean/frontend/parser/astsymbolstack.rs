@@ -1,4 +1,5 @@
 use itertools::Either;
+use ocean_macros::New;
 use crate::ocean::frontend::ast::*;
 use crate::ocean::frontend::tokentype::TokenType;
 use crate::util::token::Token;
@@ -39,16 +40,13 @@ pub enum AstSymbol {
   ExpressionTokenList(Vec<Either<Token<TokenType>, AstNodeExpression>>),
 }
 
-#[derive(Debug)]
+#[derive(Debug, New)]
 pub struct AstSymbolStack {
+  #[default(Vec::new())]
   stack: Vec<AstSymbol>,
 }
 
 impl AstSymbolStack {
-  pub fn new() -> Self {
-    Self { stack: Vec::new() }
-  }
-
   pub fn peek(&self) -> Option<AstSymbol> {
     if self.stack.is_empty() {
       None

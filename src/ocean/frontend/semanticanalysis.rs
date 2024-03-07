@@ -1,5 +1,3 @@
-#![allow(unused_variables)]
-
 use std::cell::RefCell;
 use std::rc::Rc;
 use itertools::Either;
@@ -140,7 +138,7 @@ impl SemanticallyAnalyzable for WhileLoop {
 
 impl SemanticallyAnalyzable for ForLoop {
   fn analyze(&self, table: Rc<RefCell<SymbolTable>>, context: AnalyzerContext) -> (Option<Uuid>, Vec<Error>) {
-    let mut new_table = SymbolTable::soft_scope(Some(table));
+    let new_table = SymbolTable::soft_scope(Some(table));
 
     let (iterable_type, mut results) = self.iterable.analyze(new_table.clone(), context);
     join_errors(&mut results, &mut self.iterator.analyze(new_table.clone(), context.create_assignment_target(iterable_type)));
@@ -240,7 +238,7 @@ impl SemanticallyAnalyzable for Function {
     };
 
     if let Some(cmpd_stmt) = &self.compound_statement {
-      let mut new_scope = SymbolTable::hard_scope(Some(table));
+      let new_scope = SymbolTable::hard_scope(Some(table));
       for (param_name, param_span, param_type) in param_types {
         match new_scope.borrow_mut().add_variable(param_name, param_span, param_type) {
           Ok(()) => (),

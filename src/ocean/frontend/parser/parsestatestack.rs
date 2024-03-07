@@ -1,3 +1,5 @@
+use ocean_macros::New;
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum ParseState {
   StatementList,
@@ -82,15 +84,13 @@ pub enum ParseState {
   CompoundStatement,
 }
 
+#[derive(New)]
 pub struct ParseStateStack {
+  #[default(Vec::new())]
   stack: Vec<ParseState>,
 }
 
 impl ParseStateStack {
-  pub fn new() -> Self {
-    Self { stack: Vec::new() }
-  }
-
   pub fn print(&self) {
     print!("STATE STACK: ");
     for entry in &self.stack {

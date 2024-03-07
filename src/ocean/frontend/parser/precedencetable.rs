@@ -1,21 +1,14 @@
 use std::collections::HashMap;
+use ocean_macros::New;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, New)]
 pub struct PrecedenceTable {
-  prefix_op_table: HashMap<String, usize>,
-  postfix_op_table: HashMap<String, usize>,
-  binary_table: HashMap<String, (usize, usize)>,
+  #[default(HashMap::new())] prefix_op_table: HashMap<String, usize>,
+  #[default(HashMap::new())] postfix_op_table: HashMap<String, usize>,
+  #[default(HashMap::new())] binary_table: HashMap<String, (usize, usize)>,
 }
 
 impl PrecedenceTable {
-  pub fn new() -> Self {
-    Self {
-      prefix_op_table: HashMap::new(),
-      postfix_op_table: HashMap::new(),
-      binary_table: HashMap::new(),
-    }
-  }
-
   pub fn is_prefix_operator(&self, operator: &String) -> bool {
     self.prefix_op_table.contains_key(operator)
   }
