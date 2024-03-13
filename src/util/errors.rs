@@ -77,6 +77,11 @@ impl Error {
     }
   }
 
+  pub fn display_message_without_file(&self, file_name: &String) {
+    eprintln!("\u{001b}[{};1m{}: \u{001b}[95;1m{}\u{001b}[0m", self.severity.ansi_color_code(), self.severity.name(), self.message);
+    eprintln!("{}+----[\u{001b}[{}m{}\u{001b}[0m]----", "   ", self.severity.ansi_color_code(), file_name);
+  }
+
   pub fn display_message(&self, file_contents: &[u8], file_name: &String, context: usize) {
     eprintln!("\u{001b}[{};1m{}: \u{001b}[95;1m{}\u{001b}[0m", self.severity.ansi_color_code(), self.severity.name(), self.message);
 

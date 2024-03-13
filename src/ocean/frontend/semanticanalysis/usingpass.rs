@@ -55,35 +55,38 @@ impl UsingPassContext {
 }
 
 pub trait UsingPass {
-  fn analyze_using(&mut self, table: Rc<RefCell<SymbolTable>>, context: Rc<RefCell<UsingPassContext>>) -> Vec<Error>;
+  fn analyze_using(&mut self, table: Rc<RefCell<SymbolTable>>, context: Rc<RefCell<UsingPassContext>>) -> (Vec<Rc<RefCell<CompilationUnit>>>, Vec<Error>);
 }
 
 impl UsingPass for Program {
-  fn analyze_using(&mut self, table: Rc<RefCell<SymbolTable>>, context: Rc<RefCell<UsingPassContext>>) -> Vec<Error> {
+  fn analyze_using(&mut self, table: Rc<RefCell<SymbolTable>>, context: Rc<RefCell<UsingPassContext>>) -> (Vec<Rc<RefCell<CompilationUnit>>>, Vec<Error>) {
     let mut results = Vec::new();
+    let mut dependencies = Vec::new();
 
     self.table = Some(table.clone());
 
     for statement in &mut self.statements {
-      join_errors(&mut results, &mut statement.analyze_using(table.clone(), context.clone()))
+      let (mut dep, mut err) = statement.analyze_using(table.clone(), context.clone());
+      join_errors(&mut results, &mut err);
+      dependencies.append(&mut dep);
     }
-    
-    results
+
+    (dependencies, results)
   }
 }
 
 impl UsingPass for StatementNode {
-  fn analyze_using(&mut self, table: Rc<RefCell<SymbolTable>>, context: Rc<RefCell<UsingPassContext>>) -> Vec<Error> {
+  fn analyze_using(&mut self, table: Rc<RefCell<SymbolTable>>, context: Rc<RefCell<UsingPassContext>>) -> (Vec<Rc<RefCell<CompilationUnit>>>, Vec<Error>) {
     if let Some(stmt) = &mut self.statement {
       stmt.analyze_using(table, context)
     } else {
-      Vec::new()
+      (Vec::new(), Vec::new())
     }
   }
 }
 
 impl UsingPass for Statement {
-  fn analyze_using(&mut self, table: Rc<RefCell<SymbolTable>>, context: Rc<RefCell<UsingPassContext>>) -> Vec<Error> {
+  fn analyze_using(&mut self, table: Rc<RefCell<SymbolTable>>, context: Rc<RefCell<UsingPassContext>>) -> (Vec<Rc<RefCell<CompilationUnit>>>, Vec<Error>) {
     match self {
       Statement::WhileLoop(x) => x.analyze_using(table, context),
       Statement::ForLoop(x) => x.analyze_using(table, context),
@@ -92,12 +95,12 @@ impl UsingPass for Statement {
       Statement::Match(x) => x.analyze_using(table, context),
       Statement::Assignment(x) => x.analyze_using(table, context),
       Statement::Function(x) => x.analyze_using(table, context),
-      Statement::Pack(_) => Vec::new(),
-      Statement::Union(_) => Vec::new(),
+      Statement::Pack(_) => (Vec::new(), Vec::new()),
+      Statement::Union(_) => (Vec::new(), Vec::new()),
       Statement::Interface(x) => x.analyze_using(table, context),
-      Statement::Return(_) => Vec::new(),
-      Statement::Break(_) => Vec::new(),
-      Statement::Continue(_) => Vec::new(),
+      Statement::Return(_) => (Vec::new(), Vec::new()),
+      Statement::Break(_) => (Vec::new(), Vec::new()),
+      Statement::Continue(_) => (Vec::new(), Vec::new()),
       Statement::Using(x) => x.analyze_using(table, context),
       Statement::Expression(x) => x.analyze_using(table, context),
     }
@@ -105,50 +108,59 @@ impl UsingPass for Statement {
 }
 
 impl UsingPass for ExpressionStatement {
-  fn analyze_using(&mut self, table: Rc<RefCell<SymbolTable>>, context: Rc<RefCell<UsingPassContext>>) -> Vec<Error> {
+  fn analyze_using(&mut self, table: Rc<RefCell<SymbolTable>>, context: Rc<RefCell<UsingPassContext>>) -> (Vec<Rc<RefCell<CompilationUnit>>>, Vec<Error>) {
     self.expression_node.analyze_using(table, context)
   }
 }
 
 impl UsingPass for CompoundStatement {
-  fn analyze_using(&mut self, table: Rc<RefCell<SymbolTable>>, context: Rc<RefCell<UsingPassContext>>) -> Vec<Error> {
+  fn analyze_using(&mut self, table: Rc<RefCell<SymbolTable>>, context: Rc<RefCell<UsingPassContext>>) -> (Vec<Rc<RefCell<CompilationUnit>>>, Vec<Error>) {
     let mut results = Vec::new();
+    let mut dependencies = Vec::new();
 
     for statement in &mut self.body {
-      join_errors(&mut results, &mut statement.analyze_using(table.clone(), context.clone()))
+      let (mut dep, mut err) = statement.analyze_using(table.clone(), context.clone());
+      join_errors(&mut results, &mut err);
+      dependencies.append(&mut dep);
     }
 
-    results
+    (dependencies, results)
   }
 }
 
 impl UsingPass for WhileLoop {
-  fn analyze_using(&mut self, table: Rc<RefCell<SymbolTable>>, context: Rc<RefCell<UsingPassContext>>) -> Vec<Error> {
-    let mut results = self.condition.analyze_using(table.clone(), context.clone());
+  fn analyze_using(&mut self, table: Rc<RefCell<SymbolTable>>, context: Rc<RefCell<UsingPassContext>>) -> (Vec<Rc<RefCell<CompilationUnit>>>, Vec<Error>) {
+    let (mut dependencies, mut results) = self.condition.analyze_using(table.clone(), context.clone());
 
     let new_scope = SymbolTable::soft_scope(table.clone());
     self.table = Some(new_scope.clone());
 
-    results.append(&mut self.body.analyze_using(new_scope, context));
-    results
+    let (mut dep, mut err) = self.body.analyze_using(new_scope, context);
+    results.append(&mut err);
+    dependencies.append(&mut dep);
+    (dependencies, results)
   }
 }
 
 impl UsingPass for ForLoop {
-  fn analyze_using(&mut self, table: Rc<RefCell<SymbolTable>>, context: Rc<RefCell<UsingPassContext>>) -> Vec<Error> {
-    let mut results = self.iterable.analyze_using(table.clone(), context.clone());
-    join_errors(&mut results, &mut self.iterator.analyze_using(table.clone(), context.clone()));
+  fn analyze_using(&mut self, table: Rc<RefCell<SymbolTable>>, context: Rc<RefCell<UsingPassContext>>) -> (Vec<Rc<RefCell<CompilationUnit>>>, Vec<Error>) {
+    let (mut dependencies, mut results) = self.iterable.analyze_using(table.clone(), context.clone());
+    let (mut dep, mut err) = self.iterator.analyze_using(table.clone(), context.clone());
+    join_errors(&mut results, &mut err);
+    dependencies.append(&mut dep);
 
     let new_scope = SymbolTable::soft_scope(table.clone());
     self.table = Some(new_scope.clone());
 
-    join_errors(&mut results, &mut self.body.analyze_using(new_scope, context));
-    results
+    let (mut dep, mut err) = self.body.analyze_using(new_scope, context);
+    join_errors(&mut results, &mut err);
+    dependencies.append(&mut dep);
+    (dependencies, results)
   }
 }
 
 impl UsingPass for Loop {
-  fn analyze_using(&mut self, table: Rc<RefCell<SymbolTable>>, context: Rc<RefCell<UsingPassContext>>) -> Vec<Error> {
+  fn analyze_using(&mut self, table: Rc<RefCell<SymbolTable>>, context: Rc<RefCell<UsingPassContext>>) -> (Vec<Rc<RefCell<CompilationUnit>>>, Vec<Error>) {
     let new_scope = SymbolTable::soft_scope(table.clone());
     self.table = Some(new_scope.clone());
     self.body.analyze_using(new_scope, context)
@@ -156,25 +168,29 @@ impl UsingPass for Loop {
 }
 
 impl UsingPass for Branch {
-  fn analyze_using(&mut self, table: Rc<RefCell<SymbolTable>>, context: Rc<RefCell<UsingPassContext>>) -> Vec<Error> {
-    let mut results = self.condition.analyze_using(table.clone(), context.clone());
+  fn analyze_using(&mut self, table: Rc<RefCell<SymbolTable>>, context: Rc<RefCell<UsingPassContext>>) -> (Vec<Rc<RefCell<CompilationUnit>>>, Vec<Error>) {
+    let (mut dependencies, mut results) = self.condition.analyze_using(table.clone(), context.clone());
 
     let new_scope = SymbolTable::soft_scope(table.clone());
     self.table = Some(new_scope.clone());
 
-    join_errors(&mut results, &mut self.body.analyze_using(new_scope, context.clone()));
+    let (mut dep, mut err) = self.body.analyze_using(new_scope, context.clone());
+    join_errors(&mut results, &mut err);
+    dependencies.append(&mut dep);
 
     if let Some(else_branch) = &mut self.else_branch {
       let else_scope = SymbolTable::soft_scope(table.clone());
-      join_errors(&mut results, &mut else_branch.analyze_using(else_scope, context));
+      let (mut dep, mut err) = else_branch.analyze_using(else_scope, context);
+      join_errors(&mut results, &mut err);
+      dependencies.append(&mut dep);
     }
 
-    results
+    (dependencies, results)
   }
 }
 
 impl UsingPass for ElseBranch {
-  fn analyze_using(&mut self, table: Rc<RefCell<SymbolTable>>, context: Rc<RefCell<UsingPassContext>>) -> Vec<Error> {
+  fn analyze_using(&mut self, table: Rc<RefCell<SymbolTable>>, context: Rc<RefCell<UsingPassContext>>) -> (Vec<Rc<RefCell<CompilationUnit>>>, Vec<Error>) {
     self.table = Some(table.clone());
 
     match &mut self.body {
@@ -185,104 +201,114 @@ impl UsingPass for ElseBranch {
 }
 
 impl UsingPass for Match {
-  fn analyze_using(&mut self, table: Rc<RefCell<SymbolTable>>, context: Rc<RefCell<UsingPassContext>>) -> Vec<Error> {
+  fn analyze_using(&mut self, table: Rc<RefCell<SymbolTable>>, context: Rc<RefCell<UsingPassContext>>) -> (Vec<Rc<RefCell<CompilationUnit>>>, Vec<Error>) {
     todo!()
   }
 }
 
 impl UsingPass for Assignment {
-  fn analyze_using(&mut self, table: Rc<RefCell<SymbolTable>>, context: Rc<RefCell<UsingPassContext>>) -> Vec<Error> {
-    let mut results = match &mut self.left_expression {
-      Either::Left(_) => Vec::new(),
+  fn analyze_using(&mut self, table: Rc<RefCell<SymbolTable>>, context: Rc<RefCell<UsingPassContext>>) -> (Vec<Rc<RefCell<CompilationUnit>>>, Vec<Error>) {
+    let (mut dependencies, mut results) = match &mut self.left_expression {
+      Either::Left(_) => (Vec::new(), Vec::new()),
       Either::Right(expr) => expr.analyze_using(table.clone(), context.clone()),
     };
 
-    join_errors(&mut results, &mut self.right_expression.analyze_using(table, context));
-    results
+    let (mut dep, mut err) = self.right_expression.analyze_using(table, context);
+    join_errors(&mut results, &mut err);
+    dependencies.append(&mut dep);
+    (dependencies, results)
   }
 }
 
 impl UsingPass for Function {
-  fn analyze_using(&mut self, table: Rc<RefCell<SymbolTable>>, context: Rc<RefCell<UsingPassContext>>) -> Vec<Error> {
+  fn analyze_using(&mut self, table: Rc<RefCell<SymbolTable>>, context: Rc<RefCell<UsingPassContext>>) -> (Vec<Rc<RefCell<CompilationUnit>>>, Vec<Error>) {
     let new_scope = SymbolTable::hard_scope(Some(table));
-    let mut results = Vec::new();
+    let (mut dependencies, mut results) = (Vec::new(), Vec::new());
     for res in &mut self.results {
-      join_errors(&mut results, &mut res.analyze_using(new_scope.clone(), context.clone()));
+      let (mut dep, mut err) = res.analyze_using(new_scope.clone(), context.clone());
+      join_errors(&mut results, &mut err);
+      dependencies.append(&mut dep);
     }
 
     if let Some(compound) = &mut self.compound_statement {
-      join_errors(&mut results, &mut compound.analyze_using(new_scope.clone(), context.clone()))
+      let (mut dep, mut err) = compound.analyze_using(new_scope.clone(), context.clone());
+      join_errors(&mut results, &mut err);
+      dependencies.append(&mut dep);
     }
-    results
+    (dependencies, results)
   }
 }
 
 impl UsingPass for FunctionReturn {
-  fn analyze_using(&mut self, table: Rc<RefCell<SymbolTable>>, context: Rc<RefCell<UsingPassContext>>) -> Vec<Error> {
+  fn analyze_using(&mut self, table: Rc<RefCell<SymbolTable>>, context: Rc<RefCell<UsingPassContext>>) -> (Vec<Rc<RefCell<CompilationUnit>>>, Vec<Error>) {
     if let Some(expr) = &mut self.expression {
       expr.analyze_using(table, context)
     } else {
-      Vec::new()
+      (Vec::new(), Vec::new())
     }
   }
 }
 
 impl UsingPass for Interface {
-  fn analyze_using(&mut self, table: Rc<RefCell<SymbolTable>>, context: Rc<RefCell<UsingPassContext>>) -> Vec<Error> {
+  fn analyze_using(&mut self, table: Rc<RefCell<SymbolTable>>, context: Rc<RefCell<UsingPassContext>>) -> (Vec<Rc<RefCell<CompilationUnit>>>, Vec<Error>) {
     let mut results = Vec::new();
+    let mut dependencies = Vec::new();
 
     for entry in &mut self.entries {
-      join_errors(&mut results, &mut entry.function.analyze_using(table.clone(), context.clone()));
+      let (mut dep, mut err) = entry.function.analyze_using(table.clone(), context.clone());
+      join_errors(&mut results, &mut err);
+      dependencies.append(&mut dep);
     }
 
-    results
+    (dependencies, results)
   }
 }
 
 impl UsingPass for Using {
-  fn analyze_using(&mut self, table: Rc<RefCell<SymbolTable>>, context: Rc<RefCell<UsingPassContext>>) -> Vec<Error> {
-    // start the using thingy, if we have the symbol table already then we can just pull it from there
-    // if success then we want to call the compiler again but with the current using pass context
-    // hmmm compiler may have to return an ast and we might have to attach it somewhere here
-    // then stop the using thingy so we can remove it from the dependency chain and move on
+  fn analyze_using(&mut self, table: Rc<RefCell<SymbolTable>>, context: Rc<RefCell<UsingPassContext>>) -> (Vec<Rc<RefCell<CompilationUnit>>>, Vec<Error>) {
     let file_path = self.get_file_path();
     match context.borrow_mut().start_using(file_path.clone(), self.get_span()) {
       Ok(_) => { },
-      Err(err) => return vec![err],
+      Err(err) => return (Vec::new(), vec![err]),
     };
 
     let compilation_unit = Rc::new(RefCell::new(Ocean::compile_using(file_path.as_str(), context.clone())));
     match &compilation_unit.borrow().program {
       Some(program) => match &program.table {
         Some(using_table) => table.borrow_mut().add_using_table(using_table.clone()),
-        None => return vec![Error::new(Severity::Warning, self.get_span(), "There was an issue with this import".to_string())]
+        None => return (vec![compilation_unit.clone()], vec![Error::new(Severity::Warning, self.get_span(), "There was an issue with this import".to_string())])
       }
-      None => return vec![Error::new(Severity::Warning, self.get_span(), "There was an issue with this import".to_string())]
+      None => return (vec![compilation_unit.clone()], vec![Error::new(Severity::Warning, self.get_span(), "There was an issue with this import".to_string())])
     }
 
     context.borrow_mut().path_to_symbol_table.insert(compilation_unit.borrow().filepath.clone(), compilation_unit.clone());
     context.borrow_mut().stop_using();
-    Vec::new()
+    (vec![compilation_unit], Vec::new())
   }
 }
 
 impl UsingPass for ExpressionNode {
-  fn analyze_using(&mut self, table: Rc<RefCell<SymbolTable>>, context: Rc<RefCell<UsingPassContext>>) -> Vec<Error> {
+  fn analyze_using(&mut self, table: Rc<RefCell<SymbolTable>>, context: Rc<RefCell<UsingPassContext>>) -> (Vec<Rc<RefCell<CompilationUnit>>>, Vec<Error>) {
     let mut results = Vec::new();
+    let mut dependencies = Vec::new();
 
     for token in &mut self.tokens {
       match token {
         Either::Left(_) => {}
-        Either::Right(expr) => join_errors(&mut results, &mut expr.analyze_using(table.clone(), context.clone())),
+        Either::Right(expr) => {
+          let (mut dep, mut err) = expr.analyze_using(table.clone(), context.clone());
+          join_errors(&mut results, &mut err);
+          dependencies.append(&mut dep);
+        },
       }
     }
 
-    results
+    (dependencies, results)
   }
 }
 
 impl UsingPass for AstNodeExpression {
-  fn analyze_using(&mut self, table: Rc<RefCell<SymbolTable>>, context: Rc<RefCell<UsingPassContext>>) -> Vec<Error> {
+  fn analyze_using(&mut self, table: Rc<RefCell<SymbolTable>>, context: Rc<RefCell<UsingPassContext>>) -> (Vec<Rc<RefCell<CompilationUnit>>>, Vec<Error>) {
     match self {
       AstNodeExpression::Match(x) => x.analyze_using(table, context),
       AstNodeExpression::Loop(x) => x.analyze_using(table, context),
