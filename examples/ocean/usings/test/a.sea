@@ -1,0 +1,1 @@
+function greeting(name: string) -> (result: string = `Hello, {name}!`);

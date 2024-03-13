@@ -88,10 +88,12 @@ enum SymbolTableEntryType {
   Interface(String),
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct SymbolTable {
+  path_name: Option<String>,
   parent: Option<Rc<RefCell<SymbolTable>>>,
   hard_scope: bool,
+  usings: Vec<Rc<RefCell<SymbolTable>>>,
   uuid_map: HashMap<Uuid, SymbolTableEntryType>,
   variables: HashMap<String, Variable>,
   packs: HashMap<String, Pack>,
@@ -101,10 +103,27 @@ pub struct SymbolTable {
 }
 
 impl SymbolTable {
-  pub fn soft_scope(parent_scope: Option<Rc<RefCell<SymbolTable>>>) -> Rc<RefCell<Self>> {
+  pub fn global_scope(path_name: String) -> Rc<RefCell<Self>> {
     Rc::new(RefCell::new(Self {
-      parent: parent_scope,
+      path_name: Some(path_name),
+      parent: None,
+      hard_scope: true,
+      usings: Vec::new(),
+      uuid_map: HashMap::new(),
+      variables: HashMap::new(),
+      packs: HashMap::new(),
+      unions: HashMap::new(),
+      functions: HashMap::new(),
+      interfaces: HashMap::new(),
+    }))
+  }
+
+  pub fn soft_scope(parent_scope: Rc<RefCell<SymbolTable>>) -> Rc<RefCell<Self>> {
+    Rc::new(RefCell::new(Self {
+      path_name: None,
+      parent: Some(parent_scope),
       hard_scope: false,
+      usings: Vec::new(),
       uuid_map: HashMap::new(),
       variables: HashMap::new(),
       packs: HashMap::new(),
@@ -116,8 +135,10 @@ impl SymbolTable {
 
   pub fn hard_scope(parent_scope: Option<Rc<RefCell<SymbolTable>>>) -> Rc<RefCell<Self>> {
     Rc::new(RefCell::new(Self {
+      path_name: None,
       parent: parent_scope,
       hard_scope: true,
+      usings: Vec::new(),
       uuid_map: HashMap::new(),
       variables: HashMap::new(),
       packs: HashMap::new(),
@@ -125,6 +146,20 @@ impl SymbolTable {
       functions: HashMap::new(),
       interfaces: HashMap::new(),
     }))
+  }
+
+  /*pub fn get_path(&self) -> Vec<String> {
+    match self.path_name.clone() {
+      Some(x) => x,
+      None => match self.parent.clone() {
+        Some(parent) => parent.borrow().get_path(),
+        None => Vec::new(),
+      }
+    }
+  }*/
+
+  pub fn add_using_table(&mut self, symbol_table: Rc<RefCell<SymbolTable>>) {
+    self.usings.push(symbol_table);
   }
 
   pub fn check_for_variable(&self, variable_name: String, only_check_current_scope: bool) -> Option<Variable> {

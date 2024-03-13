@@ -383,17 +383,20 @@ fn parse_interpolated_string(lexeme: &String, precedence_table: &mut PrecedenceT
     } else if current_char == '{' && in_expression && current_expression_chars.len() == 0 {
       in_expression = false;
     } else if current_char == '}' && in_expression {
-      let tokens = match lex(&current_expression_chars.iter().collect::<String>()) {
-        Ok(tokens) => tokens.iter()
-          .map(|x| Either::Left(x.clone()))
-          .collect::<Vec<Either<Token<TokenType>, AstNodeExpression>>>(),
-        Err(mut new_errors) => {
-          errors.append(&mut new_errors);
-          continue;
-        }
-      };
-      // This is weird
-      let clean_tokens = tokens.iter().collect::<Vec<&Either<Token<TokenType>, AstNodeExpression>>>();
+      let (tokens, mut new_errors) = lex(&current_expression_chars.iter().collect::<String>());
+
+      if !new_errors.is_empty() {
+        errors.append(&mut new_errors);
+        continue;
+      }
+
+      // This is awful
+      let tokens = tokens.iter()
+        .map(|x| Either::Left(x.clone()))
+        .collect::<Vec<Either<Token<TokenType>, AstNodeExpression>>>();
+      let clean_tokens = tokens
+        .iter()
+        .collect::<Vec<&Either<Token<TokenType>, AstNodeExpression>>>();
       let (expression, _) = match parse_expression(&clean_tokens, 0, precedence_table, 0) {
         Ok(a) => a,
         Err(mut new_errors) => {

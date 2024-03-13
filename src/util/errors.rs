@@ -44,9 +44,17 @@ impl ErrorMetadata {
     self
   }
 
+  pub fn add_suggestion(&mut self, message: String) {
+    self.suggestions.push(message);
+  }
+
   pub fn extra_highlighted_info(mut self, span: (usize, usize), message: String) -> Self {
     self.extra_code_spans.push((span, message));
     self
+  }
+
+  pub fn add_extra_highlighted_info(&mut self, span: (usize, usize), message: String) {
+    self.extra_code_spans.push((span, message));
   }
 }
 

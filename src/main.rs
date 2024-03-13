@@ -19,7 +19,7 @@ fn main() -> std::io::Result<()> {
   let arg_parser = {
     ArgsParser::new("Ocean")
       .version("0.0.1")
-      .author("John Easterday <jmeaster30>")
+      .author("Lily Easterday <jmeaster30>")
       .description("A C-like programming language (get it like C sounds like sea and oceans are kinda like seas lol)")
       .command(Command::new("help")
         .description("Print this help message"))
@@ -118,8 +118,15 @@ fn main() -> std::io::Result<()> {
             Err(e) => e.print_stacktrace(),
           }
         }
+        "build" => {
+          let compilation_unit = Ocean::compile(arguments.get("Source File").unwrap().as_str(), arguments.get("Tokens").unwrap().as_str(), arguments.get("Ast").unwrap().as_str());
+
+          compilation_unit.print_errors();
+        }
         "run" => {
-          Ocean::compile(arguments.get("Source File").unwrap().as_str(), arguments.get("Tokens").unwrap().as_str(), arguments.get("Ast").unwrap().as_str()).unwrap();
+          let compilation_unit = Ocean::compile(arguments.get("Source File").unwrap().as_str(), arguments.get("Tokens").unwrap().as_str(), arguments.get("Ast").unwrap().as_str());
+
+          compilation_unit.print_errors();
         }
         _ => todo!("Unimplemented command :("),
       },

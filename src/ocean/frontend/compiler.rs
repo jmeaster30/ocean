@@ -7,45 +7,64 @@ use crate::ocean::Ocean;
 use std::fs::File;
 use std::io::{Read, Write};
 use std::path::Path;
-use std::{env, fs, io};
+use std::{env, fs};
+use std::cell::RefCell;
+use std::rc::Rc;
 use std::time::Instant;
 use crate::ocean::frontend::ast::Program;
-use crate::util::errors::Error;
+use crate::ocean::frontend::compilationunit::CompilationUnit;
+use crate::ocean::frontend::semanticanalysis::symboltable::SymbolTable;
+use crate::ocean::frontend::semanticanalysis::usingpass::{UsingPass, UsingPassContext};
+use crate::util::errors::{Error, Severity};
 
 impl Ocean {
-  pub fn compile(file_path: &str, token_mode: &str, ast_mode: &str) -> Result<(), io::Error> {
+  pub fn compile(file_path: &str, token_mode: &str, ast_mode: &str) -> CompilationUnit {
     let now = Instant::now();
-    let error_context_size = match env::var("OCEAN_ERROR_LINE_CONTEXT") {
-      Ok(value) => value.parse::<usize>().unwrap(),
-      Err(_) => 2,
+    let path = Path::new(file_path);
+    println!("Compiling '{}' (absolute '{:?}' from '{:?}')", path.display(), fs::canonicalize(path), env::current_dir());
+
+    let mut file = match File::open(path) {
+      Ok(file) => file,
+      Err(error) => return CompilationUnit::errored(file_path.to_string(), Error::new(Severity::Error, (0, 0), error.to_string()))
     };
+    let mut file_contents = String::new();
+    match file.read_to_string(&mut file_contents) {
+      Ok(_) => {}
+      Err(error) => return CompilationUnit::errored(file_path.to_string(), Error::new(Severity::Error, (0, 0), error.to_string()))
+    };
+
+    let (program, errors) = Ocean::internal_compile(file_path, &file_contents, token_mode, ast_mode, None);
+    let new_now = Instant::now();
+    println!("Compilation Completed In: {:?}", new_now.duration_since(now));
+    CompilationUnit::program(file_path.to_string(), program, errors)
+  }
+
+  pub fn compile_using(file_path: &str, using_context: Rc<RefCell<UsingPassContext>>) -> CompilationUnit {
+    let now = Instant::now();
 
     let path = Path::new(file_path);
     println!("Compiling '{}' (absolute '{:?}' from '{:?}')", path.display(), fs::canonicalize(path), env::current_dir());
 
-    let mut file = File::open(path)?;
+    let mut file = match File::open(path) {
+      Ok(file) => file,
+      Err(error) => return CompilationUnit::errored(file_path.to_string(), Error::new(Severity::Error, (0, 0), error.to_string()))
+    };
     let mut file_contents = String::new();
-    file.read_to_string(&mut file_contents)?;
+    match file.read_to_string(&mut file_contents) {
+      Ok(_) => {}
+      Err(error) => return CompilationUnit::errored(file_path.to_string(), Error::new(Severity::Error, (0, 0), error.to_string()))
+    };
 
-    match Ocean::internal_compile(file_path, &file_contents, token_mode, ast_mode) {
-      Ok(_) => {
-        let new_now = Instant::now();
-        println!("Compilation Completed In: {:?}", new_now.duration_since(now));
-        Ok(())
-      }
-      Err(parse_errors) => {
-        let new_now = Instant::now();
-        println!("Compilation Completed In: {:?}", new_now.duration_since(now));
-        for error in parse_errors {
-          error.display_message(file_contents.as_bytes(), &file_path.to_string(), error_context_size);
-        }
-        Ok(()) // TODO unsure if this is "Ok"
-      }
-    }
+    let (program, errors) = Ocean::internal_compile(file_path, &file_contents, "", "", Some(using_context.clone()));
+    let new_now = Instant::now();
+    println!("Compilation Completed In: {:?}", new_now.duration_since(now));
+    CompilationUnit::program(file_path.to_string(), program, errors)
   }
 
-  fn internal_compile(file_path: &str, file_contents: &String, token_mode: &str, ast_mode: &str) -> Result<Program, Vec<Error>> {
-    let tokens = lex(&file_contents)?;
+  fn internal_compile(file_path: &str, file_contents: &String, token_mode: &str, ast_mode: &str, using_context: Option<Rc<RefCell<UsingPassContext>>>) -> (Program, Vec<Error>) {
+    let mut errors = Vec::new();
+    let (tokens, mut lex_errors) = lex(&file_contents);
+    errors.append(&mut lex_errors);
 
     match token_mode {
       "print" => {
@@ -63,6 +82,18 @@ impl Ocean {
     }
 
     let (mut ast, mut parse_errors) = parse_phase_one(&tokens);
+    errors.append(&mut parse_errors);
+
+    let context = match using_context {
+      Some(context) => context,
+      None => Rc::new(RefCell::new(UsingPassContext::new()))
+    };
+    context.borrow_mut().start_using(file_path.to_string(), (0, 0)).unwrap();
+
+    let mut using_errors = ast.analyze_using(SymbolTable::global_scope(file_path.to_string()), context.clone());
+    errors.append(&mut using_errors);
+
+    context.borrow_mut().stop_using();
 
     parse_annotations(&mut ast);
 
@@ -89,7 +120,7 @@ impl Ocean {
 
     match parse_phase_two(&mut ast, &mut precedence_table) {
       Ok(()) => {}
-      Err(mut errors) => parse_errors.append(&mut errors),
+      Err(mut pp2_errors) => errors.append(&mut pp2_errors),
     }
     match ast_mode {
       "print" => println!("{:#?}", ast),
@@ -99,6 +130,6 @@ impl Ocean {
       }
       _ => {}
     }
-    Ok(ast)
+    (ast, errors)
   }
 }

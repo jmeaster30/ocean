@@ -2,7 +2,7 @@ use crate::ocean::frontend::tokentype::TokenType;
 use crate::util::errors::{Error, Severity};
 use crate::util::token::Token;
 
-pub fn lex(input: &String) -> Result<Vec<Token<TokenType>>, Vec<Error>> {
+pub fn lex(input: &String) -> (Vec<Token<TokenType>>, Vec<Error>) {
   let mut errors = Vec::new();
   let input_length = input.len();
   let input_chars = input.chars().collect::<Vec<char>>();
@@ -350,9 +350,5 @@ pub fn lex(input: &String) -> Result<Vec<Token<TokenType>>, Vec<Error>> {
 
   tokens.push(Token::new_with_trivia("".to_string(), TokenType::EndOfInput, (index, index), (line_start, line_end), (column_start, column_end), trivia.clone()));
 
-  if errors.is_empty() {
-    Ok(tokens)
-  } else {
-    Err(errors)
-  }
+  (tokens, errors)
 }

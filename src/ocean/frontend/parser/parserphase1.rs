@@ -10,7 +10,7 @@ use itertools::Either;
 pub fn parse_phase_one(tokens: &Vec<Token<TokenType>>) -> (Program, Vec<Error>) {
   let (ast_symbol, _, errors) = parse_phase_one_partial(tokens, 0, ParseState::StatementList, Some(AstSymbol::StatementList(Vec::new())));
   match ast_symbol {
-    AstSymbol::StatementList(statements) => (Program { statements }, errors),
+    AstSymbol::StatementList(statements) => (Program::new(statements), errors),
     _ => panic!("Unexpected parse state :(. Expected AstSymbol::StatementList but got {:?}", ast_symbol)
   }
 }

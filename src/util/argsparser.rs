@@ -194,7 +194,7 @@ impl ArgsParser {
 
     let opt_command = self.commands.get(&*args[0].clone());
     if opt_command.is_none() {
-      return Err(format!("Unknown command {} expected one of [{}].", args[0], self.commands.iter().map(|x| x.0.clone()).collect::<Vec<String>>().join(", ")));
+      return Err(format!("Unknown command '{}' expected one of [{}].", args[0], self.commands.iter().map(|x| x.0.clone()).collect::<Vec<String>>().join(", ")));
     }
     let command = opt_command.unwrap();
 

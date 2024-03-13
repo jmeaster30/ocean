@@ -1,11 +1,16 @@
+use std::cell::RefCell;
+use std::rc::Rc;
 use crate::ocean::frontend::tokentype::TokenType;
 use crate::util::token::Token;
-use itertools::Either;
+use itertools::{Either, Itertools};
 use ocean_macros::New;
+use crate::ocean::frontend::semanticanalysis::symboltable::SymbolTable;
 
 #[derive(Clone, Debug, New)]
 pub struct Program {
   pub statements: Vec<StatementNode>,
+  #[default(None)]
+  pub table: Option<Rc<RefCell<SymbolTable>>>,
 }
 
 #[derive(Clone, Debug, New)]
@@ -70,6 +75,8 @@ pub struct WhileLoop {
   pub while_token: Token<TokenType>,
   pub condition: ExpressionNode,
   pub body: CompoundStatement,
+  #[default(None)]
+  pub table: Option<Rc<RefCell<SymbolTable>>>,
 }
 
 #[derive(Clone, Debug, New)]
@@ -79,12 +86,16 @@ pub struct ForLoop {
   pub in_token: Token<TokenType>,
   pub iterable: ExpressionNode,
   pub body: CompoundStatement,
+  #[default(None)]
+  pub table: Option<Rc<RefCell<SymbolTable>>>,
 }
 
 #[derive(Clone, Debug, New)]
 pub struct Loop {
   pub loop_token: Token<TokenType>,
   pub body: CompoundStatement,
+  #[default(None)]
+  pub table: Option<Rc<RefCell<SymbolTable>>>,
 }
 
 #[derive(Clone, Debug, New)]
@@ -93,12 +104,16 @@ pub struct Branch {
   pub condition: ExpressionNode,
   pub body: CompoundStatement,
   pub else_branch: Option<ElseBranch>,
+  #[default(None)]
+  pub table: Option<Rc<RefCell<SymbolTable>>>,
 }
 
 #[derive(Clone, Debug, New)]
 pub struct ElseBranch {
   pub else_token: Token<TokenType>,
   pub body: Either<CompoundStatement, Box<Branch>>,
+  #[default(None)]
+  pub table: Option<Rc<RefCell<SymbolTable>>>,
 }
 
 #[derive(Clone, Debug, New)]
@@ -115,6 +130,8 @@ pub struct MatchCase {
   pub pattern: ExpressionNode,
   pub arrow_token: Token<TokenType>,
   pub body: Either<Statement, CompoundStatement>,
+  #[default(None)]
+  pub table: Option<Rc<RefCell<SymbolTable>>>,
 }
 
 #[derive(Clone, Debug, New)]
@@ -249,6 +266,8 @@ pub struct Function {
   pub results: Vec<FunctionReturn>,
   pub result_right_paren: Option<Token<TokenType>>,
   pub compound_statement: Option<CompoundStatement>,
+  #[default(None)]
+  pub table: Option<Rc<RefCell<SymbolTable>>>,
 }
 
 #[derive(Clone, Debug, New)]
@@ -357,6 +376,12 @@ pub struct Continue {
 pub struct Using {
   pub using_token: Token<TokenType>,
   pub path: Vec<UsingPathEntry>,
+}
+
+impl Using {
+  pub fn get_file_path(&self) -> String {
+    self.path.iter().map(|x| x.identifier.lexeme.clone()).join("/").to_string() + ".sea"
+  }
 }
 
 #[derive(Clone, Debug, New)]
