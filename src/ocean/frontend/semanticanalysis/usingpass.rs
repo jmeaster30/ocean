@@ -1,5 +1,6 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::path::Path;
 use std::rc::Rc;
 use itertools::Either;
 use ocean_macros::New;
@@ -12,6 +13,7 @@ use crate::util::span::Spanned;
 
 #[derive(Clone, Debug, New)]
 pub struct UsingPassContext {
+  pub project_root: String,
   #[default(HashMap::new())]
   pub path_to_symbol_table: HashMap<String, Rc<RefCell<CompilationUnit>>>,
   #[default(Vec::new())]
@@ -267,12 +269,17 @@ impl UsingPass for Interface {
 impl UsingPass for Using {
   fn analyze_using(&mut self, table: Rc<RefCell<SymbolTable>>, context: Rc<RefCell<UsingPassContext>>) -> (Vec<Rc<RefCell<CompilationUnit>>>, Vec<Error>) {
     let file_path = self.get_file_path();
-    match context.borrow_mut().start_using(file_path.clone(), self.get_span()) {
-      Ok(_) => { },
-      Err(err) => return (Vec::new(), vec![err]),
-    };
+    {
+      let mut borrowed_context = context.borrow_mut();
+      match borrowed_context.start_using(file_path.clone(), self.get_span()) {
+        Ok(_) => {},
+        Err(err) => return (Vec::new(), vec![err]),
+      };
+    }
 
-    let compilation_unit = Rc::new(RefCell::new(Ocean::compile_using(file_path.as_str(), context.clone())));
+    let full_path = Path::new(&context.borrow().project_root).join(Path::new(&file_path));
+
+    let compilation_unit = Rc::new(RefCell::new(Ocean::compile_using(full_path.to_str().unwrap(), context.clone())));
     match &compilation_unit.borrow().program {
       Some(program) => match &program.table {
         Some(using_table) => table.borrow_mut().add_using_table(using_table.clone()),
@@ -281,8 +288,12 @@ impl UsingPass for Using {
       None => return (vec![compilation_unit.clone()], vec![Error::new(Severity::Warning, self.get_span(), "There was an issue with this import".to_string())])
     }
 
-    context.borrow_mut().path_to_symbol_table.insert(compilation_unit.borrow().filepath.clone(), compilation_unit.clone());
-    context.borrow_mut().stop_using();
+    {
+      let mut borrowed_context = context.borrow_mut();
+      borrowed_context.path_to_symbol_table.insert(compilation_unit.borrow().filepath.clone(), compilation_unit.clone());
+      borrowed_context.stop_using();
+    }
+
     (vec![compilation_unit], Vec::new())
   }
 }

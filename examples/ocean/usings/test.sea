@@ -1,1 +1,1 @@
-function cool_test(a: i32) -> (result: i32 = a + 69);
+function cool_test(a: i32) -> (result: i32 = a + 69)

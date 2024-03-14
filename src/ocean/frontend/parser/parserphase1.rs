@@ -1536,6 +1536,10 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
         parser_state_stack.pop();
       }
       //</editor-fold>
+      (Some(ParseState::StatementFinalize), Some(AstSymbol::OptStatement(_)), TokenType::Semicolon) => {
+        // TODO should we track this token?
+        token_index = consume(token_index);
+      }
       (Some(ParseState::StatementFinalize), Some(AstSymbol::OptStatement(optional_statement)), _) => {
         ast_stack.pop();
         let statement_data = ast_stack.pop_panic();
@@ -1549,6 +1553,7 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
           _ => panic!("Invalid state :( {:?} {:?}", statement_data, statements),
         }
       }
+
       (None, _, _) => {
         break // Idk if this would cause issues but we would probably catch any issues below
       }

@@ -29,6 +29,7 @@ impl Ocean {
       }
     };
     println!("Compiling '{}'...", path.display());
+    let project_root = path.parent().unwrap();
 
     let mut file = match File::open(path.clone()) {
       Ok(file) => file,
@@ -40,7 +41,7 @@ impl Ocean {
       Err(error) => return CompilationUnit::errored(file_path.to_string(), Error::new(Severity::Error, (0, 0), error.to_string()))
     };
 
-    let (program, dependencies,errors) = Ocean::internal_compile(file_path, &file_contents, token_mode, ast_mode, None);
+    let (program, dependencies, errors) = Ocean::internal_compile(project_root.display().to_string(), file_path, &file_contents, token_mode, ast_mode, None);
     let new_now = Instant::now();
     println!("Compilation of '{}' completed in: {:?}", path.display(), new_now.duration_since(now));
     CompilationUnit::program(file_path.to_string(), program, dependencies, errors)
@@ -60,7 +61,7 @@ impl Ocean {
 
     let mut file = match File::open(path.clone()) {
       Ok(file) => file,
-      Err(error) => return CompilationUnit::errored(file_path.to_string(), Error::new(Severity::Error, (0, 0), error.to_string()))
+      Err(error) => return CompilationUnit::errored( file_path.to_string(), Error::new(Severity::Error, (0, 0), error.to_string()))
     };
     let mut file_contents = String::new();
     match file.read_to_string(&mut file_contents) {
@@ -68,13 +69,13 @@ impl Ocean {
       Err(error) => return CompilationUnit::errored(file_path.to_string(), Error::new(Severity::Error, (0, 0), error.to_string()))
     };
 
-    let (program, dependencies, errors) = Ocean::internal_compile(file_path, &file_contents, "", "", Some(using_context.clone()));
+    let (program, dependencies, errors) = Ocean::internal_compile(using_context.clone().borrow().project_root.clone(), file_path, &file_contents, "", "", Some(using_context.clone()));
     let new_now = Instant::now();
     println!("Compilation of '{}' completed in: {:?}", path.display(), new_now.duration_since(now));
     CompilationUnit::program(file_path.to_string(), program, dependencies, errors)
   }
 
-  fn internal_compile(file_path: &str, file_contents: &String, token_mode: &str, ast_mode: &str, using_context: Option<Rc<RefCell<UsingPassContext>>>) -> (Program, Vec<Rc<RefCell<CompilationUnit>>>, Vec<Error>) {
+  fn internal_compile(project_root: String, file_path: &str, file_contents: &String, token_mode: &str, ast_mode: &str, using_context: Option<Rc<RefCell<UsingPassContext>>>) -> (Program, Vec<Rc<RefCell<CompilationUnit>>>, Vec<Error>) {
     let mut errors = Vec::new();
     let (tokens, mut lex_errors) = lex(&file_contents);
     errors.append(&mut lex_errors);
@@ -98,15 +99,22 @@ impl Ocean {
     errors.append(&mut parse_errors);
 
     let context = match using_context {
-      Some(context) => context,
-      None => Rc::new(RefCell::new(UsingPassContext::new()))
+      Some(context) => context.clone(),
+      None => Rc::new(RefCell::new(UsingPassContext::new(project_root)))
     };
-    context.borrow_mut().start_using(file_path.to_string(), (0, 0)).unwrap();
+
+    {
+      let mut borrowed_context = context.borrow_mut();
+      borrowed_context.start_using(file_path.to_string(), (0, 0)).unwrap();
+    }
 
     let (dependencies, mut using_errors) = ast.analyze_using(SymbolTable::global_scope(file_path.to_string()), context.clone());
     errors.append(&mut using_errors);
 
-    context.borrow_mut().stop_using();
+    {
+      let mut borrowed_context = context.borrow_mut();
+      borrowed_context.stop_using();
+    }
 
     parse_annotations(&mut ast);
 
