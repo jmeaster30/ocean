@@ -269,15 +269,20 @@ impl UsingPass for Interface {
 impl UsingPass for Using {
   fn analyze_using(&mut self, table: Rc<RefCell<SymbolTable>>, context: Rc<RefCell<UsingPassContext>>) -> (Vec<Rc<RefCell<CompilationUnit>>>, Vec<Error>) {
     let file_path = self.get_file_path();
-    {
+    let result = {
       let mut borrowed_context = context.borrow_mut();
-      match borrowed_context.start_using(file_path.clone(), self.get_span()) {
-        Ok(_) => {},
-        Err(err) => return (Vec::new(), vec![err]),
-      };
-    }
+      borrowed_context.start_using(file_path.clone(), self.get_span())
+    };
 
-    let full_path = Path::new(&context.borrow().project_root).join(Path::new(&file_path));
+    match result {
+      Ok(_) => {},
+      Err(err) => return (Vec::new(), vec![err]),
+    };
+
+    let full_path = {
+      let borrow = context.borrow();
+      Path::new(&borrow.project_root).join(Path::new(&file_path))
+    };
 
     let compilation_unit = Rc::new(RefCell::new(Ocean::compile_using(full_path.to_str().unwrap(), context.clone())));
     match &compilation_unit.borrow().program {

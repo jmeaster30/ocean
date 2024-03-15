@@ -127,6 +127,8 @@ fn main() -> std::io::Result<()> {
           let compilation_unit = Ocean::compile(arguments.get("Source File").unwrap().as_str(), arguments.get("Tokens").unwrap().as_str(), arguments.get("Ast").unwrap().as_str());
 
           compilation_unit.print_errors();
+
+          //println!("{:#?}", compilation_unit);
         }
         _ => todo!("Unimplemented command :("),
       },

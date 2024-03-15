@@ -7,7 +7,7 @@ use crate::ocean::Ocean;
 use std::fs::File;
 use std::io::{Read, Write};
 use std::path::Path;
-use std::{env, fs};
+use std::env;
 use std::cell::RefCell;
 use std::error::Error as RustError;
 use std::rc::Rc;
@@ -69,7 +69,12 @@ impl Ocean {
       Err(error) => return CompilationUnit::errored(file_path.to_string(), Error::new(Severity::Error, (0, 0), error.to_string()))
     };
 
-    let (program, dependencies, errors) = Ocean::internal_compile(using_context.clone().borrow().project_root.clone(), file_path, &file_contents, "", "", Some(using_context.clone()));
+    let project_root = {
+      let borrow = using_context.borrow();
+      borrow.project_root.clone()
+    };
+
+    let (program, dependencies, errors) = Ocean::internal_compile(project_root, file_path, &file_contents, "", "", Some(using_context.clone()));
     let new_now = Instant::now();
     println!("Compilation of '{}' completed in: {:?}", path.display(), new_now.duration_since(now));
     CompilationUnit::program(file_path.to_string(), program, dependencies, errors)
