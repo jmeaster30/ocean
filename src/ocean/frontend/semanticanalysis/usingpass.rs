@@ -1,6 +1,6 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::path::Path;
+use std::path::Path; // This is used by some macros
 use std::rc::Rc;
 use itertools::Either;
 use ocean_macros::{borrow_and_drop, borrow_mut_and_drop, New};

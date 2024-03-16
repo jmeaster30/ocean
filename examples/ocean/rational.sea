@@ -26,24 +26,21 @@ function abs (a: i64) -> (result: i64) {
   }
 }
 
-function lcm (a: i64,
-b: i64)
--> (result: i64
-    = abs(a) * abs(b) / gcd(a, b)
-    , test: i128 = 123 + 987)
+function lcm (a: i64, b: i64)
+-> (result: i64 = abs(a) * abs(b) / gcd(a, b))
 
 pack rational {
   numerator: i64
   denominator: i64
 }
 
-@Operator a + b
+@Operator(symbol: "+", order: infix)
 function add (a: rational, b: rational) -> (res: rational) {
   let mul: i64 = lcm(a.denominator, b.denominator);
   res = ( a.numerator * mul + b.numerator * mul, mul );
 }
 
-@Operator a - b
+@Operator(symbol: "-", order: infix)
 function subtract (a: rational, b: rational) -> (res: rational) {
   let mul: i64 = lcm(a.denominator, b.denominator);
   res = ( numerator: a.numerator * mul - b.numerator * mul, denominator: mul );

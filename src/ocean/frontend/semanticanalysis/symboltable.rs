@@ -148,16 +148,6 @@ impl SymbolTable {
     }))
   }
 
-  /*pub fn get_path(&self) -> Vec<String> {
-    match self.path_name.clone() {
-      Some(x) => x,
-      None => match self.parent.clone() {
-        Some(parent) => parent.borrow().get_path(),
-        None => Vec::new(),
-      }
-    }
-  }*/
-
   pub fn add_using_table(&mut self, symbol_table: Rc<RefCell<SymbolTable>>) {
     self.usings.push(symbol_table);
   }

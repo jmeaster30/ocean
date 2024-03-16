@@ -1,0 +1,24 @@
+union OperatorOrder {
+    Prefix(u32),
+    Postfix(u32),
+    Infix(u32, u32),
+}
+
+pack OperatorParameters {
+    symbol: string,
+    order: OperatorOrder
+}
+
+@Annotation (
+    name: "Operator",
+    scope: function,
+    parameters: OperatorParameters
+)
+function operator_call(function_name: string, target_function: func(auto Arguments...) -> (auto Returns...), annotation_parameters: AnnotationParameters, arguments: Arguments)
+    -> (result: Returns...)
+{
+    result = target_function(arguments)
+}
+
+@Operator(symbol: "!", order: OperatorOrder.Prefix(1000))
+function not_operator(value: bool) -> (result: bool = @@Hydro not @@)

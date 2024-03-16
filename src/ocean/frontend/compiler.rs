@@ -25,7 +25,7 @@ impl Ocean {
     let path = match Path::new(file_path).canonicalize() {
       Ok(path) => path,
       Err(error) => {
-        println!("Could not canonicalize path '{}' from current directory '{:?}' ({})", file_path, env::current_dir(), error.description());
+        println!("Could not canonicalize path '{}' from current directory '{:?}' ({})", file_path, env::current_dir(), error);
         return CompilationUnit::errored(file_path.to_string(), Error::new(Severity::Error, (0, 0), error.to_string()))
       }
     };
@@ -54,7 +54,7 @@ impl Ocean {
     let path = match Path::new(file_path).canonicalize() {
       Ok(path) => path,
       Err(error) => {
-        println!("Could not canonicalize path '{}' from current directory '{:?}' ({})", file_path, env::current_dir(), error.description());
+        println!("Could not canonicalize path '{}' from current directory '{:?}' ({})", file_path, env::current_dir(), error);
         return CompilationUnit::errored(file_path.to_string(), Error::new(Severity::Error, (0, 0), error.to_string()))
       }
     };

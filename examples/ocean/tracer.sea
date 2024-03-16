@@ -1,6 +1,6 @@
 using std.logger
 
-@Annotation
+@Annotation(name: "Trace", scope: "function")
 function trace(annotated_function_name: string, annotated_function: function(auto Args...) -> (auto Returns...), arguments: Args) -> (results: Returns)
 {
     logger.Trace(`Entering function {annotated_function_name} with arguments {arguments}`);

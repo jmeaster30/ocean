@@ -132,8 +132,8 @@ pub fn lex(input: &String) -> (Vec<Token<TokenType>>, Vec<Error>) {
           while index < input_length {
             let n = input_chars[index];
             match n {
-              '\r' | '\n' => break,
-              _ => lexeme.push_str(&n.to_string()),
+              'A'..='Z' | 'a'..='z' | '0'..='9' | '_' => lexeme.push_str(&n.to_string()),
+              _ => break,
             }
             index += 1;
           }
