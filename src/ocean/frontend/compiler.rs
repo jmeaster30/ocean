@@ -12,6 +12,7 @@ use std::cell::RefCell;
 use std::error::Error as RustError;
 use std::rc::Rc;
 use std::time::Instant;
+use ocean_macros::borrow_mut_and_drop;
 use crate::ocean::frontend::ast::Program;
 use crate::ocean::frontend::compilationunit::CompilationUnit;
 use crate::ocean::frontend::semanticanalysis::symboltable::SymbolTable;
@@ -108,18 +109,12 @@ impl Ocean {
       None => Rc::new(RefCell::new(UsingPassContext::new(project_root)))
     };
 
-    {
-      let mut borrowed_context = context.borrow_mut();
-      borrowed_context.start_using(file_path.to_string(), (0, 0)).unwrap();
-    }
+    borrow_mut_and_drop!(context, borrow_mut.start_using(file_path.to_string(), (0, 0)).unwrap());
 
     let (dependencies, mut using_errors) = ast.analyze_using(SymbolTable::global_scope(file_path.to_string()), context.clone());
     errors.append(&mut using_errors);
 
-    {
-      let mut borrowed_context = context.borrow_mut();
-      borrowed_context.stop_using();
-    }
+    borrow_mut_and_drop!(context, borrow_mut.stop_using());
 
     parse_annotations(&mut ast);
 

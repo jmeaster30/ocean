@@ -3,7 +3,8 @@ use proc_macro::TokenStream;
 use std::cmp::min;
 use std::str::FromStr;
 use quote::{quote, ToTokens};
-use syn::{Data, Fields};
+use syn::{Data, Expr, Fields, parse_macro_input, Token};
+use syn::parse::Parse;
 
 #[proc_macro_derive(Debuggable)]
 pub fn debuggable_macro_derive(input: TokenStream) -> TokenStream {
@@ -111,6 +112,52 @@ fn impl_new_macro(ast: &syn::DeriveInput) -> TokenStream {
     }
     _ => TokenStream::new()
   }
+}
+
+struct MacroInput {
+  a: Expr,
+  comma: Token![,],
+  b: Expr,
+}
+
+impl Parse for MacroInput {
+  fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+    Ok(Self {
+      a: input.parse()?,
+      comma: input.parse()?,
+      b: input.parse()?,
+    })
+  }
+}
+
+#[proc_macro]
+pub fn borrow_and_drop(tokens: TokenStream) -> TokenStream {
+  let input = parse_macro_input!(tokens as MacroInput);
+
+  let a = &input.a;
+  let b = &input.b;
+
+  quote! {
+    {
+      let borrow = (#a).borrow();
+      #b
+    }
+  }.into()
+}
+
+#[proc_macro]
+pub fn borrow_mut_and_drop(tokens: TokenStream) -> TokenStream {
+  let input = parse_macro_input!(tokens as MacroInput);
+
+  let a = &input.a;
+  let b = &input.b;
+
+  quote! {
+    {
+      let mut borrow_mut = (#a).borrow_mut();
+      #b
+    }
+  }.into()
 }
 
 // TODO I need to think much more deeply about if I want wrapping behavior for these operations

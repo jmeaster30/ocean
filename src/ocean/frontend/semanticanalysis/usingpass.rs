@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::path::Path;
 use std::rc::Rc;
 use itertools::Either;
-use ocean_macros::New;
+use ocean_macros::{borrow_and_drop, borrow_mut_and_drop, New};
 use crate::ocean::frontend::ast::*;
 use crate::ocean::frontend::compilationunit::CompilationUnit;
 use crate::ocean::frontend::semanticanalysis::symboltable::SymbolTable;
@@ -269,20 +269,13 @@ impl UsingPass for Interface {
 impl UsingPass for Using {
   fn analyze_using(&mut self, table: Rc<RefCell<SymbolTable>>, context: Rc<RefCell<UsingPassContext>>) -> (Vec<Rc<RefCell<CompilationUnit>>>, Vec<Error>) {
     let file_path = self.get_file_path();
-    let result = {
-      let mut borrowed_context = context.borrow_mut();
-      borrowed_context.start_using(file_path.clone(), self.get_span())
-    };
 
-    match result {
+    match borrow_mut_and_drop!(context, borrow_mut.start_using(file_path.clone(), self.get_span())) {
       Ok(_) => {},
       Err(err) => return (Vec::new(), vec![err]),
     };
 
-    let full_path = {
-      let borrow = context.borrow();
-      Path::new(&borrow.project_root).join(Path::new(&file_path))
-    };
+    let full_path = borrow_and_drop!(context, Path::new(&borrow.project_root).join(Path::new(&file_path)));
 
     let compilation_unit = Rc::new(RefCell::new(Ocean::compile_using(full_path.to_str().unwrap(), context.clone())));
     match &compilation_unit.borrow().program {
@@ -293,11 +286,10 @@ impl UsingPass for Using {
       None => return (vec![compilation_unit.clone()], vec![Error::new(Severity::Warning, self.get_span(), "There was an issue with this import".to_string())])
     }
 
-    {
-      let mut borrowed_context = context.borrow_mut();
-      borrowed_context.path_to_symbol_table.insert(compilation_unit.borrow().filepath.clone(), compilation_unit.clone());
-      borrowed_context.stop_using();
-    }
+    borrow_mut_and_drop!(context, {
+      borrow_mut.path_to_symbol_table.insert(compilation_unit.borrow().filepath.clone(), compilation_unit.clone());
+      borrow_mut.stop_using();
+    });
 
     (vec![compilation_unit], Vec::new())
   }
