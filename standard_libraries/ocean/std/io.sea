@@ -1,19 +1,19 @@
-func print(message: string) -> ():{
-  @@ hydro
+function print(message: string) {
+  @@ Hydro
   print @message
   @@
 }
 
 # Waits for single character input
-func readchar() -> (result: char):{
-  @@ hydro
+func readchar() -> (result: char) {
+  @@ Hydro
   readc @result
   @@
 }
 
 # Waits for enter key press
-func readstring() -> (result: string):{
-  @@ hydro
+func readstring() -> (result: string) {
+  @@ Hydro
   readline @result
   @@
 }

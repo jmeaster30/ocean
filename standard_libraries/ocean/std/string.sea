@@ -1,94 +1,94 @@
 # Takes an ascii character and returns the lowercase version 
 # of the character if it is a letter
-let to_lower = func (value: char) -> (result: char):{
+function to_lower(value: char) -> (result: char) {
   if value <= 'Z' && value >= 'A' {
-    result = value + ('a' - 'A') 
+    result = value + ('a' - 'A');
   } else {
-    result = value
+    result = value;
   }
 }
 
 # Takes an ascii character and returns the uppercase version 
 # of the character if it is a letter
-let to_upper = func (value: char) -> (result: char):{
+function to_upper (value: char) -> (result: char) {
   if value <= 'z' && value >= 'a' {
-    result = value - ('a' - 'A') 
+    result = value - ('a' - 'A');
   } else {
-    result = value
+    result = value;
   }
 }
 
 # Takes in a string and returns the lowercase version
 # of that string
-let to_lower = func (value: string) -> (result: string = value >. to_lower)
+function to_lower (value: string) -> (result: string = value >. to_lower)
 
 # Takes in a string and returns the uppercase version
 # of that string
-let to_upper = func (value: string) -> (result: string = value >. to_upper)
+function to_upper (value: string) -> (result: string = value >. to_upper)
 
-let is_empty = func (value: string) -> (result: bool = value.length == 0)
+function is_empty (value: string) -> (result: bool = value.length == 0)
 
-let join = func (value: auto T[]) -> (result:T):{
+function join(value: auto T[]) -> (result:T) {
   for v in value {
-    result += v
+    result += v;
   }
 }
 
-let join = func (value: auto T[], sep: auto U) -> (result: T):{
+function join(value: auto T[], sep: auto U) -> (result: T) {
   for i in 0..(value.length) {
-    result += value[i]
+    result += value[i];
     if i < value.length - 1 {
-      result += sep
+      result += sep;
     }
   }
 }
 
-let split = func (value: string, sep: string) -> (result: string[]):{
-  let start = 0
-  let i = 0
+function split(value: string, sep: string) -> (result: string[]) {
+  let start = 0;
+  let i = 0;
   while i < value.length - sep.length + 1 {
-    let substring = value[i..sep.length]
+    let substring = value[i..sep.length];
     if substring == sep {
       if start != i {
-        result ++= [value[start..i]]
+        result ++= [value[start..i]];
       }
-      i += sep.length - 1
-      start = i
+      i += sep.length - 1;
+      start = i;
     } else {
-      i += 1
+      i += 1;
     }
   }
   # add the remaining bits of the string to result
   if start < value.length {
-    result ++= [value[start..value.length]]
+    result ++= [value[start..value.length]];
   }
 }
 
-let split_around = func (value: string, sep: string) -> (result: string[]):{
-  let start = 0
-  let i = 0
+function split_around (value: string, sep: string) -> (result: string[]) {
+  let start = 0;
+  let i = 0;
   while i < value.length - sep.length + 1 {
-    let substring = value[i..sep.length]
+    let substring = value[i..sep.length];
     if substring == sep {
       if start != i {
-        result ++= [value[start..i]]
+        result ++= [value[start..i]];
       }
-      result ++= [value[i..sep.length]]
-      i += sep.length
-      start = i
+      result ++= [value[i..sep.length]];
+      i += sep.length;
+      start = i;
     } else {
-      i += 1
+      i += 1;
     }
   }
   # add the remaining bits of the string to result
   if start < value.length {
-    result ++= [value[start..value.length]]
+    result ++= [value[start..value.length]];
   }
 }
 
-let reverse = func (value: string) -> (result: string):{
+function reverse(value: string) -> (result: string) {
   for c in value {
-    result = c + result
+    result = c + result;
   }
 }
 

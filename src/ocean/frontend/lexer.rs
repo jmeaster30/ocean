@@ -137,6 +137,7 @@ pub fn lex(input: &String) -> (Vec<Token<TokenType>>, Vec<Error>) {
             }
             index += 1;
           }
+          index -= 1;
           tokens.push(Token::new_with_trivia(lexeme.clone(), TokenType::Annotation, (start_index, index), (line_start, line_end), (column_start, column_end), trivia.clone()));
         }
         trivia.clear();

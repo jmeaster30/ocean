@@ -1,20 +1,20 @@
 function window(value: auto T[], size: u64) -> (result: T[][]) {
     for i in 0..=(value.length - size) {
-        result ++= value[i..size]
+        result ++= value[i..size];
     }
 }
 
 function filter(value: auto T[], condition: function(T)->bool) -> (result: T[]) {
     for v in value {
         if condition(v) {
-            result ++= v
+            result ++= v;
         }
     }
 }
 
 function transform(value: auto T[], transformer: function(T) -> auto U) -> (result: U[]) {
     for v in value {
-        result ++= v.transformer()
+        result ++= v.transformer();
     }
 }
 
@@ -22,8 +22,8 @@ function reduce(value: auto T[], reducer: function(T, T) -> T) -> (result: T) {
     if value.length == 0 {
         return
     } else if value.length == 1 {
-        result = value[0]
+        result = value[0];
     } else {
-        result = reducer(reduce(value[0..(value.length // 2)], reducer), reduce(value[(value.length // 2)..value.length], reducer))
+        result = reducer(reduce(value[0..(value.length // 2)], reducer), reduce(value[(value.length // 2)..value.length], reducer));
     }
 }

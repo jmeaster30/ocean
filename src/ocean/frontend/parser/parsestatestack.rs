@@ -7,6 +7,11 @@ pub enum ParseState {
   Statement,
   StatementFinalize,
 
+  AnnotationBody,
+  AnnotationArgumentColon,
+  AnnotationArgumentEnd,
+  AnnotationBodyEnd,
+
   PackIdentifier,
   PackBodyStart,
   PackBody,

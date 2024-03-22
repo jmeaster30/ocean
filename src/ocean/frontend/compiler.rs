@@ -1,5 +1,4 @@
 use crate::ocean::frontend::lexer::lex;
-use crate::ocean::frontend::parser::annotationparser::parse_annotations;
 use crate::ocean::frontend::parser::parserphase1::parse_phase_one;
 use crate::ocean::frontend::parser::parserphase2::parse_phase_two;
 use crate::ocean::frontend::parser::precedencetable::PrecedenceTable;
@@ -9,7 +8,6 @@ use std::io::{Read, Write};
 use std::path::Path;
 use std::env;
 use std::cell::RefCell;
-use std::error::Error as RustError;
 use std::rc::Rc;
 use std::time::Instant;
 use ocean_macros::borrow_mut_and_drop;
@@ -115,8 +113,6 @@ impl Ocean {
     errors.append(&mut using_errors);
 
     borrow_mut_and_drop!(context, borrow_mut.stop_using());
-
-    parse_annotations(&mut ast);
 
     let mut precedence_table = PrecedenceTable::new();
     precedence_table.add_prefix_operator("-", 1000);

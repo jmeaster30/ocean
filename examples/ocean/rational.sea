@@ -34,16 +34,45 @@ pack rational {
   denominator: i64
 }
 
-@Operator(symbol: "+", order: infix)
+@Operator(symbol: "+", order: Infix)
 function add (a: rational, b: rational) -> (res: rational) {
   let mul: i64 = lcm(a.denominator, b.denominator);
-  res = ( a.numerator * mul + b.numerator * mul, mul );
+  let num = a.numerator * mul + b.numerator * mul;
+  let denom = mul;
+  let scale = gcd(num, denom);
+  res = ( num / scale, denom / scale );
 }
 
-@Operator(symbol: "-", order: infix)
+@Operator(symbol: "-", order: Infix)
 function subtract (a: rational, b: rational) -> (res: rational) {
   let mul: i64 = lcm(a.denominator, b.denominator);
-  res = ( numerator: a.numerator * mul - b.numerator * mul, denominator: mul );
+  let num = a.numerator * mul - b.numerator * mul;
+  let denom = mul;
+  let scale = gcd(num, denom);
+  res = ( num / scale, denom / scale );
 }
 
-function main () -> (res: i64 = 360.gcd(48))
+@Operator(symbol: "*", order: Infix)
+function multiply (a: rational, b: rational) -> (res: rational) {
+    let num = a.numerator * b.numerator;
+    let denom = a.denominator * b.denominator;
+    let scale = gcd(num, denom);
+    res = (numerator: num / scale, denominator: denom / scale);
+}
+
+@Operator(symbol: "/", order: Infix)
+function divide (a: rational, b: rational) -> (res: rational) {
+    let num = a.numerator * b.denominator;
+    let denom = a.denominator * b.numerator;
+    let scale = gcd(num, denom);
+    res = (numerator: num / scale, denominator: denom / scale);
+}
+
+function main () -> (res: i64 = 360.gcd(48)) {
+    let test_a = (12 / 24);
+    let test_b = (24 / 12);
+    let sum = test_a + test_b;
+    let diff = test_a - test_b;
+    let prod = test_a * test_b;
+    let div = test_a / test_b;
+}

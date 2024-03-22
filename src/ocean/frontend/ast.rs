@@ -34,8 +34,17 @@ pub struct Comment {
 #[derive(Clone, Debug, New)]
 pub struct Annotation {
   pub token: Token<TokenType>,
-  #[default(None)]
-  pub annotation_ast: Option<AnnotationNode>,
+  pub left_paren: Option<Token<TokenType>>,
+  pub annotation_arguments: Vec<AnnotationArgument>,
+  pub right_paren: Option<Token<TokenType>>,
+}
+
+#[derive(Clone, Debug, New)]
+pub struct AnnotationArgument {
+  pub name: Token<TokenType>,
+  pub colon: Token<TokenType>,
+  pub value: ExpressionNode,
+  pub comma: Option<Token<TokenType>>,
 }
 
 #[derive(Clone, Debug)]

@@ -10,6 +10,9 @@ pub enum AstSymbol {
   StatementData(Vec<StatementNodeData>),
   OptStatement(Option<Statement>),
 
+  Annotation(Annotation),
+  AnnotationArguments(Vec<AnnotationArgument>),
+
   UsingPathEntries(Vec<UsingPathEntry>),
   CompoundStatement(CompoundStatement),
   Branch(Branch),

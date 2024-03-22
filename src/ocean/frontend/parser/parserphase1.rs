@@ -58,24 +58,101 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
 
       (Some(ParseState::PreStatement), Some(AstSymbol::StatementData(mut statement_data)), TokenType::AnnotationBlock) => {
         ast_stack.pop();
-        statement_data.push(StatementNodeData::Annotation(Annotation::new(current_token.clone())));
+        statement_data.push(StatementNodeData::Annotation(Annotation::new(current_token.clone(), Vec::new())));
         ast_stack.push(AstSymbol::StatementData(statement_data));
         ast_stack.push(AstSymbol::OptStatement(None));
         parser_state_stack.goto(ParseState::StatementFinalize);
         token_index = consume(token_index);
       }
-      (Some(ParseState::PreStatement), Some(AstSymbol::StatementData(mut statement_data)), TokenType::Annotation) => {
-        ast_stack.pop();
-        statement_data.push(StatementNodeData::Annotation(Annotation::new(current_token.clone())));
-        ast_stack.push(AstSymbol::StatementData(statement_data));
+      (Some(ParseState::PreStatement), Some(AstSymbol::StatementData(_)), TokenType::Annotation) => {
+        ast_stack.push(AstSymbol::Token(current_token.clone()));
+        // TODO parse this in a special way not just with an expression
+        parser_state_stack.push(ParseState::AnnotationBody);
         token_index = consume(token_index);
+      }
+      (Some(ParseState::PreStatement), Some(AstSymbol::Annotation(annotation)), _) => {
+        ast_stack.pop();
+        let statement_data = ast_stack.pop_panic();
+
+        match statement_data {
+          AstSymbol::StatementData(mut statement_data) => {
+            statement_data.push(StatementNodeData::Annotation(annotation));
+            ast_stack.push(AstSymbol::StatementData(statement_data));
+          }
+          _ => panic!("Invalid parse stack"),
+        }
       }
       (Some(ParseState::PreStatement), Some(AstSymbol::StatementData(_)), _) => {
         parser_state_stack.goto(ParseState::StatementFinalize);
         parser_state_stack.push(ParseState::Statement);
       }
-      (Some(ParseState::PreStatement), _, _) => {
+      (Some(ParseState::PreStatement), a, _) => {
+        println!("SYMBOL: {:#?}", a);
+        println!("TOKEN: {}", current_token);
         panic!("Invalid parse state")
+      }
+
+      (Some(ParseState::AnnotationBody), _, TokenType::LeftParen) => {
+        ast_stack.push(AstSymbol::Token(current_token.clone()));
+        ast_stack.push(AstSymbol::AnnotationArguments(Vec::new()));
+        token_index = consume(token_index);
+      }
+      (Some(ParseState::AnnotationBody), Some(AstSymbol::AnnotationArguments(annotation_arguments)), TokenType::RightParen) => {
+        ast_stack.pop();
+        let left_paren_token = ast_stack.pop_panic();
+        let annotation_token = ast_stack.pop_panic();
+
+        match (annotation_token, left_paren_token) {
+          (AstSymbol::Token(annotation_token), AstSymbol::Token(left_paren_token)) => {
+            ast_stack.push(AstSymbol::Annotation(Annotation::new(annotation_token, Some(left_paren_token), annotation_arguments, Some(current_token.clone()))));
+            parser_state_stack.pop();
+            token_index = consume(token_index);
+          }
+          _ => panic!("Invalid parse state :(")
+        }
+      }
+      (Some(ParseState::AnnotationBody), Some(AstSymbol::AnnotationArguments(_)), TokenType::Identifier) => {
+        ast_stack.push(AstSymbol::Token(current_token.clone()));
+        token_index = consume(token_index);
+        parser_state_stack.goto(ParseState::AnnotationArgumentEnd);
+        parser_state_stack.push(ParseState::Expression);
+        parser_state_stack.push(ParseState::AnnotationArgumentColon);
+      }
+      (Some(ParseState::AnnotationArgumentColon), Some(AstSymbol::Token(_)), TokenType::Colon) => {
+        ast_stack.push(AstSymbol::Token(current_token.clone()));
+        token_index = consume(token_index);
+        parser_state_stack.pop();
+      }
+      (Some(ParseState::AnnotationArgumentEnd), Some(AstSymbol::Expression(annotation_argument_value)), TokenType::Comma) => {
+        ast_stack.pop();
+        let colon_token = ast_stack.pop_panic();
+        let identifier = ast_stack.pop_panic();
+        let annotation_arguments = ast_stack.pop_panic();
+
+        match (annotation_arguments, identifier, colon_token) {
+          (AstSymbol::AnnotationArguments(mut annotation_arguments), AstSymbol::Token(identifier), AstSymbol::Token(colon_token)) => {
+            annotation_arguments.push(AnnotationArgument::new(identifier, colon_token, annotation_argument_value, Some(current_token.clone())));
+            ast_stack.push(AstSymbol::AnnotationArguments(annotation_arguments));
+            token_index = consume(token_index);
+            parser_state_stack.pop();
+          }
+          _ => panic!("Invalid parse state")
+        }
+      }
+      (Some(ParseState::AnnotationArgumentEnd), Some(AstSymbol::Expression(annotation_argument_value)), _) => {
+        ast_stack.pop();
+        let colon_token = ast_stack.pop_panic();
+        let identifier = ast_stack.pop_panic();
+        let annotation_arguments = ast_stack.pop_panic();
+
+        match (annotation_arguments, identifier, colon_token) {
+          (AstSymbol::AnnotationArguments(mut annotation_arguments), AstSymbol::Token(identifier), AstSymbol::Token(colon_token)) => {
+            annotation_arguments.push(AnnotationArgument::new(identifier, colon_token, annotation_argument_value, None));
+            ast_stack.push(AstSymbol::AnnotationArguments(annotation_arguments));
+            parser_state_stack.pop();
+          }
+          _ => panic!("Invalid parse state")
+        }
       }
 
       (Some(ParseState::Statement), Some(_), TokenType::EndOfInput) => {
