@@ -58,7 +58,7 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
 
       (Some(ParseState::PreStatement), Some(AstSymbol::StatementData(mut statement_data)), TokenType::AnnotationBlock) => {
         ast_stack.pop();
-        statement_data.push(StatementNodeData::Annotation(Annotation::new(current_token.clone(), Vec::new())));
+        statement_data.push(StatementNodeData::Annotation(Annotation::new(current_token.clone(), None, Vec::new(), None)));
         ast_stack.push(AstSymbol::StatementData(statement_data));
         ast_stack.push(AstSymbol::OptStatement(None));
         parser_state_stack.goto(ParseState::StatementFinalize);
