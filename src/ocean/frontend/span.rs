@@ -324,3 +324,123 @@ impl Spanned for VariableType {
   }
 }
 
+impl Spanned for Expression {
+  fn get_span(&self) -> (usize, usize) {
+    match self {
+      Expression::String(x) => x.get_span(),
+      Expression::ArrayLiteral(x) => x.get_span(),
+      Expression::Number(x) => x.get_span(),
+      Expression::Boolean(x) => x.get_span(),
+      Expression::InterpolatedString(x) => x.get_span(),
+      Expression::Variable(x) => x.get_span(),
+      Expression::Tuple(x) => x.get_span(),
+      Expression::Call(x) => x.get_span(),
+      Expression::ArrayIndex(x) => x.get_span(),
+      Expression::SubExpression(x) => x.get_span(),
+      Expression::Cast(x) => x.get_span(),
+      Expression::PrefixOperation(x) => x.get_span(),
+      Expression::PostfixOperation(x) => x.get_span(),
+      Expression::BinaryOperation(x) => x.get_span(),
+      Expression::AstNode(x) => x.get_span(),
+    }
+  }
+}
+
+impl Spanned for StringLiteral {
+  fn get_span(&self) -> (usize, usize) {
+    self.token.get_span()
+  }
+}
+
+impl Spanned for ArrayLiteral {
+  fn get_span(&self) -> (usize, usize) {
+    (self.left_square_token.get_span().0, self.right_square_token.get_span().1)
+  }
+}
+
+impl Spanned for Number {
+  fn get_span(&self) -> (usize, usize) {
+    self.token.get_span()
+  }
+}
+
+impl Spanned for Boolean {
+  fn get_span(&self) -> (usize, usize) {
+    self.token.get_span()
+  }
+}
+
+impl Spanned for InterpolatedString {
+  fn get_span(&self) -> (usize, usize) {
+    self.token.get_span()
+  }
+}
+
+impl Spanned for Variable {
+  fn get_span(&self) -> (usize, usize) {
+    self.identifier.get_span()
+  }
+}
+
+impl Spanned for Tuple {
+  fn get_span(&self) -> (usize, usize) {
+    (self.left_token.get_span().0, self.right_token.get_span().1)
+  }
+}
+
+impl Spanned for TupleMember {
+  fn get_span(&self) -> (usize, usize) {
+    let left = match self.identifier.clone() {
+      Some(id) => id.get_span().0,
+      None => self.value.get_span().0,
+    };
+
+    let right = match self.comma_token.clone() {
+      Some(comma) => comma.get_span().1,
+      None => self.value.get_span().1
+    };
+    (left, right)
+  }
+}
+
+impl Spanned for Call {
+  fn get_span(&self) -> (usize, usize) {
+    (self.target.get_span().0, self.right_paren.get_span().1)
+  }
+}
+
+impl Spanned for ArrayIndex {
+  fn get_span(&self) -> (usize, usize) {
+    (self.target.get_span().0, self.right_square.get_span().1)
+  }
+}
+
+impl Spanned for SubExpression {
+  fn get_span(&self) -> (usize, usize) {
+    (self.left_paren.get_span().0, self.right_paren.get_span().1)
+  }
+}
+
+impl Spanned for Cast {
+  fn get_span(&self) -> (usize, usize) {
+    (self.expression.get_span().0, self.casted_type.get_span().1)
+  }
+}
+
+impl Spanned for PrefixOperator {
+  fn get_span(&self) -> (usize, usize) {
+    (self.operator.get_span().0, self.expression.get_span().1)
+  }
+}
+
+impl Spanned for PostfixOperator {
+  fn get_span(&self) -> (usize, usize) {
+    (self.expression.get_span().0, self.operator.get_span().1)
+  }
+}
+
+impl Spanned for BinaryOperator {
+  fn get_span(&self) -> (usize, usize) {
+    (self.left_expression.get_span().0, self.right_expression.get_span().1)
+  }
+}

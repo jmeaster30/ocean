@@ -128,7 +128,7 @@ fn main() -> std::io::Result<()> {
 
           compilation_unit.print_errors();
 
-          println!("{:#?}", compilation_unit);
+          //println!("{:#?}", compilation_unit);
         }
         _ => todo!("Unimplemented command :("),
       },

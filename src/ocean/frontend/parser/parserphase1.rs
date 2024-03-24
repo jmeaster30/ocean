@@ -114,8 +114,8 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
       (Some(ParseState::AnnotationBody), Some(AstSymbol::AnnotationArguments(_)), TokenType::Identifier) => {
         ast_stack.push(AstSymbol::Token(current_token.clone()));
         token_index = consume(token_index);
-        parser_state_stack.goto(ParseState::AnnotationArgumentEnd);
-        parser_state_stack.push(ParseState::Expression);
+        parser_state_stack.push(ParseState::AnnotationArgumentEnd);
+        parser_state_stack.push(ParseState::ExpressionNoComma);
         parser_state_stack.push(ParseState::AnnotationArgumentColon);
       }
       (Some(ParseState::AnnotationArgumentColon), Some(AstSymbol::Token(_)), TokenType::Colon) => {

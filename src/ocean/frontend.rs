@@ -6,3 +6,4 @@ mod semanticanalysis;
 pub mod tokentype;
 mod span;
 mod compilationunit;
+mod annotation;

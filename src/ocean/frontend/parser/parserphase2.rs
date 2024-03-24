@@ -8,6 +8,7 @@ use crate::util::errors::{Error, Severity};
 use crate::util::span::Spanned;
 use crate::util::token::Token;
 use itertools::Either;
+use crate::ocean::frontend::annotation::{AnnotationType, OperatorOrder};
 use crate::ocean::frontend::parser::parserphase1::parse_phase_one_partial;
 
 pub fn parse_phase_two(ast: &mut Program, precedence_table: &mut PrecedenceTable) -> Result<(), Vec<Error>> {
@@ -17,40 +18,63 @@ pub fn parse_phase_two(ast: &mut Program, precedence_table: &mut PrecedenceTable
   let mut errors = Vec::new();
 
   for statement_node in &mut ast.statements {
-    for data in &statement_node.data {
-      match data {
-        StatementNodeData::Annotation(annotation) => match &annotation.annotation_ast {
-          Some(AnnotationNode::Operator(operator)) => match operator.operator_type {
-            OperatorType::Infix => {
-              if precedence_table.is_binary_operator(&operator.operator) {
-                if let (Some(left_prec), Some(right_prec)) = (operator.left_precedence, operator.right_precedence) {
-                  if precedence_table.get_binary_precedence(&operator.operator) != (left_prec, right_prec) {
-                    errors.push(Error::new(Severity::Error, annotation.token.get_span(), "Conflicting precedences for the same operator. (TODO add info about the other operator)".to_string()));
-                  }
-                }
-              } else if let (Some(left_prec), Some(right_prec)) = (operator.left_precedence, operator.right_precedence) {
-                precedence_table.add_binary_operator(operator.operator.as_str(), left_prec, right_prec);
-              } else {
-                precedence_table.add_binary_operator(operator.operator.as_str(), undefined_infix, undefined_infix + 1);
-              }
+    for data in &mut statement_node.data {
+      match data.clone() {
+        StatementNodeData::Annotation(mut annotation) => {
+          for annotation_argument in &mut annotation.annotation_arguments {
+            match parse_phase_two_annotation_argument(annotation_argument, precedence_table) {
+              Ok(()) => {}
+              Err(mut new_errors) => errors.append(&mut new_errors)
             }
-            OperatorType::Postfix => {}
-            OperatorType::Prefix => {
-              if precedence_table.is_prefix_operator(&operator.operator) {
-                if let Some(right_prec) = operator.right_precedence {
-                  if precedence_table.get_prefix_precedence(&operator.operator) != right_prec {
-                    errors.push(Error::new(Severity::Error, annotation.token.get_span(), "Conflicting precedences for the same operator. (TODO add info about the other operator)".to_string()));
+          }
+
+          match annotation.get_annotation_type() {
+            AnnotationType::Operator => match (annotation.get_operator_order(), annotation.get_operator_symbol()) {
+              (Ok(operator_order), Ok(operator_symbol)) => match operator_order {
+                OperatorOrder::Infix => match annotation.get_operator_infix_precedence() {
+                  Ok((left_prec, right_prec)) => match (left_prec, right_prec) {
+                    (Some(left_prec), Some(right_prec)) => if precedence_table.is_binary_operator(&operator_symbol) && precedence_table.get_binary_precedence(&operator_symbol) != (left_prec, right_prec) {
+                      errors.push(Error::new(Severity::Error, annotation.token.get_span(), "Conflicting precedences for the same operator. (TODO add info about the other operator)".to_string()));
+                    } else {
+                      precedence_table.add_binary_operator(operator_symbol.as_str(), left_prec, right_prec);
+                    }
+                    _ => precedence_table.add_binary_operator(operator_symbol.as_str(), undefined_infix, undefined_infix + 1)
                   }
+                  Err(error) => errors.push(error),
                 }
-              } else if let Some(right_prec) = operator.right_precedence {
-                precedence_table.add_prefix_operator(operator.operator.as_str(), right_prec);
-              } else {
-                precedence_table.add_prefix_operator(operator.operator.as_str(), undefined_prefix);
+                OperatorOrder::Postfix => match annotation.get_operator_prefix_postfix_precedence() {
+                  Ok(precedence) => match precedence {
+                    Some(precedence) => if precedence_table.is_postfix_operator(&operator_symbol) && precedence_table.get_postfix_precedence(&operator_symbol) != precedence {
+                      errors.push(Error::new(Severity::Error, annotation.token.get_span(), "Conflicting precedences for the same operator. (TODO add info about the other operator)".to_string()));
+                    } else {
+                      precedence_table.add_postfix_operator(operator_symbol.as_str(), precedence);
+                    }
+                    None => precedence_table.add_postfix_operator(operator_symbol.as_str(), undefined_prefix)
+                  }
+                  Err(error) => errors.push(error),
+                }
+                OperatorOrder::Prefix => match annotation.get_operator_prefix_postfix_precedence() {
+                  Ok(precedence) => match precedence {
+                    Some(precedence) => if precedence_table.is_prefix_operator(&operator_symbol) && precedence_table.get_prefix_precedence(&operator_symbol) != precedence {
+                      errors.push(Error::new(Severity::Error, annotation.token.get_span(), "Conflicting precedences for the same operator. (TODO add info about the other operator)".to_string()));
+                    } else {
+                      precedence_table.add_prefix_operator(operator_symbol.as_str(), precedence);
+                    }
+                    None => precedence_table.add_prefix_operator(operator_symbol.as_str(), undefined_prefix)
+                  }
+                  Err(error) => errors.push(error),
+                }
               }
+              (Err(new_error), Ok(_)) => errors.push(new_error),
+              (Ok(_), Err(new_error)) => errors.push(new_error),
+              (Err(a), Err(b)) => {
+                errors.push(a);
+                errors.push(b);
+              },
             }
-          },
-          _ => {}
-        },
+            _ => {}
+          }
+        }
         _ => {}
       }
     }
@@ -71,6 +95,10 @@ pub fn parse_phase_two(ast: &mut Program, precedence_table: &mut PrecedenceTable
   } else {
     Err(errors)
   }
+}
+
+fn parse_phase_two_annotation_argument(annotation_argument: &mut AnnotationArgument, precedence_table: &mut PrecedenceTable) -> Result<(), Vec<Error>> {
+  parse_phase_two_expression(&mut annotation_argument.value, precedence_table)
 }
 
 fn parse_phase_two_statement(statement: &mut Statement, precedence_table: &mut PrecedenceTable) -> Result<(), Vec<Error>> {

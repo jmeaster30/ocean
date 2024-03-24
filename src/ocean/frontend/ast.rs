@@ -548,30 +548,3 @@ pub struct TernaryOperator {
   pub second_operator: Token<TokenType>,
   pub right_expression: Expression,
 }
-
-// annotation ast nodes
-#[derive(Clone, Debug)]
-pub enum AnnotationNode {
-  Operator(AnnotationOperator),
-  Hydro,
-  FunctionAnnotation,
-  Cast,
-  None,
-}
-
-#[derive(Clone, Debug)]
-pub enum OperatorType {
-  Infix,
-  Postfix,
-  Prefix,
-}
-
-#[derive(Clone, Debug, New)]
-pub struct AnnotationOperator {
-  pub operator: String,
-  pub operator_type: OperatorType,
-  pub left_hand_side_name: Option<String>,
-  pub left_precedence: Option<usize>,
-  pub right_hand_side_name: Option<String>,
-  pub right_precedence: Option<usize>,
-}
