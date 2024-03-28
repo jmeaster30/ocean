@@ -107,7 +107,13 @@ impl Ocean {
       None => Rc::new(RefCell::new(UsingPassContext::new(project_root)))
     };
 
-    borrow_mut_and_drop!(context, borrow_mut.start_using(file_path.to_string(), (0, 0)).unwrap());
+    match borrow_mut_and_drop!(context, borrow_mut.start_using(file_path.to_string(), (0, 0))) {
+      Ok(_) => {}
+      Err(error) => {
+        errors.push(error);
+        return (ast, Vec::new(), errors)
+      }
+    }
 
     let (dependencies, mut using_errors) = ast.analyze_using(SymbolTable::global_scope(file_path.to_string()), context.clone());
     errors.append(&mut using_errors);

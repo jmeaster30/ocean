@@ -118,6 +118,12 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
         parser_state_stack.push(ParseState::ExpressionNoComma);
         parser_state_stack.push(ParseState::AnnotationArgumentColon);
       }
+      (Some(ParseState::AnnotationBody), Some(AstSymbol::Token(annotation_token)), _) => {
+        ast_stack.pop();
+        ast_stack.push(AstSymbol::Annotation(Annotation::new(annotation_token, None, Vec::new(), None)));
+        parser_state_stack.pop();
+      }
+
       (Some(ParseState::AnnotationArgumentColon), Some(AstSymbol::Token(_)), TokenType::Colon) => {
         ast_stack.push(AstSymbol::Token(current_token.clone()));
         token_index = consume(token_index);

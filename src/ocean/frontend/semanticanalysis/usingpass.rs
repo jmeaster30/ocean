@@ -31,6 +31,8 @@ impl UsingPassContext {
   pub fn start_using(&mut self, path: String, using_span: (usize, usize)) -> Result<(), Error> {
     for (conflict_idx, p) in self.current_dependency_chain.iter().enumerate() {
       if *p == path {
+        println!("{:?}", self.current_dependency_chain);
+        println!("{}", path);
         let mut metadata = ErrorMetadata::new();
         metadata.add_suggestion("Dependency cycle".to_string());
         for (idx, conflict_path) in self.current_dependency_chain.iter().enumerate().rev() {
@@ -268,16 +270,9 @@ impl UsingPass for Interface {
 
 impl UsingPass for Using {
   fn analyze_using(&mut self, table: Rc<RefCell<SymbolTable>>, context: Rc<RefCell<UsingPassContext>>) -> (Vec<Rc<RefCell<CompilationUnit>>>, Vec<Error>) {
-    let file_path = self.get_file_path();
+    let file_path = borrow_and_drop!(context, self.get_file_path(borrow.project_root.clone()));
 
-    match borrow_mut_and_drop!(context, borrow_mut.start_using(file_path.clone(), self.get_span())) {
-      Ok(_) => {},
-      Err(err) => return (Vec::new(), vec![err]),
-    };
-
-    let full_path = borrow_and_drop!(context, Path::new(&borrow.project_root).join(Path::new(&file_path)));
-
-    let compilation_unit = Rc::new(RefCell::new(Ocean::compile_using(full_path.to_str().unwrap(), context.clone())));
+    let compilation_unit = Rc::new(RefCell::new(Ocean::compile_using(file_path.as_str(), context.clone())));
     match &compilation_unit.borrow().program {
       Some(program) => match &program.table {
         Some(using_table) => table.borrow_mut().add_using_table(using_table.clone()),
@@ -288,7 +283,6 @@ impl UsingPass for Using {
 
     borrow_mut_and_drop!(context, {
       borrow_mut.path_to_symbol_table.insert(compilation_unit.borrow().filepath.clone(), compilation_unit.clone());
-      borrow_mut.stop_using();
     });
 
     (vec![compilation_unit], Vec::new())

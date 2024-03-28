@@ -1,4 +1,5 @@
 use std::cell::RefCell;
+use std::env;
 use std::rc::Rc;
 use crate::ocean::frontend::tokentype::TokenType;
 use crate::util::token::Token;
@@ -388,8 +389,11 @@ pub struct Using {
 }
 
 impl Using {
-  pub fn get_file_path(&self) -> String {
-    self.path.iter().map(|x| x.identifier.lexeme.clone()).join("/").to_string() + ".sea"
+  pub fn get_file_path(&self, project_root: String) -> String {
+    (match env::var("OCEAN_STD_ROOT") {
+      Ok(value) if self.path.len() != 0 && self.path[0].identifier.lexeme == "std" => value,
+      _ => project_root,
+    }) + "/" + self.path.iter().map(|x| x.identifier.lexeme.clone()).join("/").as_str() + ".sea"
   }
 }
 

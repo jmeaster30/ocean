@@ -1,26 +1,26 @@
 function print(message: string) {
-  @@ Hydro
+  @@Hydro
   print @message
   @@
 }
 
 # Waits for single character input
-func readchar() -> (result: char) {
-  @@ Hydro
+function readchar() -> (result: char) {
+  @@Hydro
   readc @result
   @@
 }
 
 # Waits for enter key press
-func readstring() -> (result: string) {
+function readstring() -> (result: string) {
   @@ Hydro
   readline @result
   @@
 }
 
-cast func (a: u64) -> (result: string):{
+@Cast function intToString(a: u64) -> (result: string) {
   while a > 0 {
-    result = (a % 10) as char + result
-    a = a // 10
+    result = (a % 10) as char + result;
+    a = a // 10;
   }
 }

@@ -1,3 +1,5 @@
+using std.io
+
 function gcd (a: i64, b: i64) -> (result: i64) {
   # If A=0 then GCD(A, B)=B since the Greatest Common Divisor of 0 and B is B.
   # If B=0 then GCD(A, B)=A since the Greatest Common Divisor of 0 and A is A.
