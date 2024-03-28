@@ -3,7 +3,7 @@ use proc_macro::TokenStream;
 use std::cmp::min;
 use std::str::FromStr;
 use quote::{quote, ToTokens};
-use syn::{Data, Expr, Fields, parse_macro_input, Token};
+use syn::{Attribute, Data, Expr, Fields, Lit, Meta, parse_macro_input, Token};
 use syn::parse::Parse;
 
 #[proc_macro_derive(Debuggable)]
@@ -22,24 +22,6 @@ fn impl_debuggable_macro(ast: &syn::DeriveInput) -> TokenStream {
         let result = self.execute(compilation_unit, context);
         debug_context.metric_tracker.stop(context.get_call_stack(), metric_name);
         return result;
-      }
-    }
-  };
-  gen.into()
-}
-
-#[proc_macro_derive(AstNode)]
-pub fn ast_node_macro_derive(input: TokenStream) -> TokenStream {
-  let ast = syn::parse(input).unwrap();
-  impl_ast_node_macro(&ast)
-}
-
-fn impl_ast_node_macro(ast: &syn::DeriveInput) -> TokenStream {
-  let name = &ast.ident;
-  let gen = quote! {
-    impl AstNode for #name {
-      fn get_as_expression(&self) -> Expression {
-        Expression::AstNode(self.clone())
       }
     }
   };
@@ -65,9 +47,22 @@ fn impl_new_macro(ast: &syn::DeriveInput) -> TokenStream {
       match &struct_data.fields {
         Fields::Named(named_fields) => {
           for field in &named_fields.named {
-            let default_value_attribute = field.attrs.iter().filter(|x| x.path.segments.len() == 1 && x.path.segments[0].ident == "default").nth(0);
+            let default_value_attribute : Option<&Attribute> = field.attrs.iter().filter(|x| x.path().segments.len() == 1 && x.path().segments[0].ident == "default").nth(0);
             let optional_default_value = if let Some(attr) = default_value_attribute {
-              Some(attr.tokens.to_token_stream())
+              match &attr.meta {
+                Meta::Path(_) => None,
+                Meta::List(list) => Some(list.tokens.clone()),
+                Meta::NameValue(name_value) => match name_value.value.clone() {
+                  Expr::Lit(lit) => match lit.lit {
+                    Lit::Str(str) => match TokenStream::from_str(str.value().as_str()) {
+                      Ok(stream) => Some(proc_macro2::TokenStream::from(stream)),
+                      Err(_) => None, // TODO report error properly
+                    },
+                    _ => None,  // TODO report error properly
+                  }
+                  _ => None,  // TODO report error properly
+                },
+              }
             } else {
               None
             };
@@ -116,17 +111,15 @@ fn impl_new_macro(ast: &syn::DeriveInput) -> TokenStream {
 
 struct MacroInput {
   a: Expr,
-  comma: Token![,],
   b: Expr,
 }
 
 impl Parse for MacroInput {
   fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-    Ok(Self {
-      a: input.parse()?,
-      comma: input.parse()?,
-      b: input.parse()?,
-    })
+    let a = input.parse::<Expr>()?;
+    input.parse::<Token![,]>()?;
+    let b = input.parse::<Expr>()?;
+    Ok(Self { a, b })
   }
 }
 

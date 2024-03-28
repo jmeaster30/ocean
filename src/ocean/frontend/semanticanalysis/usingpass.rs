@@ -1,6 +1,5 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::path::Path; // This is used by some macros
 use std::rc::Rc;
 use itertools::Either;
 use ocean_macros::{borrow_and_drop, borrow_mut_and_drop, New};
@@ -14,7 +13,7 @@ use crate::util::span::Spanned;
 #[derive(Clone, Debug, New)]
 pub struct UsingPassContext {
   pub project_root: String,
-  #[default(HashMap::new())]
+  #[default = "HashMap::new()"]
   pub path_to_symbol_table: HashMap<String, Rc<RefCell<CompilationUnit>>>,
   #[default(Vec::new())]
   pub current_dependency_chain: Vec<String>,
