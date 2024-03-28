@@ -120,6 +120,8 @@ impl Ocean {
 
     borrow_mut_and_drop!(context, borrow_mut.stop_using());
 
+    ast.analyze_object();
+
     let mut precedence_table = PrecedenceTable::new();
     precedence_table.add_prefix_operator("-", 1000);
     precedence_table.add_prefix_operator("!", 1000);

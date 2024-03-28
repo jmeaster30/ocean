@@ -55,7 +55,7 @@ pub struct Variable {
 #[derive(Clone, Debug, New)]
 pub struct Pack {
   name: String,
-  interfaces: Vec<Interface>,
+  interfaces: Vec<Uuid>,
   members: HashMap<String, Uuid>
 }
 

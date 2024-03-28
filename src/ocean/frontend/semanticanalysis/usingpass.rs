@@ -148,12 +148,13 @@ impl UsingPass for WhileLoop {
 impl UsingPass for ForLoop {
   fn analyze_using(&mut self, table: Rc<RefCell<SymbolTable>>, context: Rc<RefCell<UsingPassContext>>) -> (Vec<Rc<RefCell<CompilationUnit>>>, Vec<Error>) {
     let (mut dependencies, mut results) = self.iterable.analyze_using(table.clone(), context.clone());
-    let (mut dep, mut err) = self.iterator.analyze_using(table.clone(), context.clone());
-    join_errors(&mut results, &mut err);
-    dependencies.append(&mut dep);
 
     let new_scope = SymbolTable::soft_scope(table.clone());
     self.table = Some(new_scope.clone());
+
+    let (mut dep, mut err) = self.iterator.analyze_using(new_scope.clone(), context.clone());
+    join_errors(&mut results, &mut err);
+    dependencies.append(&mut dep);
 
     let (mut dep, mut err) = self.body.analyze_using(new_scope, context);
     join_errors(&mut results, &mut err);
