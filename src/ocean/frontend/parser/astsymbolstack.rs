@@ -32,6 +32,7 @@ pub enum AstSymbol {
 
   Identifier(Identifier),
   Type(Type),
+  TypeTupleArguments(Vec<TupleArgument>),
   TypeArguments(Vec<TypeArgument>),
   TypeParameters(TypeParameters),
   FunctionTypeArguments(Vec<FunctionTypeArgument>),

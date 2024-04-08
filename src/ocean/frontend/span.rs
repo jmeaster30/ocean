@@ -247,6 +247,7 @@ impl Spanned for Type {
       Type::Function(function_type) => function_type.get_span(),
       Type::Array(array_type) => array_type.get_span(),
       Type::VariableType(var_type) => var_type.get_span(),
+      Type::TupleType(tuple_type) => tuple_type.get_span(),
     }
   }
 }
@@ -322,6 +323,12 @@ impl Spanned for VariableType {
   fn get_span(&self) -> (usize, usize) {
     (self.base_type.get_span().0, self.spread_token.get_span().1)
   }
+}
+
+impl Spanned for TupleType {
+  fn get_span(&self) -> (usize, usize) {
+    (self.left_paren_token.get_span().0, self.right_paren_token.get_span().1)
+   }
 }
 
 impl Spanned for Expression {

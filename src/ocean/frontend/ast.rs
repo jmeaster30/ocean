@@ -176,6 +176,7 @@ pub enum Type {
   Function(FunctionType),
   Array(ArrayType),
   VariableType(VariableType),
+  TupleType(TupleType),
 }
 
 #[derive(Clone, Debug, New)]
@@ -187,6 +188,34 @@ pub struct BaseType {
 pub struct CustomType {
   pub identifier: Token<TokenType>,
   pub type_parameters: Option<TypeParameters>,
+}
+
+impl CustomType {
+  pub fn get_name(&self) -> String {
+    self.identifier.lexeme.clone()
+  }
+
+  pub fn get_type_arguments(&self) -> Vec<Type> {
+    match &self.type_parameters {
+      Some(parameters) => parameters.type_arguments.iter().map(|x| x.argument_type.clone()).collect::<Vec<Type>>(),
+      None => Vec::new()
+    }
+  }
+}
+
+#[derive(Clone, Debug, New)]
+pub struct TupleType {
+  pub left_paren_token: Token<TokenType>,
+  pub tuple_arguments: Vec<TupleArgument>,
+  pub right_paren_token: Token<TokenType>,
+}
+
+#[derive(Clone, Debug, New)]
+pub struct TupleArgument {
+  pub optional_name: Option<Token<TokenType>>,
+  pub optional_colon: Option<Token<TokenType>>,
+  pub argument_type: Type,
+  pub comma_token: Option<Token<TokenType>>
 }
 
 #[derive(Clone, Debug, New)]
@@ -364,7 +393,7 @@ pub struct InterfaceDeclaration {
 
 #[derive(Clone, Debug, New)]
 pub struct InterfaceImplDeclaration {
-  pub interface_type: Type,
+  pub interface_type: CustomType,
   pub comma_token: Option<Token<TokenType>>,
 }
 

@@ -425,9 +425,9 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
         parser_state_stack.pop();
       }
       (Some(ParseState::InterfaceImplDeclarations), Some(AstSymbol::InterfaceImpls(_)), _) => {
-         parser_state_stack.push(ParseState::Type);
+         parser_state_stack.push(ParseState::TypeCustom);
       }
-      (Some(ParseState::InterfaceImplDeclarations), Some(AstSymbol::Type(parsed_type)), TokenType::Comma) => {
+      (Some(ParseState::InterfaceImplDeclarations), Some(AstSymbol::Type(Type::Custom(parsed_type))), TokenType::Comma) => {
         ast_stack.pop();
         let interface_impls = ast_stack.pop_panic();
         match interface_impls {
@@ -439,7 +439,7 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
           _ => panic!("Invalid parse state"),
         }
       }
-      (Some(ParseState::InterfaceImplDeclarations), Some(AstSymbol::Type(parsed_type)), _) => {
+      (Some(ParseState::InterfaceImplDeclarations), Some(AstSymbol::Type(Type::Custom(parsed_type))), _) => {
         ast_stack.pop();
         let interface_impls = ast_stack.pop_panic();
         match interface_impls {
@@ -843,6 +843,13 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
         ast_stack.push(AstSymbol::Type(Type::Base(BaseType::new(current_token.clone()))));
         token_index = consume(token_index);
       }
+      (Some(ParseState::Type), _, TokenType::LeftParen) => {
+        parser_state_stack.goto(ParseState::TypeArray);
+        parser_state_stack.push(ParseState::TypeTuple);
+        ast_stack.push(AstSymbol::Token(current_token.clone()));
+        ast_stack.push(AstSymbol::TypeTupleArguments(Vec::new()));
+        token_index = consume(token_index);
+      }
       (Some(ParseState::Type), _, TokenType::RightSquare) => {
         parser_state_stack.pop();
       }
@@ -874,6 +881,63 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
         ast_stack.push(AstSymbol::Token(current_token.clone()));
         token_index = consume(token_index);
         parser_state_stack.goto(ParseState::TypeFunctionParams);
+      }
+      (Some(ParseState::TypeTuple), Some(AstSymbol::TypeTupleArguments(_)), TokenType::Identifier) => {
+        ast_stack.push(AstSymbol::OptToken(Some(current_token.clone())));
+        token_index = consume(token_index);
+        parser_state_stack.push(ParseState::TypeTupleColon);
+      }
+      (Some(ParseState::TypeTuple), Some(AstSymbol::TypeTupleArguments(type_tuple_arguments)), TokenType::RightParen) => {
+        ast_stack.pop();
+        let left_paren = ast_stack.pop_panic();
+        match left_paren {
+          AstSymbol::Token(left_paren) => {
+            ast_stack.push(AstSymbol::Type(Type::TupleType(TupleType::new(left_paren, type_tuple_arguments, current_token.clone()))));
+            token_index = consume(token_index);
+            parser_state_stack.pop();
+          }
+          _ => panic!("Invalid state :("),
+        }
+      }
+      (Some(ParseState::TypeTuple), Some(AstSymbol::TypeTupleArguments(_)), _) => {
+        ast_stack.push(AstSymbol::OptToken(None));
+        ast_stack.push(AstSymbol::OptToken(None));
+      }
+      (Some(ParseState::TypeTuple), Some(AstSymbol::OptToken(_)), _) => {
+        parser_state_stack.push(ParseState::Type);
+      }
+      (Some(ParseState::TypeTuple), Some(AstSymbol::Type(tuple_arg_type)), TokenType::Comma) => {
+        ast_stack.pop();
+        let opt_colon_token = ast_stack.pop_panic();
+        let opt_identifier = ast_stack.pop_panic();
+        let tuple_type_arguments = ast_stack.pop_panic();
+        match (tuple_type_arguments, opt_identifier, opt_colon_token) {
+          (AstSymbol::TypeTupleArguments(mut arguments), AstSymbol::OptToken(opt_identifier), AstSymbol::OptToken(opt_colon_token)) => {
+            arguments.push(TupleArgument::new(opt_identifier, opt_colon_token, tuple_arg_type, Some(current_token.clone())));
+            ast_stack.push(AstSymbol::TypeTupleArguments(arguments));
+            token_index = consume(token_index);
+          }
+          _ => panic!("Invalid state"),
+        }
+      }
+      (Some(ParseState::TypeTuple), Some(AstSymbol::Type(tuple_arg_type)), _) => {
+        ast_stack.pop();
+        let opt_colon_token = ast_stack.pop_panic();
+        let opt_identifier = ast_stack.pop_panic();
+        let tuple_type_arguments = ast_stack.pop_panic();
+        match (tuple_type_arguments, opt_identifier, opt_colon_token) {
+          (AstSymbol::TypeTupleArguments(mut arguments), AstSymbol::OptToken(opt_identifier), AstSymbol::OptToken(opt_colon_token)) => {
+            arguments.push(TupleArgument::new(opt_identifier, opt_colon_token, tuple_arg_type, None));
+            ast_stack.push(AstSymbol::TypeTupleArguments(arguments));
+          }
+          _ => panic!("Invalid state"),
+        }
+      }
+
+      (Some(ParseState::TypeTupleColon), Some(AstSymbol::OptToken(_)), TokenType::Colon) => {
+        ast_stack.push(AstSymbol::OptToken(Some(current_token.clone())));
+        token_index = consume(token_index);
+        parser_state_stack.pop();
       }
       (Some(ParseState::TypeFunctionParams), Some(AstSymbol::FunctionTypeArguments(_)), TokenType::Identifier) | (Some(ParseState::TypeFunctionParams), Some(AstSymbol::FunctionTypeArguments(_)), TokenType::Type) | (Some(ParseState::TypeFunctionParams), Some(AstSymbol::FunctionTypeArguments(_)), TokenType::TypePrefix) => {
         parser_state_stack.push(ParseState::Type);
@@ -1001,7 +1065,7 @@ pub fn parse_phase_one_partial(tokens: &Vec<Token<TokenType>>, initial_token_ind
           _ => panic!("Invalid parse state :("),
         }
       }
-      (Some(ParseState::TypeArguments), Some(AstSymbol::Token(_)), TokenType::LeftParen) => {
+      (Some(ParseState::TypeArguments), _, TokenType::LeftParen) => {
         ast_stack.push(AstSymbol::Token(current_token.clone()));
         ast_stack.push(AstSymbol::TypeArguments(Vec::new()));
         token_index = consume(token_index);

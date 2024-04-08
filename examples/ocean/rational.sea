@@ -70,6 +70,11 @@ function divide (a: rational, b: rational) -> (res: rational) {
     res = (numerator: num / scale, denominator: denom / scale);
 }
 
+@Cast function tupleToRational(a: (numerator: i64, denominator: i64)) -> (res: rational) {
+    res.numerator = a.numerator;
+    res.denominator = a.denominator;
+}
+
 function main () -> (res: i64 = 360.gcd(48)) {
     let test_a = (12 / 24);
     let test_b = (24 / 12);

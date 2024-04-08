@@ -57,6 +57,8 @@ pub enum ParseState {
   TypeFunctionParams,
   TypeFunctionOptArrow,
   TypeFunctionReturns,
+  TypeTuple,
+  TypeTupleColon,
 
   Expression,
   ExpressionNoComma,
