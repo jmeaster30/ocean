@@ -169,8 +169,8 @@ impl SymbolTable {
   }
 
   pub fn add_pack_declaration(&mut self, pack_name: &String, pack_span: (usize, usize)) -> Result<(), Error> {
-    if let Some(pack_uuid) = self.find_pack(pack_name) {
-      let declared_pack = match self.find_symbol_by_uuid(&pack_uuid).symbol_type {
+    if let Some(pack_uuid) = self.find_pack(pack_name, true) {
+      let declared_pack = match self.find_symbol_by_uuid(&pack_uuid, true).symbol_type {
         SymbolType::Pack(p) => p,
         _ => panic!("Should not happen :("),
       };
@@ -193,8 +193,8 @@ impl SymbolTable {
   }
 
   pub fn add_union_declaration(&mut self, union_name: &String, union_span: (usize, usize)) -> Result<(), Error> {
-    if let Some(union_uuid) = self.find_union(union_name) {
-      let declared_union = match self.find_symbol_by_uuid(&union_uuid).symbol_type {
+    if let Some(union_uuid) = self.find_union(union_name, true) {
+      let declared_union = match self.find_symbol_by_uuid(&union_uuid, true).symbol_type {
         SymbolType::Union(u) => u,
         _ => panic!("Should not happen :("),
       };
@@ -206,13 +206,19 @@ impl SymbolTable {
             .extra_highlighted_info(declared_union.declaration_span, "Union already declared here.".to_string())
       ))
     } else {
+      let uuid = Uuid::new_v4();
+      let union = SymbolType::Union(Union::new(union_span, union_name.clone(), HashableMap::new()));
+      let symbol = Symbol::new(false, false, false, union);
+      self.unions.insert(union_name.clone(), uuid);
+      self.symbols.insert(uuid, symbol);
+      self.uuid_map.insert(uuid, QuerySymbolType::CustomType(union_name.clone()));
       Ok(())
     }
   }
 
   pub fn add_interface_declaration(&mut self, interface_name: &String, interface_span: (usize, usize)) -> Result<(), Error> {
-    if let Some(interface_uuid) = self.find_interface(interface_name) {
-      let declared_interface = match self.find_symbol_by_uuid(&interface_uuid).symbol_type {
+    if let Some(interface_uuid) = self.find_interface(interface_name, true) {
+      let declared_interface = match self.find_symbol_by_uuid(&interface_uuid, true).symbol_type {
         SymbolType::Interface(i) => i,
         _ => panic!("Should not happen :("),
       };
@@ -224,81 +230,87 @@ impl SymbolTable {
             .extra_highlighted_info(declared_interface.declaration_span, "Interface already declared here.".to_string())
       ))
     } else {
+      let uuid = Uuid::new_v4();
+      let interface = SymbolType::Interface(Interface::new(interface_span, interface_name.clone(), HashableMap::new()));
+      let symbol = Symbol::new(false, false, false, interface);
+      self.unions.insert(interface_name.clone(), uuid);
+      self.symbols.insert(uuid, symbol);
+      self.uuid_map.insert(uuid, QuerySymbolType::CustomType(interface_name.clone()));
       Ok(())
     }
   }
 
-  pub fn find_interface(&self, interface_name: &String) -> Option<Uuid> {
+  pub fn find_interface(&self, interface_name: &String, in_current_scope: bool) -> Option<Uuid> {
     self.find_internal(interface_name, &(|s: &SymbolTable, n: &String| {
       match s.interfaces.get(n) {
         Some(x) => Some(*x),
         None => None
       }
-    }), true, false)
+    }), false, false, in_current_scope)
   }
 
-  pub fn find_variable(&self, variable_name: &String) -> Option<Uuid> {
+  pub fn find_variable(&self, variable_name: &String, in_current_scope: bool) -> Option<Uuid> {
     self.find_internal(variable_name, &(|s: &SymbolTable, n: &String| {
       match s.variables.get(n) {
         Some(x) => Some(*x),
         None => None
       }
-    }), true, false)
+    }), false, false, in_current_scope)
   }
 
-  pub fn find_pack(&self, pack_name: &String) -> Option<Uuid> {
+  pub fn find_pack(&self, pack_name: &String, in_current_scope: bool) -> Option<Uuid> {
     self.find_internal(pack_name, &(|s: &SymbolTable, n: &String| {
       match s.packs.get(n) {
         Some(x) => Some(*x),
         None => None
       }
-    }), true, false)
+    }), false, false, in_current_scope)
   }
 
-  pub fn find_union(&self, union_name: &String) -> Option<Uuid> {
+  pub fn find_union(&self, union_name: &String, in_current_scope: bool) -> Option<Uuid> {
     self.find_internal(union_name, &(|s: &SymbolTable, n: &String| {
       match s.unions.get(n) {
         Some(x) => Some(*x),
         None => None
       }
-    }), true, false)
+    }), false, false, in_current_scope)
   }
 
   // TODO this may not be correct cause of parameters and junk
-  pub fn find_functions(&self, function_name: &String) -> Option<Uuid> {
+  pub fn find_functions(&self, function_name: &String, in_current_scope: bool) -> Option<Uuid> {
     self.find_internal(function_name, &(|s: &SymbolTable, n: &String| {
       match s.functions.get(n) {
         Some(x) => Some(*x),
         None => None
       }
-    }), true, false)
+    }), true, false, in_current_scope)
   }
 
-  fn find_symbol_by_uuid(&self, uuid: &Uuid) -> Symbol {
+  fn find_symbol_by_uuid(&self, uuid: &Uuid, in_current_scope: bool) -> Symbol {
     self.find_internal(uuid, &(|s: &SymbolTable, u: &Uuid| {
       match s.symbols.get(u) {
         Some(x) => Some(x.clone()),
         None => None
       }
-    }), true, true).unwrap() // TODO is this valid?
+    }), true, true, in_current_scope).unwrap() // TODO is this valid?
   }
 
-  fn find_internal<S, N, R>(&self, name: &N, selector: &S, check_usings: bool, keep_check_usings: bool) -> Option<R>
+  fn find_internal<S, N, R>(&self, name: &N, selector: &S, check_usings: bool, keep_check_usings: bool, in_current_scope: bool) -> Option<R>
     where S: Fn(&SymbolTable, &N) -> Option<R> {
     match selector(&self, &name) {
       Some(x) => Some(x),
       None => {
-        if !check_usings { return None }
+        if !check_usings || in_current_scope { return None }
 
         for using in &self.usings {
-          match using.borrow().find_internal(name, selector, keep_check_usings, keep_check_usings) {
+          match using.borrow().find_internal(name, selector, keep_check_usings, keep_check_usings, in_current_scope) {
             Some(uuid) => return Some(uuid),
             None => {}
           }
         }
 
         match self.parent.clone() {
-          Some(parent) => parent.borrow().find_internal(name, selector, check_usings, keep_check_usings),
+          Some(parent) => parent.borrow().find_internal(name, selector, check_usings, keep_check_usings, in_current_scope),
           None => None,
         }
       }
