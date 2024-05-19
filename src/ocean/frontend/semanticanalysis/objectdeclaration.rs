@@ -136,40 +136,22 @@ impl Function {
 
 impl Pack {
   pub fn analyze_object_declaration(&mut self, table: Rc<RefCell<SymbolTable>>) -> Vec<Error> {
-    let mut errors = Vec::new();
-
     let pack_name = self.custom_type.get_name();
-    if let Err(error) = table.borrow_mut().add_pack_declaration(&pack_name, self.custom_type.get_span()) {
-      errors.push(error);
-    }
-
-    errors
+    table.borrow_mut().add_pack_declaration(&pack_name, self.custom_type.get_span())
   }
 }
 
 impl Union {
   pub fn analyze_object_declaration(&mut self, table: Rc<RefCell<SymbolTable>>) -> Vec<Error> {
-    let mut errors = Vec::new();
-
     let union_name = self.custom_type.get_name();
-    if let Err(error) = table.borrow_mut().add_union_declaration(&union_name, self.custom_type.get_span()) {
-      errors.push(error);
-    }
-
-    errors
+    table.borrow_mut().add_union_declaration(&union_name, self.custom_type.get_span())
   }
 }
 
 impl Interface {
   pub fn analyze_object_declaration(&mut self, table: Rc<RefCell<SymbolTable>>) -> Vec<Error> {
-    let mut errors = Vec::new();
-
     let interface_name = self.custom_type.get_name();
-    if let Err(error) = table.borrow_mut().add_interface_declaration(&interface_name, self.custom_type.get_span()) {
-      errors.push(error);
-    }
-
-    errors
+    table.borrow_mut().add_interface_declaration(&interface_name, self.custom_type.get_span())
   }
 }
 

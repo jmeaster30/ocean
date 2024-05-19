@@ -168,75 +168,158 @@ impl SymbolTable {
     self.usings.push(symbol_table);
   }
 
-  pub fn add_pack_declaration(&mut self, pack_name: &String, pack_span: (usize, usize)) -> Result<(), Error> {
+  pub fn add_pack_declaration(&mut self, pack_name: &String, pack_span: (usize, usize)) -> Vec<Error> {
     if let Some(pack_uuid) = self.find_pack(pack_name, true) {
       let declared_pack = match self.find_symbol_by_uuid(&pack_uuid, true).symbol_type {
         SymbolType::Pack(p) => p,
         _ => panic!("Should not happen :("),
       };
-      Err(Error::new_with_metadata(
+      vec![Error::new_with_metadata(
         Severity::Error,
         pack_span,
         "Pack with same name already declared.".to_string(),
         ErrorMetadata::new()
             .extra_highlighted_info(declared_pack.declaration_span, "Pack already defined here".to_string())
-      ))
+      )]
     } else {
+      let mut errors = Vec::new();
+      if let Some(found_union_conflict) = self.find_union(pack_name, true) {
+        let declared_union = match self.find_symbol_by_uuid(&found_union_conflict, true).symbol_type {
+          SymbolType::Union(u) => u,
+          _ => panic!("Should not happen :("),
+        };
+        errors.push(Error::new_with_metadata(
+          Severity::Error,
+          pack_span,
+          "Union with same name already declared.".to_string(),
+          ErrorMetadata::new()
+              .extra_highlighted_info(declared_union.declaration_span, "Union already defined here".to_string())
+        ))
+      }
+      if let Some(found_interface_conflict) = self.find_interface(pack_name, true) {
+        let declared_interface = match self.find_symbol_by_uuid(&found_interface_conflict, true).symbol_type {
+          SymbolType::Interface(i) => i,
+          _ => panic!("Should not happen :("),
+        };
+        errors.push(Error::new_with_metadata(
+          Severity::Error,
+          pack_span,
+          "Interface with same name already declared.".to_string(),
+          ErrorMetadata::new()
+              .extra_highlighted_info(declared_interface.declaration_span, "Interface already defined here".to_string())
+        ))
+      }
+
       let uuid = Uuid::new_v4();
       let pack = SymbolType::Pack(Pack::new(pack_span, pack_name.clone(), Vec::new(), Vec::new(), HashableMap::new()));
       let symbol = Symbol::new(false, false, false, pack);
       self.packs.insert(pack_name.clone(), uuid);
       self.symbols.insert(uuid, symbol);
       self.uuid_map.insert(uuid, QuerySymbolType::CustomType(pack_name.clone()));
-      Ok(())
+      errors
     }
   }
 
-  pub fn add_union_declaration(&mut self, union_name: &String, union_span: (usize, usize)) -> Result<(), Error> {
+  pub fn add_union_declaration(&mut self, union_name: &String, union_span: (usize, usize)) -> Vec<Error> {
     if let Some(union_uuid) = self.find_union(union_name, true) {
       let declared_union = match self.find_symbol_by_uuid(&union_uuid, true).symbol_type {
         SymbolType::Union(u) => u,
         _ => panic!("Should not happen :("),
       };
-      Err(Error::new_with_metadata(
+      vec![Error::new_with_metadata(
         Severity::Error,
         union_span,
         "Union with same name already declared.".to_string(),
         ErrorMetadata::new()
             .extra_highlighted_info(declared_union.declaration_span, "Union already declared here.".to_string())
-      ))
+      )]
     } else {
+      let mut errors = Vec::new();
+      if let Some(found_pack_conflict) = self.find_pack(union_name, true) {
+        let declared_pack = match self.find_symbol_by_uuid(&found_pack_conflict, true).symbol_type {
+          SymbolType::Pack(p) => p,
+          _ => panic!("Should not happen :("),
+        };
+        errors.push(Error::new_with_metadata(
+          Severity::Error,
+          union_span,
+          "Pack with same name already declared.".to_string(),
+          ErrorMetadata::new()
+              .extra_highlighted_info(declared_pack.declaration_span, "Pack already defined here".to_string())
+        ))
+      }
+      if let Some(found_interface_conflict) = self.find_interface(union_name, true) {
+        let declared_interface = match self.find_symbol_by_uuid(&found_interface_conflict, true).symbol_type {
+          SymbolType::Interface(i) => i,
+          _ => panic!("Should not happen :("),
+        };
+        errors.push(Error::new_with_metadata(
+          Severity::Error,
+          union_span,
+          "Interface with same name already declared.".to_string(),
+          ErrorMetadata::new()
+              .extra_highlighted_info(declared_interface.declaration_span, "Interface already defined here".to_string())
+        ))
+      }
       let uuid = Uuid::new_v4();
       let union = SymbolType::Union(Union::new(union_span, union_name.clone(), HashableMap::new()));
       let symbol = Symbol::new(false, false, false, union);
       self.unions.insert(union_name.clone(), uuid);
       self.symbols.insert(uuid, symbol);
       self.uuid_map.insert(uuid, QuerySymbolType::CustomType(union_name.clone()));
-      Ok(())
+      errors
     }
   }
 
-  pub fn add_interface_declaration(&mut self, interface_name: &String, interface_span: (usize, usize)) -> Result<(), Error> {
+  pub fn add_interface_declaration(&mut self, interface_name: &String, interface_span: (usize, usize)) -> Vec<Error> {
     if let Some(interface_uuid) = self.find_interface(interface_name, true) {
       let declared_interface = match self.find_symbol_by_uuid(&interface_uuid, true).symbol_type {
         SymbolType::Interface(i) => i,
         _ => panic!("Should not happen :("),
       };
-      Err(Error::new_with_metadata(
+      vec![Error::new_with_metadata(
         Severity::Error,
         interface_span,
         "Interface with same name already declared.".to_string(),
         ErrorMetadata::new()
             .extra_highlighted_info(declared_interface.declaration_span, "Interface already declared here.".to_string())
-      ))
+      )]
     } else {
+      let mut errors = Vec::new();
+      if let Some(found_pack_conflict) = self.find_pack(interface_name, true) {
+        let declared_pack = match self.find_symbol_by_uuid(&found_pack_conflict, true).symbol_type {
+          SymbolType::Pack(p) => p,
+          _ => panic!("Should not happen :("),
+        };
+        errors.push(Error::new_with_metadata(
+          Severity::Error,
+          interface_span,
+          "Pack with same name already declared.".to_string(),
+          ErrorMetadata::new()
+              .extra_highlighted_info(declared_pack.declaration_span, "Pack already defined here".to_string())
+        ))
+      }
+      if let Some(found_union_conflict) = self.find_union(interface_name, true) {
+        let declared_union = match self.find_symbol_by_uuid(&found_union_conflict, true).symbol_type {
+          SymbolType::Union(i) => i,
+          _ => panic!("Should not happen :("),
+        };
+        errors.push(Error::new_with_metadata(
+          Severity::Error,
+          interface_span,
+          "Union with same name already declared.".to_string(),
+          ErrorMetadata::new()
+              .extra_highlighted_info(declared_union.declaration_span, "Union already defined here".to_string())
+        ))
+      }
+
       let uuid = Uuid::new_v4();
       let interface = SymbolType::Interface(Interface::new(interface_span, interface_name.clone(), HashableMap::new()));
       let symbol = Symbol::new(false, false, false, interface);
       self.unions.insert(interface_name.clone(), uuid);
       self.symbols.insert(uuid, symbol);
       self.uuid_map.insert(uuid, QuerySymbolType::CustomType(interface_name.clone()));
-      Ok(())
+      errors
     }
   }
 
