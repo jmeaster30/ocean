@@ -1,0 +1,11 @@
+using std.time
+
+@Annotation(name: "Time", scope: "function")
+function time(func_name: string, func: function(auto Args...) -> (auto Returns...), arguments: Args)
+    -> (result: Returns)
+{
+    start_time = now_ms(); # TODO I want to do something like `now(milliseconds)` but I think the union name with no storage value seems difficult for type checking...
+    result = func(arguments);
+    end_time = now_ms();
+    logger.Diagnostic(`Function '{func_name}' took {end_time - start_time}ms to execute`);
+}

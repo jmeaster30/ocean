@@ -1,0 +1,36 @@
+#/
+
+TODO:
+    - [ ] now function that takes a time unit for the scale at which we are measuring time
+    - [ ] union of time units
+    - [ ] add arithmetic and comparison ops for Time
+    - [ ] date
+
+/#
+
+union Time {
+    nanoseconds(f64)
+    microseconds(f64)
+    milliseconds(f64)
+    seconds(f64)
+    minutes(f64)
+    hours(f64)
+    days(f64)
+    weeks(f64)
+    months(f64)
+    years(f64)
+    decades(f64)
+    centuries(f64)
+    eons(f64)
+}
+
+pack Date {
+    year: u32,
+    month: u32,
+    day: u32,
+    hour: u32,
+    minute: u32,
+    second: u32
+}
+
+function now_ms() -> (result: Time = #/ TODO get current time /#)

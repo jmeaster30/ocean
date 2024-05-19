@@ -6,7 +6,6 @@ use crate::util::token::Token;
 use itertools::{Either, Itertools};
 use ocean_macros::New;
 use crate::ocean::frontend::semanticanalysis::symboltable::SymbolTable;
-use crate::util::errors::Error;
 
 #[derive(Clone, Debug, New)]
 pub struct Program {

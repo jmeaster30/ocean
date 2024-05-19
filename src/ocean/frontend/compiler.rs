@@ -120,7 +120,8 @@ impl Ocean {
 
     borrow_mut_and_drop!(context, borrow_mut.stop_using());
 
-    ast.analyze_object();
+    errors.append(&mut ast.analyze_object_declaration());
+    println!("{:?}", ast.table);
 
     let mut precedence_table = PrecedenceTable::new();
     precedence_table.add_prefix_operator("-", 1000);
@@ -157,4 +158,8 @@ impl Ocean {
     }
     (ast, dependencies, errors)
   }
+}
+
+fn append_errors(errors: &mut Vec<Error>, mut new_errors: Vec<Error>) {
+  errors.append(&mut new_errors);
 }

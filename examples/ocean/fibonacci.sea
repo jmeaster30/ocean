@@ -1,9 +1,3 @@
-using std.annotation.memoize
-# imports the trace annotation
-using std.annotation.trace
-
-@Trace
-@Memoize
 function fib (input: u128) -> (result: u128) {
   if input <= 1 {
     result = input;
@@ -12,5 +6,4 @@ function fib (input: u128) -> (result: u128) {
   }
 }
 
-println(`9th fibonacci number is {9.fib} and the tenth is {{} {fib(10)}`);
-println((fib(10)) + 9.fib as TestType(auto subtype, i32));
+println(`9th fibonacci number is {9.fib()} and the tenth is {fib(10)}`);

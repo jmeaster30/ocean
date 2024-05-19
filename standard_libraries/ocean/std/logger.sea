@@ -1,0 +1,58 @@
+#/
+
+TODO:
+    - [ ] Make a logger pack that allows configuring different or multiple logging outputs
+    - [ ] Configurable log entry format
+    - [ ] functions for some core levels of logging. Trace, Debug, Diagnostic, Log, Warning, Critical
+
+/#
+
+std.io
+std.time
+
+interface Logger {
+    function trace(message: string)
+    function debug(message: string)
+    function diagnostic(message: string)
+    function log(message: string)
+    function warning(message: string)
+    function critical(message: string)
+}
+
+@Hidden
+function convertToFormatString(level: string, message: string) -> (result: string) {
+    #TODO does the formatting
+}
+
+pack CombinationLogger : Logger {
+    outputs: Logger[]
+}
+
+@GenerateLoggerFunction("Trace")
+@GenerateLoggerFunction("Debug")
+@GenerateLoggerFunction("Diagnostic")
+@GenerateLoggerFunction("Log")
+@GenerateLoggerFunction("Warning")
+@GenerateLoggerFunction("Critical")
+pack ConsoleLogger : Logger {
+    format_string: string
+}
+
+pack ConsoleLoggerGeneratorParameters {
+    log_level: string # Should be a LogLevel union type
+}
+
+@Hidden
+@Generator(name: "GenerateLoggerFunction", scope: "pack", parameters: ConsoleLoggerGeneratorParameters)
+function loggerGenerator(thingy: Pack, parameters: ConsoleLoggerGeneratorParameters) 
+    -> (result: string)
+{
+    result = `function {parameters.log_level.to_lower()}(logger: {thingy.name}, message: string) {
+        println!(convertToFormatString({parameters.log_level}, message))
+    }`
+} 
+
+
+
+
+
