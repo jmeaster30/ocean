@@ -158,13 +158,16 @@ impl Interface {
 
 impl ExpressionStatement {
   pub fn analyze_object_declaration(&mut self, table: Rc<RefCell<SymbolTable>>) -> Vec<Error> {
-    todo!()
+    self.expression_node.analyze_object_declaration(table)
   }
 }
 
 impl ExpressionNode {
   pub fn analyze_object_declaration(&mut self, table: Rc<RefCell<SymbolTable>>) -> Vec<Error> {
-    todo!()
+    match &mut self.parsed_expression {
+      Some(expr) => expr.analyze_object_declaration(table),
+      None => Vec::new()
+    }
   }
 }
 
@@ -179,3 +182,131 @@ impl CompoundStatement {
   }
 }
 
+impl Expression {
+  pub fn analyze_object_declaration(&mut self, table: Rc<RefCell<SymbolTable>>) -> Vec<Error> {
+    match self {
+      Expression::String(_) => Vec::new(),
+      Expression::ArrayLiteral(a) => a.analyze_object_declaration(table),
+      Expression::Number(_) => Vec::new(),
+      Expression::Boolean(_) => Vec::new(),
+      Expression::InterpolatedString(i) => i.analyze_object_declaration(table),
+      Expression::Variable(_) => Vec::new(),
+      Expression::Tuple(t) => t.analyze_object_declaration(table),
+      Expression::Call(c) => c.analyze_object_declaration(table),
+      Expression::ArrayIndex(a) => a.analyze_object_declaration(table),
+      Expression::SubExpression(s) => s.analyze_object_declaration(table),
+      Expression::Cast(c) => c.analyze_object_declaration(table),
+      Expression::PrefixOperation(p) => p.analyze_object_declaration(table),
+      Expression::PostfixOperation(p) => p.analyze_object_declaration(table),
+      Expression::BinaryOperation(b) => b.analyze_object_declaration(table),
+      Expression::AstNode(a) => a.analyze_object_declaration(table),
+    }
+  }
+}
+
+impl AstNodeExpression {
+  pub fn analyze_object_declaration(&mut self, table: Rc<RefCell<SymbolTable>>) -> Vec<Error> {
+    match self {
+      AstNodeExpression::Match(m) => m.analyze_object_declaration(table),
+      AstNodeExpression::Loop(l) => l.analyze_object_declaration(table),
+      AstNodeExpression::ForLoop(f) => f.analyze_object_declaration(table),
+      AstNodeExpression::WhileLoop(w) => w.analyze_object_declaration(table),
+      AstNodeExpression::Branch(b) => b.analyze_object_declaration(table),
+      AstNodeExpression::Function(f) => f.analyze_object_declaration(table),
+    }
+  }
+}
+
+impl ArrayLiteral {
+  pub fn analyze_object_declaration(&mut self, table: Rc<RefCell<SymbolTable>>) -> Vec<Error> {
+    let mut errors = Vec::new();
+    for arg in &mut self.arguments {
+      errors.append(&mut arg.analyze_object_declaration(table.clone()));
+    }
+    errors
+  }
+}
+
+impl Argument {
+  pub fn analyze_object_declaration(&mut self, table: Rc<RefCell<SymbolTable>>) -> Vec<Error> {
+    self.value.analyze_object_declaration(table)
+  }
+}
+
+impl InterpolatedString {
+  pub fn analyze_object_declaration(&mut self, table: Rc<RefCell<SymbolTable>>) -> Vec<Error> {
+    let mut errs = Vec::new();
+    for expr in &mut self.subexpressions {
+      errs.append(&mut expr.analyze_object_declaration(table.clone()));
+    }
+    errs
+  }
+}
+
+impl Tuple {
+  pub fn analyze_object_declaration(&mut self, table: Rc<RefCell<SymbolTable>>) -> Vec<Error> {
+    let mut errs = Vec::new();
+    for member in &mut self.tuple_members {
+      errs.append(&mut member.analyze_object_declaration(table.clone()));
+    }
+    errs
+  }
+}
+
+impl TupleMember {
+  pub fn analyze_object_declaration(&mut self, table: Rc<RefCell<SymbolTable>>) -> Vec<Error> {
+    self.value.analyze_object_declaration(table)
+  }
+}
+
+impl Call {
+  pub fn analyze_object_declaration(&mut self, table: Rc<RefCell<SymbolTable>>) -> Vec<Error> {
+    let mut errs = self.target.analyze_object_declaration(table.clone());
+    for arg in &mut self.arguments {
+      errs.append(&mut arg.value.analyze_object_declaration(table.clone()));
+    }
+    errs
+  }
+}
+
+impl ArrayIndex {
+  pub fn analyze_object_declaration(&mut self, table: Rc<RefCell<SymbolTable>>) -> Vec<Error> {
+    let mut errs = self.target.analyze_object_declaration(table.clone());
+    for arg in &mut self.arguments {
+      errs.append(&mut arg.value.analyze_object_declaration(table.clone()));
+    }
+    errs
+  }
+}
+
+impl SubExpression {
+  pub fn analyze_object_declaration(&mut self, table: Rc<RefCell<SymbolTable>>) -> Vec<Error> {
+    self.expression.analyze_object_declaration(table)
+  }
+}
+
+impl Cast {
+  pub fn analyze_object_declaration(&mut self, table: Rc<RefCell<SymbolTable>>) -> Vec<Error> {
+    self.expression.analyze_object_declaration(table)
+  }
+}
+
+impl PrefixOperator {
+  pub fn analyze_object_declaration(&mut self, table: Rc<RefCell<SymbolTable>>) -> Vec<Error> {
+    self.expression.analyze_object_declaration(table)
+  }
+}
+
+impl PostfixOperator {
+  pub fn analyze_object_declaration(&mut self, table: Rc<RefCell<SymbolTable>>) -> Vec<Error> {
+    self.expression.analyze_object_declaration(table)
+  }
+}
+
+impl BinaryOperator {
+  pub fn analyze_object_declaration(&mut self, table: Rc<RefCell<SymbolTable>>) -> Vec<Error> {
+    let mut errs = self.left_expression.analyze_object_declaration(table.clone());
+    errs.append(&mut self.right_expression.analyze_object_declaration(table));
+    errs
+  }
+}

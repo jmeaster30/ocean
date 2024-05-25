@@ -522,7 +522,7 @@ pub struct Call {
 pub struct ArrayIndex {
   pub target: Box<Expression>,
   pub left_square: Token<TokenType>,
-  pub argument: Vec<Argument>,
+  pub arguments: Vec<Argument>,
   pub right_square: Token<TokenType>,
 }
 
