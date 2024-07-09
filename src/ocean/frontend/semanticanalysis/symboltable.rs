@@ -39,20 +39,24 @@ pub enum BaseSymbolType {
   Char
 }
 
-#[derive(Clone, Debug, New)]
-pub struct Symbol {
-  lazy: bool,
-  reference: bool,
-  assignable: bool,
-  symbol_type: SymbolType, // this may need to be possible types
-  //all_types_possible: bool, // if this is true then an empty list in possible_types means "Any types" but if it is false then an empty list in possible_types means "No possible types"
-  //possible_types: Vec<SymbolType>,
+#[derive(Clone, Debug)]
+pub enum SymbolTableEntry {
+  Variable(Variable),
+  Base(BaseSymbolType),
+  Pack(Pack),
+  Union(Union),
+  Interface(Interface),
+  Function(Function),
 }
 
 #[derive(Clone, Debug, New, Eq, PartialEq, Hash)]
 pub struct Variable {
   declaration_span: (usize, usize),
   name: String,
+  lazy: bool,
+  reference: bool,
+  assignable: bool,
+  symbol_type: SymbolType,
 }
 
 #[derive(Clone, Debug, New, Eq, PartialEq, Hash)]
@@ -86,14 +90,13 @@ pub struct Function {
   returns: Vec<(String, Uuid)>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub enum SymbolType {
-  Base(BaseSymbolType),
-  Variable(Variable),
-  Pack(Pack),
-  Union(Union),
-  Function(Function),
-  Interface(Interface),
+  Base(Uuid),
+  Pack(Uuid),
+  Union(Uuid),
+  Function(Uuid),
+  Interface(Uuid),
 }
 
 #[derive(Clone, Debug)]
@@ -103,7 +106,7 @@ pub struct SymbolTable {
   hard_scope: bool,
   usings: Vec<Rc<RefCell<SymbolTable>>>,
   uuid_map: DoubleMap<Uuid, QuerySymbolType>,
-  symbols: HashMap<Uuid, Symbol>,
+  symbols: HashMap<Uuid, SymbolTableEntry>,
   autos: HashMap<String, Uuid>,
   variables: HashMap<String, Uuid>,
   packs: HashMap<String, Uuid>,
@@ -170,8 +173,8 @@ impl SymbolTable {
 
   pub fn add_pack_declaration(&mut self, pack_name: &String, pack_span: (usize, usize)) -> Vec<Error> {
     if let Some(pack_uuid) = self.find_pack(pack_name, true) {
-      let declared_pack = match self.find_symbol_by_uuid(&pack_uuid, true).symbol_type {
-        SymbolType::Pack(p) => p,
+      let declared_pack = match self.find_symbol_by_uuid(&pack_uuid, true) {
+        SymbolTableEntry::Pack(p) => p,
         _ => panic!("Should not happen :("),
       };
       vec![Error::new_with_metadata(
@@ -184,8 +187,8 @@ impl SymbolTable {
     } else {
       let mut errors = Vec::new();
       if let Some(found_union_conflict) = self.find_union(pack_name, true) {
-        let declared_union = match self.find_symbol_by_uuid(&found_union_conflict, true).symbol_type {
-          SymbolType::Union(u) => u,
+        let declared_union = match self.find_symbol_by_uuid(&found_union_conflict, true) {
+          SymbolTableEntry::Union(u) => u,
           _ => panic!("Should not happen :("),
         };
         errors.push(Error::new_with_metadata(
@@ -197,8 +200,8 @@ impl SymbolTable {
         ))
       }
       if let Some(found_interface_conflict) = self.find_interface(pack_name, true) {
-        let declared_interface = match self.find_symbol_by_uuid(&found_interface_conflict, true).symbol_type {
-          SymbolType::Interface(i) => i,
+        let declared_interface = match self.find_symbol_by_uuid(&found_interface_conflict, true) {
+          SymbolTableEntry::Interface(i) => i,
           _ => panic!("Should not happen :("),
         };
         errors.push(Error::new_with_metadata(
@@ -211,8 +214,7 @@ impl SymbolTable {
       }
 
       let uuid = Uuid::new_v4();
-      let pack = SymbolType::Pack(Pack::new(pack_span, pack_name.clone(), Vec::new(), Vec::new(), HashableMap::new()));
-      let symbol = Symbol::new(false, false, false, pack);
+      let symbol = SymbolTableEntry::Pack(Pack::new(pack_span, pack_name.clone(), Vec::new(), Vec::new(), HashableMap::new()));
       self.packs.insert(pack_name.clone(), uuid);
       self.symbols.insert(uuid, symbol);
       self.uuid_map.insert(uuid, QuerySymbolType::CustomType(pack_name.clone()));
@@ -222,8 +224,8 @@ impl SymbolTable {
 
   pub fn add_union_declaration(&mut self, union_name: &String, union_span: (usize, usize)) -> Vec<Error> {
     if let Some(union_uuid) = self.find_union(union_name, true) {
-      let declared_union = match self.find_symbol_by_uuid(&union_uuid, true).symbol_type {
-        SymbolType::Union(u) => u,
+      let declared_union = match self.find_symbol_by_uuid(&union_uuid, true) {
+        SymbolTableEntry::Union(u) => u,
         _ => panic!("Should not happen :("),
       };
       vec![Error::new_with_metadata(
@@ -236,8 +238,8 @@ impl SymbolTable {
     } else {
       let mut errors = Vec::new();
       if let Some(found_pack_conflict) = self.find_pack(union_name, true) {
-        let declared_pack = match self.find_symbol_by_uuid(&found_pack_conflict, true).symbol_type {
-          SymbolType::Pack(p) => p,
+        let declared_pack = match self.find_symbol_by_uuid(&found_pack_conflict, true) {
+          SymbolTableEntry::Pack(p) => p,
           _ => panic!("Should not happen :("),
         };
         errors.push(Error::new_with_metadata(
@@ -249,8 +251,8 @@ impl SymbolTable {
         ))
       }
       if let Some(found_interface_conflict) = self.find_interface(union_name, true) {
-        let declared_interface = match self.find_symbol_by_uuid(&found_interface_conflict, true).symbol_type {
-          SymbolType::Interface(i) => i,
+        let declared_interface = match self.find_symbol_by_uuid(&found_interface_conflict, true) {
+          SymbolTableEntry::Interface(i) => i,
           _ => panic!("Should not happen :("),
         };
         errors.push(Error::new_with_metadata(
@@ -262,8 +264,7 @@ impl SymbolTable {
         ))
       }
       let uuid = Uuid::new_v4();
-      let union = SymbolType::Union(Union::new(union_span, union_name.clone(), HashableMap::new()));
-      let symbol = Symbol::new(false, false, false, union);
+      let symbol = SymbolTableEntry::Union(Union::new(union_span, union_name.clone(), HashableMap::new()));
       self.unions.insert(union_name.clone(), uuid);
       self.symbols.insert(uuid, symbol);
       self.uuid_map.insert(uuid, QuerySymbolType::CustomType(union_name.clone()));
@@ -273,8 +274,8 @@ impl SymbolTable {
 
   pub fn add_interface_declaration(&mut self, interface_name: &String, interface_span: (usize, usize)) -> Vec<Error> {
     if let Some(interface_uuid) = self.find_interface(interface_name, true) {
-      let declared_interface = match self.find_symbol_by_uuid(&interface_uuid, true).symbol_type {
-        SymbolType::Interface(i) => i,
+      let declared_interface = match self.find_symbol_by_uuid(&interface_uuid, true) {
+        SymbolTableEntry::Interface(i) => i,
         _ => panic!("Should not happen :("),
       };
       vec![Error::new_with_metadata(
@@ -287,8 +288,8 @@ impl SymbolTable {
     } else {
       let mut errors = Vec::new();
       if let Some(found_pack_conflict) = self.find_pack(interface_name, true) {
-        let declared_pack = match self.find_symbol_by_uuid(&found_pack_conflict, true).symbol_type {
-          SymbolType::Pack(p) => p,
+        let declared_pack = match self.find_symbol_by_uuid(&found_pack_conflict, true) {
+          SymbolTableEntry::Pack(p) => p,
           _ => panic!("Should not happen :("),
         };
         errors.push(Error::new_with_metadata(
@@ -300,8 +301,8 @@ impl SymbolTable {
         ))
       }
       if let Some(found_union_conflict) = self.find_union(interface_name, true) {
-        let declared_union = match self.find_symbol_by_uuid(&found_union_conflict, true).symbol_type {
-          SymbolType::Union(i) => i,
+        let declared_union = match self.find_symbol_by_uuid(&found_union_conflict, true) {
+          SymbolTableEntry::Union(i) => i,
           _ => panic!("Should not happen :("),
         };
         errors.push(Error::new_with_metadata(
@@ -314,13 +315,24 @@ impl SymbolTable {
       }
 
       let uuid = Uuid::new_v4();
-      let interface = SymbolType::Interface(Interface::new(interface_span, interface_name.clone(), HashableMap::new()));
-      let symbol = Symbol::new(false, false, false, interface);
+      let symbol = SymbolTableEntry::Interface(Interface::new(interface_span, interface_name.clone(), HashableMap::new()));
       self.unions.insert(interface_name.clone(), uuid);
       self.symbols.insert(uuid, symbol);
       self.uuid_map.insert(uuid, QuerySymbolType::CustomType(interface_name.clone()));
       errors
     }
+  }
+  
+  pub fn add_pack_type_args(&mut self, pack_name: &String, type_args: Vec<Uuid>) -> Vec<Error> {
+    Vec::new()
+  }
+  
+  pub fn add_pack_interfaces(&mut self, pack_name: &String, interfaces: Vec<Uuid>) -> Vec<Error> {
+    Vec::new()
+  }
+  
+  pub fn add_pack_members(&mut self, pack_name: &String, members: HashableMap<String, Uuid>) -> Vec<Error> {
+    Vec::new()
   }
 
   pub fn find_interface(&self, interface_name: &String, in_current_scope: bool) -> Option<Uuid> {
@@ -369,7 +381,7 @@ impl SymbolTable {
     }), true, false, in_current_scope)
   }
 
-  fn find_symbol_by_uuid(&self, uuid: &Uuid, in_current_scope: bool) -> Symbol {
+  fn find_symbol_by_uuid(&self, uuid: &Uuid, in_current_scope: bool) -> SymbolTableEntry {
     self.find_internal(uuid, &(|s: &SymbolTable, u: &Uuid| {
       match s.symbols.get(u) {
         Some(x) => Some(x.clone()),

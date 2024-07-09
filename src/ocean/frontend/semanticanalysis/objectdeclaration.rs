@@ -115,18 +115,16 @@ impl Assignment {
 
 impl Function {
   pub fn analyze_object_declaration(&mut self, table: Rc<RefCell<SymbolTable>>) -> Vec<Error> {
-    let new_table = SymbolTable::hard_scope(Some(table));
-    self.table = Some(new_table.clone());
     let mut errors = Vec::new();
     for result in &mut self.results {
       if let Some(result_expression) = &mut result.expression {
-        let mut errs = result_expression.analyze_object_declaration(new_table.clone());
+        let mut errs = result_expression.analyze_object_declaration(self.table.clone().unwrap());
         errors.append(&mut errs);
       }
     }
 
     if let Some(compound) = &mut self.compound_statement {
-      let mut errs = compound.analyze_object_declaration(new_table.clone());
+      let mut errs = compound.analyze_object_declaration(self.table.clone().unwrap());
       errors.append(&mut errs);
     }
 

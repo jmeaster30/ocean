@@ -121,6 +121,7 @@ impl Ocean {
     borrow_mut_and_drop!(context, borrow_mut.stop_using());
 
     errors.append(&mut ast.analyze_object_declaration());
+    errors.append(&mut ast.analyze_object_body());
     println!("{:?}", ast.table);
 
     let mut precedence_table = PrecedenceTable::new();

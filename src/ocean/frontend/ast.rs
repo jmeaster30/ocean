@@ -27,6 +27,7 @@ pub enum StatementNodeData {
   Annotation(Annotation),
 }
 
+#[deprecated(note="Comments are tracked via trivia in tokens")]
 #[derive(Clone, Debug, New)]
 pub struct Comment {
   pub token: Token<TokenType>,
