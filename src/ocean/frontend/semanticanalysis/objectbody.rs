@@ -1,6 +1,6 @@
 use std::cell::RefCell;
 use std::rc::Rc;
-use itertools::Either;
+use itertools::{Either, Itertools};
 use uuid::Uuid;
 use crate::ocean::frontend::ast::*;
 use crate::ocean::frontend::semanticanalysis::symboltable::SymbolTable;
@@ -135,20 +135,20 @@ impl Function {
 
 impl Pack {
     pub fn analyze_object_body(&mut self, table: Rc<RefCell<SymbolTable>>) -> Vec<Error> {
-        let mut errors = Vec::new();
         let pack_name = self.custom_type.get_name();
 
-        let type_args = self.custom_type.get_type_arguments().iter_mut()
-            .map(|x| (x.get_span(), table.borrow_mut().find_type(x)))
-            .map(|(a, b)| if let Some(type_uuid) = b {
-                Some(type_uuid)
-            } else {
-                errors.push(Error::new(Severity::Error, a, "Undeclared type".to_string()));
-                None
-            })
-            .filter(|x| x.is_some())
-            .map(|x| x.unwrap())
-            .collect::<Vec<Uuid>>();
+        let (type_args, mut errors) = self.custom_type.get_type_arguments().iter_mut()
+            .map(|x| table.borrow_mut().find_or_add_type(x.clone()))
+            .fold((Vec::new(), Vec::new()), |(acc_uuid, acc_errors), item| {
+                let mut uuids = acc_uuid;
+                let mut errors = acc_errors;
+                match item {
+                    Ok(uuid) => uuids.push(uuid),
+                    Err(mut new_errors) => errors.append(&mut new_errors)
+                };
+                (uuids, errors)
+            });
+
 
         let interfaces = self.interface_declaration.as_mut()
             .map_or(Vec::new(), |x| x.implemented_interfaces.iter_mut().map(|y| {
@@ -168,10 +168,9 @@ impl Pack {
                 continue
             }
 
-            if let Some(type_uuid) = table.borrow_mut().find_type(member.identifier.clone().optional_type.unwrap()) {
-                members.insert(member.clone().identifier.identifier.lexeme, type_uuid);
-            } else {
-                errors.push(Error::new(Severity::Error, member.identifier.clone().optional_type.unwrap().get_span(), "Undeclared type".to_string())).clone();
+            match table.borrow_mut().find_or_add_type(member.identifier.clone().optional_type.unwrap()) {
+                Ok(uuid) => { members.insert(member.clone().identifier.identifier.lexeme, uuid); },
+                Err(mut new_errors) => errors.append(&mut new_errors),
             }
         }
 

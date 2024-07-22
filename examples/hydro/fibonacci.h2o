@@ -1,5 +1,7 @@
 module main
 
+using std.io.print
+
 function fibonacci u128 body
     duplicate
     duplicate
@@ -25,5 +27,8 @@ function fibonacci u128 body
 main body
     push u128 8
     push funcp main fibonacci
+    call
+    cast string
+    push funcp std.io.print println
     call
     return

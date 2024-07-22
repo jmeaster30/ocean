@@ -227,6 +227,7 @@ impl UsingPass for Assignment {
 impl UsingPass for Function {
   fn analyze_using(&mut self, table: Rc<RefCell<SymbolTable>>, context: Rc<RefCell<UsingPassContext>>) -> (Vec<Rc<RefCell<CompilationUnit>>>, Vec<Error>) {
     let new_scope = SymbolTable::hard_scope(Some(table));
+    self.table = Some(new_scope.clone());
     let (mut dependencies, mut results) = (Vec::new(), Vec::new());
     for res in &mut self.results {
       let (mut dep, mut err) = res.analyze_using(new_scope.clone(), context.clone());

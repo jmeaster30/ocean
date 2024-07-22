@@ -3,10 +3,11 @@ use std::collections::HashMap;
 use std::rc::Rc;
 use ocean_macros::New;
 use uuid::Uuid;
-use crate::ocean::frontend::ast::{ArrayType, AutoType, BaseType, CustomType, FunctionType, LazyType, MutType, Type, VariableType};
+use crate::ocean::frontend::ast::{ArrayType, AutoType, BaseType, CustomType, FunctionType, LazyType, MutType, TupleType, Type, VariableType};
 use crate::util::doublemap::DoubleMap;
 use crate::util::errors::{Error, ErrorMetadata, Severity};
 use crate::util::hashablemap::HashableMap;
+use crate::util::span::Spanned;
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub enum QuerySymbolType {
@@ -47,6 +48,7 @@ pub enum SymbolTableEntry {
   Union(Union),
   Interface(Interface),
   Function(Function),
+  Auto(Auto)
 }
 
 #[derive(Clone, Debug, New, Eq, PartialEq, Hash)]
@@ -56,7 +58,7 @@ pub struct Variable {
   lazy: bool,
   reference: bool,
   assignable: bool,
-  symbol_type: SymbolType,
+  symbol_type: Uuid,
 }
 
 #[derive(Clone, Debug, New, Eq, PartialEq, Hash)]
@@ -90,6 +92,13 @@ pub struct Function {
   returns: Vec<(String, Uuid)>,
 }
 
+#[derive(Clone, Debug, New)]
+pub struct Auto {
+  declaration_span: (usize, usize),
+  name: String,
+  //possible_types want to have some sort of constraint thingy that we can compare against when comparing this type with a concrete specific type
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub enum SymbolType {
   Base(Uuid),
@@ -105,7 +114,7 @@ pub struct SymbolTable {
   parent: Option<Rc<RefCell<SymbolTable>>>,
   hard_scope: bool,
   usings: Vec<Rc<RefCell<SymbolTable>>>,
-  uuid_map: DoubleMap<Uuid, QuerySymbolType>,
+  type_uuid_lookup: DoubleMap<Uuid, QuerySymbolType>,
   symbols: HashMap<Uuid, SymbolTableEntry>,
   autos: HashMap<String, Uuid>,
   variables: HashMap<String, Uuid>,
@@ -122,7 +131,7 @@ impl SymbolTable {
       parent: None,
       hard_scope: true,
       usings: Vec::new(),
-      uuid_map: DoubleMap::new(),
+      type_uuid_lookup: DoubleMap::new(),
       symbols: HashMap::new(),
       autos: HashMap::new(),
       variables: HashMap::new(),
@@ -139,7 +148,7 @@ impl SymbolTable {
       parent: Some(parent_scope),
       hard_scope: false,
       usings: Vec::new(),
-      uuid_map: DoubleMap::new(),
+      type_uuid_lookup: DoubleMap::new(),
       symbols: HashMap::new(),
       autos: HashMap::new(),
       variables: HashMap::new(),
@@ -156,7 +165,7 @@ impl SymbolTable {
       parent: parent_scope,
       hard_scope: true,
       usings: Vec::new(),
-      uuid_map: DoubleMap::new(),
+      type_uuid_lookup: DoubleMap::new(),
       symbols: HashMap::new(),
       autos: HashMap::new(),
       variables: HashMap::new(),
@@ -217,7 +226,7 @@ impl SymbolTable {
       let symbol = SymbolTableEntry::Pack(Pack::new(pack_span, pack_name.clone(), Vec::new(), Vec::new(), HashableMap::new()));
       self.packs.insert(pack_name.clone(), uuid);
       self.symbols.insert(uuid, symbol);
-      self.uuid_map.insert(uuid, QuerySymbolType::CustomType(pack_name.clone()));
+      self.type_uuid_lookup.insert(uuid, QuerySymbolType::CustomType(pack_name.clone()));
       errors
     }
   }
@@ -267,7 +276,7 @@ impl SymbolTable {
       let symbol = SymbolTableEntry::Union(Union::new(union_span, union_name.clone(), HashableMap::new()));
       self.unions.insert(union_name.clone(), uuid);
       self.symbols.insert(uuid, symbol);
-      self.uuid_map.insert(uuid, QuerySymbolType::CustomType(union_name.clone()));
+      self.type_uuid_lookup.insert(uuid, QuerySymbolType::CustomType(union_name.clone()));
       errors
     }
   }
@@ -318,19 +327,19 @@ impl SymbolTable {
       let symbol = SymbolTableEntry::Interface(Interface::new(interface_span, interface_name.clone(), HashableMap::new()));
       self.unions.insert(interface_name.clone(), uuid);
       self.symbols.insert(uuid, symbol);
-      self.uuid_map.insert(uuid, QuerySymbolType::CustomType(interface_name.clone()));
+      self.type_uuid_lookup.insert(uuid, QuerySymbolType::CustomType(interface_name.clone()));
       errors
     }
   }
-  
+
   pub fn add_pack_type_args(&mut self, pack_name: &String, type_args: Vec<Uuid>) -> Vec<Error> {
     Vec::new()
   }
-  
+
   pub fn add_pack_interfaces(&mut self, pack_name: &String, interfaces: Vec<Uuid>) -> Vec<Error> {
     Vec::new()
   }
-  
+
   pub fn add_pack_members(&mut self, pack_name: &String, members: HashableMap<String, Uuid>) -> Vec<Error> {
     Vec::new()
   }
@@ -390,6 +399,29 @@ impl SymbolTable {
     }), true, true, in_current_scope).unwrap() // TODO is this valid?
   }
 
+  fn find_custom_type_by_name(&self, name: &String, span: (usize, usize)) -> Result<Uuid, Vec<Error>> {
+    let option_found_type = self.find_internal(name, &|table, name| {
+      if let Some(x) = table.autos.get(name) { // TODO I think auto types should only match if they are in the same scope since it would be strange to relate to a type outside of the function you are in if you aren't relating to the type of a value passed into the function as arguments or the type of the value the function returns
+        Some(*x)
+      } else if let Some(x) = table.functions.get(name) {
+        Some(*x)
+      } else if let Some(x) = table.unions.get(name) {
+        Some(*x)
+      } else if let Some(x) = table.packs.get(name) {
+        Some(*x)
+      } else if let Some(x) = table.interfaces.get(name) {
+        Some(*x)
+      } else {
+        None
+      }
+    }, true, true, false);
+
+    match option_found_type {
+      Some(x) => Ok(x),
+      None => Err(vec![Error::new(Severity::Error, span, "Undefined type name.".to_string())]),
+    }
+  }
+
   fn find_internal<S, N, R>(&self, name: &N, selector: &S, check_usings: bool, keep_check_usings: bool, in_current_scope: bool) -> Option<R>
     where S: Fn(&SymbolTable, &N) -> Option<R> {
     match selector(&self, &name) {
@@ -410,6 +442,128 @@ impl SymbolTable {
         }
       }
     }
+  }
+
+  pub fn find_or_add_type(&mut self, type_to_find: Type) -> Result<Uuid, Vec<Error>> {
+    match type_to_find {
+      Type::Base(base_type) => self.find_or_add_base_type(base_type),
+      Type::Custom(custom_type) => self.find_custom_type_by_name(&custom_type.identifier.lexeme, custom_type.identifier.get_span()),
+      Type::Auto(auto_type) => self.find_or_add_auto_type(auto_type),
+      Type::Lazy(lazy_type) => self.find_or_add_lazy_type(lazy_type),
+      Type::Ref(ref_type) => panic!(),
+      Type::Mutable(mut_type) => self.find_or_add_mut_type(mut_type),
+      Type::Function(func_type) => self.find_or_add_func_type(func_type),
+      Type::Array(array_type) => self.find_or_add_array_type(array_type),
+      Type::VariableType(variable_type) => self.find_or_add_variable_type(variable_type),
+      Type::TupleType(tuple_type) => self.find_or_add_tuple_type(tuple_type),
+    }
+  }
+
+  fn find_or_add_base_type(&mut self, type_to_find: BaseType) -> Result<Uuid, Vec<Error>> {
+    let base_symbol_type = match type_to_find.base_type.lexeme.as_str() {
+      "i8" => BaseSymbolType::I8,
+      "i16" => BaseSymbolType::I16,
+      "i32" => BaseSymbolType::I32,
+      "i64" => BaseSymbolType::I64,
+      "i128" => BaseSymbolType::I128,
+      "f32" => BaseSymbolType::F32,
+      "f64" => BaseSymbolType::F64,
+      "u8" => BaseSymbolType::U8,
+      "u16" => BaseSymbolType::U16,
+      "u32" => BaseSymbolType::U32,
+      "u64" => BaseSymbolType::U64,
+      "u128" => BaseSymbolType::U128,
+      "string" => BaseSymbolType::String,
+      "bool" => BaseSymbolType::Bool,
+      "char" => BaseSymbolType::Char,
+      _ => panic!(),
+    };
+
+    let query_base_symbol_type = QuerySymbolType::BaseType(base_symbol_type.clone());
+
+    if let Some(x) = self.find_internal(
+      &query_base_symbol_type,
+      &|table, query_symbol_type| table.type_uuid_lookup.by_value(query_symbol_type).and_then(|x| Some(x.clone())),
+      true,
+      true,
+      false)
+    {
+      return Ok(x)
+    }
+
+    let uuid = Uuid::new_v4();
+    self.type_uuid_lookup.insert(uuid, query_base_symbol_type);
+    self.symbols.insert(uuid, SymbolTableEntry::Base(base_symbol_type));
+    Ok(uuid)
+  }
+
+  fn find_or_add_auto_type(&mut self, auto_type: AutoType) -> Result<Uuid, Vec<Error>> {
+    if let Some(auto_type_uuid) = self.find_internal(&auto_type.identifier.lexeme, &|table, auto_type_name| table.autos.get(auto_type_name.as_str()).and_then(|x| Some(x.clone())), false, false, true) {
+      return Ok(auto_type_uuid)
+    }
+
+    let uuid = Uuid::new_v4();
+    self.autos.insert(auto_type.identifier.lexeme.clone(), uuid);
+    self.type_uuid_lookup.insert(uuid, QuerySymbolType::CustomType(auto_type.identifier.lexeme.clone()));
+    self.symbols.insert(uuid, SymbolTableEntry::Auto(Auto::new(auto_type.get_span(), auto_type.identifier.lexeme)));
+    Ok(uuid)
+  }
+
+  fn find_or_add_lazy_type(&mut self, lazy_type: LazyType) -> Result<Uuid, Vec<Error>> {
+    let internal_type = self.find_or_add_type(lazy_type.base_type.as_ref().clone())?;
+
+    let uuid = Uuid::new_v4();
+    self.type_uuid_lookup.insert(uuid, QuerySymbolType::Lazy(internal_type));
+    Ok(uuid)
+  }
+
+  fn find_or_add_mut_type(&mut self, mut_type: MutType) -> Result<Uuid, Vec<Error>> {
+    let internal_type = self.find_or_add_type(mut_type.base_type.as_ref().clone())?;
+
+    let uuid = Uuid::new_v4();
+    self.type_uuid_lookup.insert(uuid, QuerySymbolType::Lazy(internal_type));
+    Ok(uuid)
+  }
+
+  fn find_or_add_func_type(&mut self, func_type: FunctionType) -> Result<Uuid, Vec<Error>> {
+    let mut internal_param_errors = Vec::new();
+    let mut internal_param_types = Vec::new();
+    for param in func_type.param_types {
+      match self.find_or_add_type(param.arg_type) {
+        Ok(t) => internal_param_types.push(t),
+        Err(mut e) => internal_param_errors.append(&mut e)
+      }
+    }
+
+    let mut internal_result_errors = Vec::new();
+    let mut internal_result_types = Vec::new();
+    for result in func_type.result_types {
+      match self.find_or_add_type(result.arg_type) {
+        Ok(t) => internal_result_types.push(t),
+        Err(mut e) => internal_result_errors.append(&mut e)
+      }
+    }
+
+    if !internal_param_errors.is_empty() || !internal_result_errors.is_empty() {
+      internal_param_errors.append(&mut internal_result_errors);
+      return Err(internal_param_errors);
+    }
+
+    let uuid = Uuid::new_v4();
+    self.type_uuid_lookup.insert(uuid, QuerySymbolType::Function(internal_param_types, internal_result_types));
+    Ok(uuid)
+  }
+
+  fn find_or_add_array_type(&mut self, array_type: ArrayType) -> Result<Uuid, Vec<Error>> {
+    Err(Vec::new())
+  }
+
+  fn find_or_add_variable_type(&mut self, variable_type: VariableType) -> Result<Uuid, Vec<Error>> {
+    Err(Vec::new())
+  }
+
+  fn find_or_add_tuple_type(&mut self, tuple_type: TupleType) -> Result<Uuid, Vec<Error>> {
+    Err(Vec::new())
   }
 
   /*pub fn check_for_variable(&self, variable_name: String, only_check_current_scope: bool) -> Option<Variable> {

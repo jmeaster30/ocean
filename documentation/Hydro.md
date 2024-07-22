@@ -1,7 +1,8 @@
 # Hydro Programming Language Documentation
 
 ## Table of Contents
-1. [Bytecode Binary File Spec](#bytecode-binary-file-spec)
+1. [Instructions](#instructions-and-what-they-do)
+2. [Bytecode Binary File Spec](#bytecode-binary-file-spec)
    1. [File Bytes Layout](#file-bytes-layout)
    2. [Module Bytes Layout](#module-bytes-layout)
    3. [Using Bytes Layout](#using-bytes-layout)
@@ -10,6 +11,54 @@
    6. [Single Byte Instruction Layout](#single-byte-instruction-layout)
    7. [Multi Byte Instruction Layout](#multi-byte-instruction-layout)
       1. [Push](#push)
+      2. [Jump](#jump)
+      3. []
+
+## Instructions and What They Do
+
+These are all of the instructions in Hydro and what they do. Arguments for the instructions are symbolized with `$` if it is a value, `@` if it is a label, and `^` for types. 
+The way to interpret the stack in the stack before/after is:
+1. All values are comma separated
+2. Left most value is the top of the stack
+3. `...` signifies a variable number of values that are on the stack or values that just don't matter
+   1. `...(3)` means the values don't matter but there are 3 of them.
+4. `^`, `@`, and `$` symbolize the value of the arguments 
+
+| Instruction Name | Stack Before  | Stack After | Description                                                                                                                                      | Valid Types          |
+|------------------|---------------|-------------|--------------------------------------------------------------------------------------------------------------------------------------------------|----------------------|
+| Pop              | `[a, ...]`    | `[...]`     | Removes value off of the stack                                                                                                                   |                      |
+| Push `^t` `$x`   | `[...]`       | `[$x, ...]` | Pushes value `$x` of type `^t` on to the stack                                                                                                   | `^t` can be any type |
+| Add              | `[b, a, ...]` | `[c, ...]`  | Pops values `a` and `b` and pushes the value `c` which is the sum of `a` and `b`. This only works if summation is defined for the supplied types |                      |
+| Sub              | `[b, a, ...]` | `[c, ...]`  |                                                                                                                                                  |                      |
+| Multiply         | `[b, a, ...]` | `[c, ...]`  |                                                                                                                                                  |                      |
+| Divide           | `[b, a, ...]` | `[c, ...]`  |                                                                                                                                                  |                      |
+| Modulo           | `[b, a, ...]` | `[c, ...]`  |                                                                                                                                                  |                      |
+| LeftShift        | `[b, a, ...]` | `[c, ...]`  |                                                                                                                                                  |                      |
+| RightShift       | `[b, a, ...]` | `[c, ...]`  |                                                                                                                                                  |                      |
+| BitwiseAnd       | `[b, a, ...]` | `[c, ...]`  |                                                                                                                                                  |                      |
+| BitwiseOr        | `[b, a, ...]` | `[c, ...]`  |                                                                                                                                                  |                      |
+| BitwiseXor       | `[b, a, ...]` | `[c, ...]`  |                                                                                                                                                  |                      |
+| BitwiseNot       | `[b, a, ...]` | `[c, ...]`  |                                                                                                                                                  |                      |
+| And              |               |             |                                                                                                                                                  |                      |
+| Or               |               |             |                                                                                                                                                  |                      |
+| Xor              |               |             |                                                                                                                                                  |                      |
+| Not              |               |             |                                                                                                                                                  |                      |
+| Equal            |               |             |                                                                                                                                                  |                      |
+| NotEqual         |               |             |                                                                                                                                                  |                      |
+| LessThan         |               |             |                                                                                                                                                  |                      |
+| GreaterThan      |               |             |                                                                                                                                                  |                      |
+| LessThanEqual    |               |             |                                                                                                                                                  |                      |
+| GreaterThanEqual |               |             |                                                                                                                                                  |                      |
+| Jump             |               |             |                                                                                                                                                  |                      |
+| Branch           |               |             |                                                                                                                                                  |                      |
+| Call             |               |             |                                                                                                                                                  |                      |
+| Return           |               |             |                                                                                                                                                  |                      |
+| Load             |               |             |                                                                                                                                                  |                      |
+| Store            |               |             |                                                                                                                                                  |                      |
+| ArrayIndex       |               |             |                                                                                                                                                  |                      |
+| LayoutIndex      |               |             |                                                                                                                                                  |                      |
+| AllocArray       |               |             |                                                                                                                                                  |                      |
+| AllocLayout      |               |             |                                                                                                                                                  |                      |
 
 ## Bytecode Binary File Spec
 
