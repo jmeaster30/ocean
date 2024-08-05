@@ -13,3 +13,4 @@ check-todo-issues.py
 *.svg
 *.png
 callgrind.*
+!**/resources/**
