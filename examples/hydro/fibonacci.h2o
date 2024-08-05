@@ -31,4 +31,3 @@ main body
     cast string
     push funcp std.io.print println
     call
-    return

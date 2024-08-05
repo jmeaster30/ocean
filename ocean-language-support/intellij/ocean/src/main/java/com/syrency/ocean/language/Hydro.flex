@@ -22,7 +22,6 @@ import static com.syrency.ocean.language.psi.HydroTypes.*;
 %type IElementType
 %unicode
 
-EOL=\R
 WHITE_SPACE=\s+
 
 NUMBER=-?(([0-9]+)|([0-9]*\.[0-9]+))

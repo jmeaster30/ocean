@@ -12,7 +12,10 @@
    7. [Multi Byte Instruction Layout](#multi-byte-instruction-layout)
       1. [Push](#push)
       2. [Jump](#jump)
-      3. []
+      3. [Branch](#branch)
+      4. [AllocArray](#allocarray)
+      5. [AllocLayout](#alloclayout)
+      6. [LayoutIndex](#layoutindex)
 
 ## Instructions and What They Do
 
