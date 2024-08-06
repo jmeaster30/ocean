@@ -133,22 +133,26 @@ impl Function {
     }
 }
 
+fn find_or_add_types(types: &mut Vec<Type>, table: Rc<RefCell<SymbolTable>>) -> (Vec<Uuid>, Vec<Error>)
+{
+    types.iter_mut()
+        .map(|x| table.borrow_mut().find_or_add_type(x.clone()))
+        .fold((Vec::new(), Vec::new()), |(acc_uuid, acc_errors), item| {
+            let mut uuids = acc_uuid;
+            let mut errors = acc_errors;
+            match item {
+                Ok(uuid) => uuids.push(uuid),
+                Err(mut new_errors) => errors.append(&mut new_errors)
+            };
+            (uuids, errors)
+        })
+}
+
 impl Pack {
     pub fn analyze_object_body(&mut self, table: Rc<RefCell<SymbolTable>>) -> Vec<Error> {
         let pack_name = self.custom_type.get_name();
 
-        let (type_args, mut errors) = self.custom_type.get_type_arguments().iter_mut()
-            .map(|x| table.borrow_mut().find_or_add_type(x.clone()))
-            .fold((Vec::new(), Vec::new()), |(acc_uuid, acc_errors), item| {
-                let mut uuids = acc_uuid;
-                let mut errors = acc_errors;
-                match item {
-                    Ok(uuid) => uuids.push(uuid),
-                    Err(mut new_errors) => errors.append(&mut new_errors)
-                };
-                (uuids, errors)
-            });
-
+        let (type_args, mut errors) = find_or_add_types(&mut self.custom_type.get_type_arguments(), table.clone());
 
         let interfaces = self.interface_declaration.as_mut()
             .map_or(Vec::new(), |x| x.implemented_interfaces.iter_mut().map(|y| {
@@ -184,7 +188,30 @@ impl Pack {
 
 impl Union {
     pub fn analyze_object_body(&mut self, table: Rc<RefCell<SymbolTable>>) -> Vec<Error> {
-        Vec::new()
+        let union_name = self.custom_type.get_name();
+
+        let (type_args, mut errors) = find_or_add_types(&mut self.custom_type.get_type_arguments(), table.clone());
+
+        let mut members = HashableMap::new();
+        for member in &self.members {
+            let member_name = member.identifier.lexeme.clone();
+
+            let mut member_argument_types = Vec::new();
+            if let Some(sub_types) = member.sub_type.clone() {
+                for argType in sub_types.types {
+                    match table.borrow_mut().find_or_add_type(argType.types) {
+                        Ok(uuid) => member_argument_types.push(uuid),
+                        Err(mut err) => errors.append(&mut err),
+                    }
+                }
+            }
+
+            members.insert(member_name, member_argument_types);
+        }
+
+        errors.append(&mut table.borrow_mut().add_union_type_args(&union_name, type_args));
+        errors.append(&mut table.borrow_mut().add_union_members(&union_name, members));
+        errors
     }
 }
 

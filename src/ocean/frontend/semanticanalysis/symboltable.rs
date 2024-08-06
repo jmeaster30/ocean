@@ -74,6 +74,7 @@ pub struct Pack {
 pub struct Union {
   declaration_span: (usize, usize),
   name: String,
+  type_args: Vec<Uuid>,
   members: HashableMap<String, Vec<Uuid>>
 }
 
@@ -273,7 +274,7 @@ impl SymbolTable {
         ))
       }
       let uuid = Uuid::new_v4();
-      let symbol = SymbolTableEntry::Union(Union::new(union_span, union_name.clone(), HashableMap::new()));
+      let symbol = SymbolTableEntry::Union(Union::new(union_span, union_name.clone(), Vec::new(), HashableMap::new()));
       self.unions.insert(union_name.clone(), uuid);
       self.symbols.insert(uuid, symbol);
       self.type_uuid_lookup.insert(uuid, QuerySymbolType::CustomType(union_name.clone()));
@@ -333,15 +334,73 @@ impl SymbolTable {
   }
 
   pub fn add_pack_type_args(&mut self, pack_name: &String, type_args: Vec<Uuid>) -> Vec<Error> {
-    Vec::new()
+    if type_args.is_empty() { return Vec::new(); }
+    match self.packs.get(pack_name) {
+      Some(pack_uuid) => match self.symbols.get_mut(pack_uuid) {
+        Some(SymbolTableEntry::Pack(pack)) => {
+          pack.type_args = type_args;
+          Vec::new()
+        }
+        _ => panic!("pack_uuid '{}' not found in symbol table", pack_uuid),
+      }
+      _ => panic!("pack_name '{}' not found in symbol table", pack_name)
+    }
   }
 
   pub fn add_pack_interfaces(&mut self, pack_name: &String, interfaces: Vec<Uuid>) -> Vec<Error> {
-    Vec::new()
+    if interfaces.is_empty() { return Vec::new(); }
+    match self.packs.get(pack_name) {
+      Some(pack_uuid) => match self.symbols.get_mut(pack_uuid) {
+        Some(SymbolTableEntry::Pack(pack)) => {
+          pack.interfaces = interfaces;
+          Vec::new()
+        }
+        _ => panic!("pack_uuid '{}' not found in symbol table", pack_uuid),
+      }
+      _ => panic!("pack_name '{}' not found in symbol table", pack_name)
+    }
   }
 
   pub fn add_pack_members(&mut self, pack_name: &String, members: HashableMap<String, Uuid>) -> Vec<Error> {
-    Vec::new()
+    if members.is_empty() { return Vec::new(); }
+    match self.packs.get(pack_name) {
+      Some(pack_uuid) => match self.symbols.get_mut(pack_uuid) {
+        Some(SymbolTableEntry::Pack(pack)) => {
+          pack.members = members;
+          Vec::new()
+        }
+        _ => panic!("pack_uuid '{}' not found in symbol table", pack_uuid),
+      }
+      _ => panic!("pack_name '{}' not found in symbol table", pack_name)
+    }
+  }
+
+  pub fn add_union_type_args(&mut self, union_name: &String, type_args: Vec<Uuid>) -> Vec<Error> {
+    if type_args.is_empty() { return Vec::new(); }
+    match self.unions.get(union_name) {
+      Some(union_uuid) => match self.symbols.get_mut(union_uuid) {
+        Some(SymbolTableEntry::Union(union)) => {
+          union.type_args = type_args;
+          Vec::new()
+        }
+        _ => panic!("union_uuid '{}' not found in symbol table", union_uuid),
+      }
+      _ => panic!("union_name '{}' not found in symbol table", union_name)
+    }
+  }
+
+  pub fn add_union_members(&mut self, union_name: &String, members: HashableMap<String, Vec<Uuid>>) -> Vec<Error> {
+    if members.is_empty() { return Vec::new(); }
+    match self.unions.get(union_name) {
+      Some(union_uuid) => match self.symbols.get_mut(union_uuid) {
+        Some(SymbolTableEntry::Union(union)) => {
+          union.members = members;
+          Vec::new()
+        }
+        _ => panic!("union_uuid '{}' not found in symbol table", union_uuid),
+      }
+      _ => panic!("union_name '{}' not found in symbol table", union_name)
+    }
   }
 
   pub fn find_interface(&self, interface_name: &String, in_current_scope: bool) -> Option<Uuid> {

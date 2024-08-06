@@ -122,7 +122,7 @@ impl Ocean {
 
     errors.append(&mut ast.analyze_object_declaration());
     errors.append(&mut ast.analyze_object_body());
-    println!("{:?}", ast.table);
+    println!("{:#?}", ast.table);
 
     let mut precedence_table = PrecedenceTable::new();
     precedence_table.add_prefix_operator("-", 1000);
