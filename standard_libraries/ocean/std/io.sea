@@ -18,7 +18,8 @@ function readstring() -> (result: string) {
   @@
 }
 
-@Cast function intToString(a: u64) -> (result: string) {
+@Cast 
+function intToString(a: u64) -> (result: string) {
   while a > 0 {
     result = (a % 10) as char + result;
     a = a // 10;

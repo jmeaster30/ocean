@@ -1,5 +1,6 @@
 use itertools::Either;
-use crate::ocean::frontend::ast::*;
+use crate::ocean::frontend::ast::node::*;
+use crate::ocean::frontend::ast::typenode::*;
 use crate::util::span::Spanned;
 
 impl Spanned for Program {
@@ -238,6 +239,7 @@ impl Spanned for AstNodeExpression {
 impl Spanned for Type {
   fn get_span(&self) -> (usize, usize) {
     match self {
+      Type::Unknown => panic!("Should never get the span of an unknown type"),
       Type::Base(base) => base.get_span(),
       Type::Custom(custom) => custom.get_span(),
       Type::Auto(auto_type) => auto_type.get_span(),

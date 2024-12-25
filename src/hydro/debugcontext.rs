@@ -4,8 +4,10 @@ use crate::hydro::executioncontext::ExecutionContext;
 use crate::hydro::frontend::parser::Parser;
 use crate::hydro::value::Value;
 use crate::hydro::visualizer::moduledependencyvisualization::ModuleDependencyVisualization;
-use crate::util::argsparser::{ArgsParser, Argument, Command};
 use crate::util::metrictracker::{MetricResults, MetricTracker};
+use crate::util::debug_args::{DebugCli, DebugCommand, Visualization, TimeScale};
+
+use crate::clap::Parser as ClapParser;
 use rustyline::error::ReadlineError;
 use rustyline::{DefaultEditor, Result};
 use std::collections::HashMap;
@@ -68,91 +70,6 @@ impl DebugContext {
     }
     print!("{}", DebugContext::ansi_color_code("cyan"));
 
-    #[rustfmt::skip]
-    let arg_parser = {
-      ArgsParser::new("Hydro Debug Console")
-        .version("0.0.1")
-        .author("John Easterday <jmeaster30>")
-        .description("Debug console for the Hydro VM")
-        .command(Command::new("help")
-          .description("Print this help message"))
-        .command(Command::new("version")
-          .description("Print version information"))
-        .command(Command::new("breakpoint")
-          .description("Set breakpoint")
-          .arg(Argument::new("Module")
-            .position(1))
-          .arg(Argument::new("Function")
-            .position(2))
-          .arg(Argument::new("Program Counter")
-            .position(3)))
-        .command(Command::new("callgraph")
-          .description("Prints the call graph of the previously executed instructions")
-          .arg(Argument::new("Time Scale")
-            .position(1)
-            .default("micro")
-            .possible_values(vec!["sec", "milli", "micro", "nano"])))
-        .command(Command::new("continue")
-          .description("Starts/continues execution"))
-        .command(Command::new("exit")
-          .description("Exits the program"))
-        .command(Command::new("hotpath"))
-          .description("Gives the hotpath for the previously executed instructions")
-        .command(Command::new("instruction")
-          .description("Prints the currently executing instruction"))
-        .command(Command::new("metric")
-          .description("Print metric")
-          .arg(Argument::new("Module")
-            .position(1))
-          .arg(Argument::new("Function")
-            .position(2))
-          .arg(Argument::new("Metric Name")
-            .position(3)))
-        .command(Command::new("metrics")
-          .description("Prints all metrics")
-          .arg(Argument::new("Time Scale")
-            .position(1)
-            .default("micro")
-            .possible_values(vec!["sec", "milli", "micro", "nano"])))
-        .command(Command::new("pop")
-          .description("Pops a value from the stack"))
-        .command(Command::new("push")
-          .description("Pushes a value of the given type on the stack")
-          .arg(Argument::new("Type").position(1))
-          .arg(Argument::new("Value").position(2)))
-        .command(Command::new("run")
-          .description("Starts/continues execution"))
-        .command(Command::new("stack")
-          .description("Outputs the values of the stack")
-          .arg(Argument::new("Stack Size")
-            .position(1)
-            .default("10")))
-        .command(Command::new("stacktrace")
-          .description("Prints the stacktrace of the current execution context"))
-        .command(Command::new("step")
-          .description("Executes the next amount of instructions and breaks back to the debug console")
-          .arg(Argument::new("Step Count")
-            .position(1)
-            .default("1")))
-        .command(Command::new("variable")
-          .description("Outputs the value of the specified variable in the current context")
-          .arg(Argument::new("Variable Name")
-            .position(1)))
-        .command(Command::new("variables")
-          .description("Outputs all of the variables and their values in the current context"))
-        .command(Command::new("viz")
-          .description("Run visualizations")
-          .arg(Argument::new("Visualization Name")
-            .position(1)
-            .possible_values(vec!["moddep"])
-            .help("Available visualizations: 'moddep' - show graph of module dependencies"))
-          .arg(Argument::new("Output Format")
-            .position(2)
-            .possible_values(vec!["png", "svg"]))
-          .arg(Argument::new("Output File Name")
-            .position(3)))
-    };
-
     let mut rl = DefaultEditor::new()?;
     if rl.load_history("history.txt").is_err() {
       println!("No previous history.");
@@ -164,188 +81,162 @@ impl DebugContext {
           rl.add_history_entry(line.as_str())?;
           let parsed = line.split_ascii_whitespace().map(|x| x.to_string()).collect::<Vec<String>>();
 
-          match arg_parser.parse(parsed) {
+          match DebugCli::try_parse_from(parsed) {
             Ok(arguments) => {
-              let should_continue = match arguments.get("command") {
-                Some(command) => match command.as_str() {
-                  "help" => {
-                    arg_parser.print_help();
-                    Ok(ContinueConsole)
-                  }
-                  "version" => {
-                    arg_parser.print_version_info();
-                    Ok(ContinueConsole)
-                  }
-                  "breakpoint" => {
-                    let module_name = arguments.get("Module").unwrap().clone();
-                    let function_name = arguments.get("Function").unwrap().clone();
-                    let program_counter = arguments.get("Program Counter").unwrap().clone();
-                    let target_module = compilation_unit.get_module(module_name.as_str());
+              let should_continue = match arguments.command {
+                DebugCommand::Breakpoint { location, program_counter } => {
+                  let target_module = compilation_unit.get_module(location.module.as_str());
 
-                    let value = match target_module {
-                      Some(module) => match module.functions.get(function_name.as_str()) {
-                        Some(target_function) => match program_counter.parse::<usize>() {
-                          Ok(value) => Ok(value),
-                          Err(_) => match target_function.jump_labels.get(program_counter.as_str()) {
-                            Some(value) => Ok(*value),
-                            None => Err(format!("Label '{}' does not exist for function '{}' in module '{}'", program_counter, function_name, module_name)),
-                          },
+                  let value = match target_module {
+                    Some(module) => match module.functions.get(location.function.as_str()) {
+                      Some(target_function) => Ok(program_counter),/* TODO fix label
+                      match program_counter.parse::<usize>() {
+                        Ok(value) => Ok(value),
+                        Err(_) => match target_function.jump_labels.get(program_counter.as_str()) {
+                          Some(value) => Ok(*value),
+                          None => Err(format!("Label '{}' does not exist for function '{}' in module '{}'", program_counter, function_name, module_name)),
                         },
-                        None => Err(format!("Function '{}' does not exist in module '{}'", function_name, module_name)),
-                      },
-                      None => Err(format!("Module '{}' does not exist", module_name)),
-                    };
+                      },*/
+                      None => Err(format!("Function '{}' does not exist in module '{}'", location.function, location.module)),
+                    },
+                    None => Err(format!("Module '{}' does not exist", location.module)),
+                  };
 
-                    match value {
-                      Ok(value) => {
-                        println!("Setting break point at {} -> {} -> pc {}", module_name, function_name, value);
-                        self.set_break_point(module_name, function_name, value);
-                        Ok(ContinueConsole)
-                      }
-                      Err(message) => Err(message),
-                    }
-                  }
-                  "callgraph" => {
-                    // TODO add a filter for the stack to the debug console args
-                    let flamegraph = self.metric_tracker.get_flamegraph(Vec::new());
-
-                    match flamegraph {
-                      Some(graph) => graph.print(arguments.get("Time Scale").unwrap().clone()),
-                      None => println!("No graph :("),
-                    }
-
-                    Ok(ContinueConsole)
-                  }
-                  "continue" => match &execution_context {
-                    Some(_) => Ok(StartResumeExecution),
-                    None => Err("Not in a continuable context :(".to_string()),
-                  },
-                  "exit" => Ok(ExitProgram),
-                  "hotpath" => {
-                    todo!("I was going to implement this but then I didn't :(");
-                    //Ok(ContinueConsole)
-                  }
-                  "instruction" => match &execution_context {
-                    Some(context) => {
-                      println!("Module: '{}' Function: '{}' at PC: {}", context.current_module, context.current_function, context.program_counter);
-                      println!("{:?}", compilation_unit.get_module(module).unwrap().functions.get(context.current_function.as_str()).unwrap().body[context.program_counter]);
+                  match value {
+                    Ok(value) => {
+                      println!("Setting break point at {} -> {} -> pc {}", location.module, location.function, value);
+                      self.set_break_point(location.module, location.function, value);
                       Ok(ContinueConsole)
                     }
-                    None => Err("We are not in an execution context so there are no current isntructions :(".to_string()),
-                  },
-                  "metric" => {
-                    self.print_summarized_core_metric(arguments.get("Module").unwrap().clone(), arguments.get("Function").unwrap().clone(), arguments.get("Metric Name").unwrap().clone());
-                    Ok(ContinueConsole)
+                    Err(message) => Err(message),
                   }
-                  "metrics" => {
-                    self.print_all_summarized_metrics(arguments.get("Time Scale").unwrap().clone());
-                    Ok(ContinueConsole)
-                  }
-                  "pop" => match execution_context {
-                    Some(context) => match context.stack.pop() {
-                      Some(value) => {
-                        println!("Popped value: {:?}", value);
-                        Ok(ContinueConsole)
-                      }
-                      None => {
-                        println!("Stack was empty. Nothing popped");
-                        Ok(ContinueConsole)
-                      }
-                    },
-                    None => Err("Not in a context that has a stack :(".to_string()),
-                  },
-                  "push" => match execution_context {
-                    Some(context) => match Parser::create_value_from_type_string(arguments.get("Type").unwrap().clone(), arguments.get("Value").unwrap().clone()) {
-                      Ok(value) => {
-                        context.stack.push(value);
-                        Ok(ContinueConsole)
-                      }
-                      Err(message) => Err(format!("Error while parsing value: {}", message)),
-                    },
-                    None => Err("Not in a context that has a stack :(".to_string()),
-                  },
-                  "run" => match &execution_context {
-                    Some(_) => Ok(StartResumeExecution),
-                    None => Err("Not in a runnable context :(".to_string()),
-                  },
-                  "stack" => match &execution_context {
-                    Some(context) => {
-                      let argument = arguments.get("Stack Size").unwrap();
-                      match argument.parse::<usize>() {
-                        Ok(value) => {
-                          let length = context.stack.len() - value.min(context.stack.len());
-                          let mut top_of_stack = context.stack.iter().skip(length.max(0)).map(|x| x.clone()).collect::<Vec<Value>>();
-                          top_of_stack.reverse();
-                          for (value, idx) in top_of_stack.iter().zip(0..top_of_stack.len()) {
-                            println!("[{}] {:?}", idx, value);
-                          }
-                          Ok(ContinueConsole)
-                        }
-                        Err(_) => Err(format!("Couldn't convert '{}' into a unsigned integer :(", argument)),
-                      }
-                    }
-                    None => Err("There is no current execution context to have a stack :(".to_string()),
-                  },
-                  "stacktrace" => match &execution_context {
-                    Some(context) => {
-                      context.print_stacktrace();
-                      Ok(ContinueConsole)
-                    }
-                    None => Err("There is no current execution context to have a stacktrace :(".to_string()),
-                  },
-                  "step" => {
-                    let step_count = arguments.get("Step Count").unwrap().clone();
-                    match step_count.parse::<usize>() {
-                      Ok(step_size) => {
-                        println!("Stepping by {}...", step_size);
-                        self.step = Some(step_size);
-                        Ok(StartResumeExecution)
-                      }
-                      Err(_) => Err(format!("Couldn't convert '{}' into a unsigned integer :(", step_count)),
-                    }
-                  }
-                  "variable" => match &execution_context {
-                    Some(context) => match context.variables.get(arguments.get("Variable Name").unwrap().as_str()) {
-                      Some(value) => {
-                        println!("{} := {:?}", arguments.get("Variable Name").unwrap(), value);
-                        Ok(ContinueConsole)
-                      }
-                      None => {
-                        println!("Variable '{}' is not defined in the current context :(", arguments.get("Variable Name").unwrap());
-                        Ok(ContinueConsole)
-                      }
-                    },
-                    None => Err("Not in a context that has variables :(".to_string()),
-                  },
-                  "variables" => match &execution_context {
-                    Some(context) => {
-                      // print that there are no variables if here
-                      for (variable_name, variable_value) in &context.variables {
-                        println!("{} := {:?}", variable_name, variable_value);
-                      }
-                      Ok(ContinueConsole)
-                    }
-                    None => Err("Not in a context that has variables :(".to_string()),
-                  },
-                  "viz" => match which::which("dot") {
-                    Ok(_) => match arguments.get("Visualization Name").unwrap().as_str() {
-                      "moddep" => {
-                        let viz = ModuleDependencyVisualization::create(compilation_unit, module);
-                        match arguments.get("Output Format").unwrap().as_str() {
-                          "png" => viz.png(arguments.get("Output File Name").unwrap().clone()),
-                          "svg" => viz.svg(arguments.get("Output File Name").unwrap().clone()),
-                          _ => {}
-                        }
-                        println!("Output {} viz to {} file {}", arguments.get("Visualization Name").unwrap(), arguments.get("Output Format").unwrap(), arguments.get("Output File Name").unwrap().clone());
-                        Ok(ContinueConsole)
-                      }
-                      _ => Err(format!("Unknown visualization {}", arguments.get("Visualization Name").unwrap())),
-                    },
-                    Err(_) => Err("Graphviz not installed. Please install to use visualizations".to_string()),
-                  },
-                  _ => Err(format!("Unknown command '{}' :(", line)),
                 },
-                None => Err("Expected a command but didn't get one :(".to_string()),
+                DebugCommand::CallGraph { time_scale } => {
+                  // TODO add a filter for the stack to the debug console args
+                  let flamegraph = self.metric_tracker.get_flamegraph(Vec::new());
+
+                  match flamegraph {
+                    Some(graph) => graph.print(time_scale),
+                    None => println!("No graph :("),
+                  }
+
+                  Ok(ContinueConsole)
+                },
+                DebugCommand::Continue => match &execution_context {
+                  Some(_) => Ok(StartResumeExecution),
+                  None => Err("Not in a continuable context :(".to_string()),
+                },
+                DebugCommand::Exit => Ok(ExitProgram),
+                DebugCommand::HotPath => {
+                  todo!("I was going to implement this but then I didn't :(");
+                  //Ok(ContinueConsole)
+                },
+                DebugCommand::Instruction => match &execution_context {
+                  Some(context) => {
+                    println!("Module: '{}' Function: '{}' at PC: {}", context.current_module, context.current_function, context.program_counter);
+                    println!("{:?}", compilation_unit.get_module(module).unwrap().functions.get(context.current_function.as_str()).unwrap().body[context.program_counter]);
+                    Ok(ContinueConsole)
+                  }
+                  None => Err("We are not in an execution context so there are no current isntructions :(".to_string()),
+                },
+                DebugCommand::Metric { location, metric } => {
+                  self.print_summarized_core_metric(location.module, location.function, metric);
+                  Ok(ContinueConsole)
+                },
+                DebugCommand::Metrics { time_scale } => {
+                  self.print_all_summarized_metrics(time_scale);
+                  Ok(ContinueConsole)
+                },
+                DebugCommand::Pop => match execution_context {
+                  Some(context) => match context.stack.pop() {
+                    Some(value) => {
+                      println!("Popped value: {:?}", value);
+                      Ok(ContinueConsole)
+                    }
+                    None => {
+                      println!("Stack was empty. Nothing popped");
+                      Ok(ContinueConsole)
+                    }
+                  },
+                  None => Err("Not in a context that has a stack :(".to_string()),
+                },
+                DebugCommand::Push { value_type, value } => match execution_context {
+                  Some(context) => match Parser::create_value_from_type_string(value_type, value) {
+                    Ok(value) => {
+                      context.stack.push(value);
+                      Ok(ContinueConsole)
+                    }
+                    Err(message) => Err(format!("Error while parsing value: {}", message)),
+                  },
+                  None => Err("Not in a context that has a stack :(".to_string()),
+                },
+                DebugCommand::Run => match &execution_context {
+                  Some(_) => Ok(StartResumeExecution),
+                  None => Err("Not in a runnable context :(".to_string()),
+                },
+                DebugCommand::Stack { size } => match &execution_context {
+                  Some(context) => {
+                    let length = context.stack.len() - size.min(context.stack.len());
+                    let mut top_of_stack = context.stack.iter().skip(length.max(0)).map(|x| x.clone()).collect::<Vec<Value>>();
+                    top_of_stack.reverse();
+                    for (value, idx) in top_of_stack.iter().zip(0..top_of_stack.len()) {
+                      println!("[{}] {:?}", idx, value);
+                    }
+                    Ok(ContinueConsole)
+                  }
+                  None => Err("There is no current execution context to have a stack :(".to_string()),
+                },
+                DebugCommand::Stacktrace => match &execution_context {
+                  Some(context) => {
+                    context.print_stacktrace();
+                    Ok(ContinueConsole)
+                  }
+                  None => Err("There is no current execution context to have a stacktrace :(".to_string()),
+                },
+                DebugCommand::Step { count } => {
+                  println!("Stepping by {}...", count);
+                  self.step = Some(count);
+                  Ok(StartResumeExecution)
+                },
+                DebugCommand::Variable { name } => match &execution_context {
+                  Some(context) => match context.variables.get(name.as_str()) {
+                    Some(value) => {
+                      println!("{} := {:?}", name, value);
+                      Ok(ContinueConsole)
+                    }
+                    None => {
+                      println!("Variable '{}' is not defined in the current context :(", name);
+                      Ok(ContinueConsole)
+                    }
+                  },
+                  None => Err("Not in a context that has variables :(".to_string()),
+                },
+                DebugCommand::Variables => match &execution_context {
+                  Some(context) => {
+                    // print that there are no variables if here
+                    for (variable_name, variable_value) in &context.variables {
+                      println!("{} := {:?}", variable_name, variable_value);
+                    }
+                    Ok(ContinueConsole)
+                  }
+                  None => Err("Not in a context that has variables :(".to_string()),
+                },
+                // TODO this should be blocked through a rust trait
+                DebugCommand::Viz { visualization, format, output_file } => match which::which("dot") {
+                  Ok(_) => match visualization {
+                    Visualization::ModDep => {
+                      let viz = ModuleDependencyVisualization::create(compilation_unit, module);
+                      match format.as_str() {
+                        "png" => viz.png(output_file.clone()),
+                        "svg" => viz.svg(output_file.clone()),
+                        _ => {}
+                      }
+                      println!("Output {:?} viz to {} file {}", visualization, format, output_file);
+                      Ok(ContinueConsole)
+                    }
+                  },
+                  Err(_) => Err("Graphviz not installed. Please install to use visualizations".to_string()),
+                },
               };
 
               match should_continue {
@@ -360,7 +251,7 @@ impl DebugContext {
                   continue;
                 }
               }
-            }
+            },
             Err(message) => {
               println!("{}", message);
             }
@@ -375,6 +266,7 @@ impl DebugContext {
         }
       }
     }
+
     print!("{}", DebugContext::ansi_color_code("reset"));
     rl.save_history("history.txt")?;
     self.metric_tracker.start_all();
@@ -421,16 +313,16 @@ impl DebugContext {
     }
   }
 
-  pub fn print_all_summarized_metrics(&self, unit: String) {
+  pub fn print_all_summarized_metrics(&self, unit: TimeScale) {
     for metric_result in &self.metric_tracker.get_results() {
-      Self::print_metric(metric_result, unit.clone());
+      Self::print_metric(metric_result, unit);
     }
   }
 
-  fn print_metric(result: &MetricResults, unit: String) {
+  fn print_metric(result: &MetricResults, unit: TimeScale) {
     let metric_name = result.stack.iter().fold("".to_string(), |a, b| if a == "" { b.clone() } else { a + " > " + b }) + " > " + result.name.as_str();
-    match unit.as_str() {
-      "sec" => {
+    match unit {
+      TimeScale::Sec => {
         println!("Metric: {}", metric_name);
         println!("  Total Time: {}s", result.total_time.as_secs());
         println!("  Total Count: {}", result.total_count);
@@ -442,7 +334,7 @@ impl DebugContext {
         println!("  Mean: {}s", result.mean.as_secs());
         println!("  Standard Deviation: {}s", result.standard_deviation.as_secs());
       }
-      "milli" => {
+      TimeScale::Milli => {
         println!("Metric: {}", metric_name);
         println!("  Total Time: {}ms", result.total_time.as_millis());
         println!("  Total Count: {}", result.total_count);
@@ -454,7 +346,7 @@ impl DebugContext {
         println!("  Mean: {}ms", result.mean.as_millis());
         println!("  Standard Deviation: {}ms", result.standard_deviation.as_millis());
       }
-      "micro" => {
+      TimeScale::Micro => {
         println!("Metric: {}", metric_name);
         println!("  Total Time: {}us", result.total_time.as_micros());
         println!("  Total Count: {}", result.total_count);
@@ -466,7 +358,7 @@ impl DebugContext {
         println!("  Mean: {}us", result.mean.as_micros());
         println!("  Standard Deviation: {}us", result.standard_deviation.as_micros());
       }
-      "nano" => {
+      TimeScale::Nano => {
         println!("Metric: {}", metric_name);
         println!("  Total Time: {}ns", result.total_time.as_nanos());
         println!("  Total Count: {}", result.total_count);
@@ -478,24 +370,12 @@ impl DebugContext {
         println!("  Mean: {}ns", result.mean.as_nanos());
         println!("  Standard Deviation: {}ns", result.standard_deviation.as_nanos());
       }
-      _ => {
-        println!("Metric: {}", metric_name);
-        println!("  Total Time: {}us", result.total_time.as_micros());
-        println!("  Total Count: {}", result.total_count);
-        println!("  Min: {}us", result.min.as_micros());
-        println!("  Q1: {}us", result.quartile1.as_micros());
-        println!("  Median: {}us", result.median.as_micros());
-        println!("  Q3: {}us", result.quartile3.as_micros());
-        println!("  Max: {}us", result.max.as_micros());
-        println!("  Mean: {}us", result.mean.as_micros());
-        println!("  Standard Deviation: {}us", result.standard_deviation.as_micros());
-      }
     }
   }
 
   pub fn print_summarized_core_metric(&self, module_name: String, function_name: String, metric_name: String) {
     match self.metric_tracker.get_result(vec![format!("{}.{}", module_name, function_name)], metric_name) {
-      Some(results) => Self::print_metric(&results, "millis".to_string()),
+      Some(results) => Self::print_metric(&results, TimeScale::Milli),
       None => {}
     }
   }

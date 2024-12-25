@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 use itertools::Either;
-use crate::ocean::frontend::ast::*;
+use crate::ocean::frontend::ast::node::*;
 use crate::ocean::frontend::semanticanalysis::symboltable::SymbolTable;
 use crate::util::errors::Error;
 use crate::util::span::Spanned;

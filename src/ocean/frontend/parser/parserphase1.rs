@@ -1,4 +1,5 @@
-use crate::ocean::frontend::ast::*;
+use crate::ocean::frontend::ast::node::*;
+use crate::ocean::frontend::ast::typenode::*;
 use crate::ocean::frontend::parser::astsymbolstack::*;
 use crate::ocean::frontend::parser::parsestatestack::*;
 use crate::ocean::frontend::tokentype::TokenType;

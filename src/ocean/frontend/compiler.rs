@@ -11,14 +11,15 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::time::Instant;
 use ocean_macros::borrow_mut_and_drop;
-use crate::ocean::frontend::ast::Program;
+use crate::ocean::frontend::ast::node::Program;
 use crate::ocean::frontend::compilationunit::CompilationUnit;
 use crate::ocean::frontend::semanticanalysis::symboltable::SymbolTable;
 use crate::ocean::frontend::semanticanalysis::usingpass::{UsingPass, UsingPassContext};
 use crate::util::errors::{Error, Severity};
+use crate::util::cli_args::DebugOutputMode;
 
 impl Ocean {
-  pub fn compile(file_path: &str, token_mode: &str, ast_mode: &str) -> CompilationUnit {
+  pub fn compile(file_path: &str, token_mode: DebugOutputMode, ast_mode: DebugOutputMode) -> CompilationUnit {
     let now = Instant::now();
     let path = match Path::new(file_path).canonicalize() {
       Ok(path) => path,
@@ -73,24 +74,24 @@ impl Ocean {
       borrow.project_root.clone()
     };
 
-    let (program, dependencies, errors) = Ocean::internal_compile(project_root, file_path, &file_contents, "", "", Some(using_context.clone()));
+    let (program, dependencies, errors) = Ocean::internal_compile(project_root, file_path, &file_contents, DebugOutputMode::None, DebugOutputMode::None, Some(using_context.clone()));
     let new_now = Instant::now();
     println!("Compilation of '{}' completed in: {:?}", path.display(), new_now.duration_since(now));
     CompilationUnit::program(file_path.to_string(), program, dependencies, errors)
   }
 
-  fn internal_compile(project_root: String, file_path: &str, file_contents: &String, token_mode: &str, ast_mode: &str, using_context: Option<Rc<RefCell<UsingPassContext>>>) -> (Program, Vec<Rc<RefCell<CompilationUnit>>>, Vec<Error>) {
+  fn internal_compile(project_root: String, file_path: &str, file_contents: &String, token_mode: DebugOutputMode, ast_mode: DebugOutputMode, using_context: Option<Rc<RefCell<UsingPassContext>>>) -> (Program, Vec<Rc<RefCell<CompilationUnit>>>, Vec<Error>) {
     let mut errors = Vec::new();
     let (tokens, mut lex_errors) = lex(&file_contents);
     errors.append(&mut lex_errors);
 
     match token_mode {
-      "print" => {
+      DebugOutputMode::Print => {
         for token in &tokens {
           println!("{}", token)
         }
       }
-      "file" => {
+      DebugOutputMode::File => {
         let mut file = File::create(file_path.to_string() + ".tokens").unwrap();
         for token in &tokens {
           file.write_all(format!("{}\n", token).as_bytes()).unwrap();
@@ -150,8 +151,8 @@ impl Ocean {
       Err(mut pp2_errors) => errors.append(&mut pp2_errors),
     }
     match ast_mode {
-      "print" => println!("{:#?}", ast),
-      "file" => {
+      DebugOutputMode::Print => println!("{:#?}", ast),
+      DebugOutputMode::File => {
         let mut file = File::create(file_path.to_string() + ".ast").unwrap();
         file.write_all(format!("{:#?}", ast).as_bytes()).unwrap();
       }

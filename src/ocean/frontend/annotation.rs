@@ -1,4 +1,4 @@
-use crate::ocean::frontend::ast::{Annotation, Expression, ExpressionNode};
+use crate::ocean::frontend::ast::node::{Annotation, Expression, ExpressionNode};
 use crate::util::errors::{Error, Severity};
 use crate::util::span::Spanned;
 

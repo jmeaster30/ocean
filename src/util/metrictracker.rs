@@ -4,6 +4,8 @@ use std::collections::HashMap;
 use std::time::{Duration, Instant};
 use ocean_macros::New;
 
+use crate::util::debug_args::TimeScale;
+
 #[derive(New)]
 pub struct MetricTracker {
   #[default(HashMap::new())] current_metrics: HashMap<(Vec<String>, String), Vec<Metric>>,
@@ -183,26 +185,24 @@ pub struct Flamegraph {
 }
 
 impl Flamegraph {
-  pub fn print(&self, units: String) {
+  pub fn print(&self, units: TimeScale) {
     self.print_internal("".to_string(), units);
   }
 
-  fn print_internal(&self, prefix: String, units: String) {
+  fn print_internal(&self, prefix: String, units: TimeScale) {
     if self.metric_name == "total" {
-      match units.as_str() {
-        "sec" => println!("{}Function: {} [Total: {}s]", prefix, self.stack.last().unwrap(), self.duration.as_secs()),
-        "milli" => println!("{}Function: {} [Total: {}ms]", prefix, self.stack.last().unwrap(), self.duration.as_millis()),
-        "micro" => println!("{}Function: {} [Total: {}us]", prefix, self.stack.last().unwrap(), self.duration.as_micros()),
-        "nano" => println!("{}Function: {} [Total: {}ns]", prefix, self.stack.last().unwrap(), self.duration.as_nanos()),
-        _ => println!("{}Function: {} [Total: {}us]", prefix, self.stack.last().unwrap(), self.duration.as_micros()),
+      match units {
+        TimeScale::Sec => println!("{}Function: {} [Total: {}s]", prefix, self.stack.last().unwrap(), self.duration.as_secs()),
+        TimeScale::Milli => println!("{}Function: {} [Total: {}ms]", prefix, self.stack.last().unwrap(), self.duration.as_millis()),
+        TimeScale::Micro => println!("{}Function: {} [Total: {}us]", prefix, self.stack.last().unwrap(), self.duration.as_micros()),
+        TimeScale::Nano => println!("{}Function: {} [Total: {}ns]", prefix, self.stack.last().unwrap(), self.duration.as_nanos()),
       };
     } else {
-      match units.as_str() {
-        "sec" => println!("{}Metric: {} {}s", prefix, self.metric_name, self.duration.as_secs()),
-        "milli" => println!("{}Metric: {} {}ms", prefix, self.metric_name, self.duration.as_millis()),
-        "micro" => println!("{}Metric: {} {}us", prefix, self.metric_name, self.duration.as_micros()),
-        "nano" => println!("{}Metric: {} {}ns", prefix, self.metric_name, self.duration.as_nanos()),
-        _ => println!("{}Metric: {} {}us", prefix, self.metric_name, self.duration.as_micros()),
+      match units {
+        TimeScale::Sec => println!("{}Metric: {} {}s", prefix, self.metric_name, self.duration.as_secs()),
+        TimeScale::Milli => println!("{}Metric: {} {}ms", prefix, self.metric_name, self.duration.as_millis()),
+        TimeScale::Micro => println!("{}Metric: {} {}us", prefix, self.metric_name, self.duration.as_micros()),
+        TimeScale::Nano => println!("{}Metric: {} {}ns", prefix, self.metric_name, self.duration.as_nanos()),
       };
     }
     for i in 0..self.subgraph.len() {

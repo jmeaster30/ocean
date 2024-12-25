@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 use ocean_macros::New;
 use uuid::Uuid;
-use crate::ocean::frontend::ast::{ArrayType, AutoType, BaseType, CustomType, FunctionType, LazyType, MutType, TupleType, Type, VariableType};
+use crate::ocean::frontend::ast::typenode::{ArrayType, AutoType, BaseType, CustomType, FunctionType, LazyType, MutType, TupleType, Type, VariableType};
 use crate::util::doublemap::DoubleMap;
 use crate::util::errors::{Error, ErrorMetadata, Severity};
 use crate::util::hashablemap::HashableMap;
@@ -505,6 +505,7 @@ impl SymbolTable {
 
   pub fn find_or_add_type(&mut self, type_to_find: Type) -> Result<Uuid, Vec<Error>> {
     match type_to_find {
+      Type::Unknown => todo!(),
       Type::Base(base_type) => self.find_or_add_base_type(base_type),
       Type::Custom(custom_type) => self.find_custom_type_by_name(&custom_type.identifier.lexeme, custom_type.identifier.get_span()),
       Type::Auto(auto_type) => self.find_or_add_auto_type(auto_type),

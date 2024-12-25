@@ -91,7 +91,7 @@
       "patterns": [
         {
           "name": "comment.line.number-sign.hydro",
-          "match": "#.*$"
+          "match": "%.*$"
         }
       ]
     },

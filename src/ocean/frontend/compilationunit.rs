@@ -3,7 +3,7 @@ use std::env;
 use std::fs::File;
 use std::io::Read;
 use std::rc::Rc;
-use crate::ocean::frontend::ast::Program;
+use crate::ocean::frontend::ast::node::Program;
 use crate::util::errors::Error;
 
 #[derive(Debug, Clone)]

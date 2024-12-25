@@ -1,4 +1,5 @@
-use crate::ocean::frontend::ast::*;
+use crate::ocean::frontend::ast::node::*;
+use crate::ocean::frontend::ast::typenode::*;
 use crate::ocean::frontend::lexer::lex;
 use crate::ocean::frontend::parser::astsymbolstack::AstSymbol;
 use crate::ocean::frontend::parser::parsestatestack::ParseState;
