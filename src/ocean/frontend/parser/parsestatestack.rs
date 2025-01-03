@@ -2,93 +2,10 @@ use ocean_macros::New;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum ParseState {
-  StatementList,
-  PreStatement,
+  Start,
+  StatementData,
   Statement,
   StatementFinalize,
-
-  AnnotationBody,
-  AnnotationArgumentColon,
-  AnnotationArgumentEnd,
-  AnnotationBodyEnd,
-
-  PackIdentifier,
-  PackBodyStart,
-  PackBody,
-  PackBodyEnd,
-
-  UnionIdentifier,
-  UnionBodyStart,
-  UnionBody,
-  UnionBodyEnd,
-  UnionMemberNoSubType,
-  UnionMemberSubType,
-  UnionSubTypeStart,
-  UnionSubType,
-  UnionSubTypeEnd,
-
-  InterfaceIdentifier,
-  InterfaceBodyStart,
-  InterfaceBody,
-  InterfaceBodyEnd,
-
-  InterfaceDeclaration,
-  InterfaceImplDeclarations,
-
-  UsingPathIdentifier,
-  UsingPathOptionalDot,
-
-  LetAssignment,
-
-  IdentifierStart,
-  IdentifierOptionalColon,
-  IdentifierEnd,
-
-  Type,
-  TypeIdentifier,
-  TypeCustom,
-  TypeArguments,
-  TypeAuto,
-  TypeLazy,
-  TypeRef,
-  TypeMut,
-  TypeArray,
-  TypeArrayEnd,
-  TypeFunctionParams,
-  TypeFunctionOptArrow,
-  TypeFunctionReturns,
-  TypeTuple,
-  TypeTupleColon,
-
-  Expression,
-  ExpressionNoComma,
-  SubExpression,
-  ExpressionStatement,
-
-  BranchStatement,
-  BranchElseStatement,
-  BranchEndStatement,
-
-  MatchBody,
-  MatchCaseArrow,
-  MatchCaseBody,
-
-  WhileStatement,
-  LoopStatement,
-  ForStatement,
-  ForStatementIn,
-
-  FunctionIdentifier,
-  FunctionParameterStart,
-  FunctionParameter,
-  FunctionParameterEnd,
-  FunctionArrow,
-  FunctionReturnStart,
-  FunctionReturn,
-  FunctionReturnEnd,
-  FunctionBody,
-
-  CompoundStatement,
 }
 
 #[derive(New)]

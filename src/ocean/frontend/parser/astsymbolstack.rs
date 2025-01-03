@@ -1,48 +1,49 @@
 use itertools::Either;
 use ocean_macros::New;
-use crate::ocean::frontend::ast::node::*;
-use crate::ocean::frontend::ast::typenode::*;
-use crate::ocean::frontend::tokentype::TokenType;
+use crate::ocean::frontend::compilationunit::ast::astnode::AstNode;
+use crate::ocean::frontend::compilationunit::ast::nodestructs::*;
+use crate::ocean::frontend::compilationunit::ast::astnodeindex::AstNodeIndex;
+use crate::ocean::frontend::compilationunit::token::tokentype::TokenType;
+use crate::ocean::frontend::compilationunit::token::tokenindex::TokenIndex;
 use crate::util::token::Token;
 
 #[derive(Clone, Debug)]
 pub enum AstSymbol {
-  StatementList(Vec<StatementNode>),
-  StatementData(Vec<StatementNodeData>),
-  OptStatement(Option<Statement>),
+  StatementData(AstNode),
+  OptStatement(Option<AstNode>),
 
-  Annotation(Annotation),
-  AnnotationArguments(Vec<AnnotationArgument>),
+  Annotation(AstNode),
+  AnnotationArguments(Vec<AstNode>),
 
-  UsingPathEntries(Vec<UsingPathEntry>),
-  CompoundStatement(CompoundStatement),
-  Branch(Branch),
-  ElseBranch(ElseBranch),
-  MatchCases(Vec<MatchCase>),
-  PackMembers(Vec<PackMember>),
-  UnionMembers(Vec<UnionMember>),
-  UnionSubTypes(UnionSubTypes),
-  UnionSubTypeEntries(Vec<UnionSubTypeEntry>),
-  InterfaceMembers(Vec<InterfaceEntry>),
+  UsingPathEntries(AstNode),
+  CompoundStatement(Vec<AstNode>),
+  Branch(AstNode),
+  ElseBranch(AstNode),
+  MatchCases(Vec<AstNode>),
+  PackMembers(AstNodeIndex, Option<AstNodeIndex>),
+  UnionMembers(AstNodeIndex, Option<AstNodeIndex>),
+  UnionSubTypes(AstNodeIndex),
+  UnionSubTypeEntries(AstNodeIndex, Option<AstNodeIndex>),
+  InterfaceMembers(AstNodeIndex, Option<AstNodeIndex>),
 
-  FunctionParams(Vec<FunctionParam>),
-  FunctionReturns(Vec<FunctionReturn>),
+  FunctionParams(AstNodeIndex, Option<AstNodeIndex>),
+  FunctionReturns(AstNodeIndex, Option<AstNodeIndex>),
 
-  InterfaceDeclaration(Option<InterfaceDeclaration>),
-  InterfaceImpls(Vec<InterfaceImplDeclaration>),
+  InterfaceDeclaration(AstNodeIndex, Option<AstNodeIndex>),
+  InterfaceImpls(AstNodeIndex, Option<AstNodeIndex>),
 
-  Identifier(Identifier),
-  Type(Type),
-  TypeTupleArguments(Vec<TupleArgument>),
-  TypeArguments(Vec<TypeArgument>),
-  TypeParameters(TypeParameters),
-  FunctionTypeArguments(Vec<FunctionTypeArgument>),
+  Identifier(AstNodeIndex),
+  Type(AstNodeIndex),
+  TypeTupleArguments(AstNodeIndex, Option<AstNodeIndex>),
+  TypeArguments(AstNodeIndex, Option<AstNodeIndex>),
+  TypeParameters(AstNodeIndex),
+  FunctionTypeArguments(AstNodeIndex, Option<AstNodeIndex>),
 
-  Expression(ExpressionNode),
+  Expression(AstNodeIndex),
 
-  Token(Token<TokenType>),
-  OptToken(Option<Token<TokenType>>),
-  ExpressionTokenList(Vec<Either<Token<TokenType>, AstNodeExpression>>),
+  Token(TokenIndex),
+  OptToken(Option<TokenIndex>),
+  //ExpressionTokenList(Vec<Either<Token<TokenType>, AstNodeExpression>>),
 }
 
 #[derive(Debug, New)]

@@ -1,15 +1,9 @@
 use proc_macro::TokenStream;
 use quote::quote;
 
-#[proc_macro_derive(Debuggable)]
-pub fn debuggable_macro_derive(input: TokenStream) -> TokenStream {
-    let ast = syn::parse(input).unwrap();
-    impl_debuggable_macro(&ast)
-}
-
-fn impl_debuggable_macro(ast: &syn::DeriveInput) -> TokenStream {
-    let name = &ast.ident;
-    let gen = quote! {
+pub fn debuggable_macro(ast: &syn::DeriveInput) -> TokenStream {
+  let name = &ast.ident;
+  let gen = quote! {
     impl Debuggable for #name {
       fn debug(&self, compilation_unit: &CompilationUnit, context: &mut ExecutionContext, debug_context: &mut DebugContext) -> Result<bool, Exception> {
         let metric_name = stringify!(#name).to_lowercase();
@@ -20,5 +14,5 @@ fn impl_debuggable_macro(ast: &syn::DeriveInput) -> TokenStream {
       }
     }
   };
-    gen.into()
+  gen.into()
 }

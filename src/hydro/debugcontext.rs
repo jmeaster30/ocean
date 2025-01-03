@@ -79,7 +79,8 @@ impl DebugContext {
       match readline {
         Ok(line) => {
           rl.add_history_entry(line.as_str())?;
-          let parsed = line.split_ascii_whitespace().map(|x| x.to_string()).collect::<Vec<String>>();
+          let mut parsed = line.split_ascii_whitespace().map(|x| x.to_string()).collect::<Vec<String>>();
+          parsed.insert(0, "debugger".to_string());
 
           match DebugCli::try_parse_from(parsed) {
             Ok(arguments) => {
@@ -242,7 +243,7 @@ impl DebugContext {
               match should_continue {
                 Ok(ExitProgram) => {
                   print!("{}", DebugContext::ansi_color_code("reset"));
-                  panic!("Exiting the program...")
+                  panic!("Exiting the program...") // TODO this shouldn't panic here
                 }
                 Ok(StartResumeExecution) => break,
                 Ok(ContinueConsole) => continue,

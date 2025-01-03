@@ -132,8 +132,6 @@ impl Error {
     }
 
     eprintln!("\u{001b}[0m{}+-----{}-----", " ".repeat(width + 2), "-".repeat(file_name.len() + 4));
-
-
   }
 
   fn print_source_line(severity: &Severity, file_contents: &[u8], file_span: (usize, usize), start_offset: usize, end_offset: usize, line_number: usize, largest_line_number: usize) {

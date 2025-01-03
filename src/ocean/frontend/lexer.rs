@@ -1,14 +1,15 @@
-use crate::ocean::frontend::tokentype::TokenType;
+use crate::ocean::frontend::compilationunit::token::tokentype::TokenType;
+use crate::ocean::frontend::compilationunit::token::tokens::Tokens;
 use crate::util::errors::{Error, Severity};
 use crate::util::token::Token;
 
-pub fn lex(input: &String) -> (Vec<Token<TokenType>>, Vec<Error>) {
+pub fn lex(input: &String) -> (Tokens, Vec<Error>) {
   let mut errors = Vec::new();
   let input_length = input.len();
-  let input_chars = input.chars().collect::<Vec<char>>();
+  let input_chars = input.chars().collect::<Vec<char>>(); // TODO fix this plz
   let mut lexeme = String::new();
   let mut index = 0;
-  let mut tokens = Vec::new();
+  let mut tokens = Tokens::new();
   let line_start = 1;
   let line_end = 1;
   let column_start = 1;
