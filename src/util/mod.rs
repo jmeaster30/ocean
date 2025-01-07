@@ -7,3 +7,7 @@ pub mod span;
 pub mod token;
 pub mod doublemap;
 pub mod hashablemap;
+pub mod string_map;
+
+#[cfg(test)]
+pub mod testing;

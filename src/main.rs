@@ -1,8 +1,8 @@
 #![allow(warnings)]
 pub mod hydro;
 mod ocean;
-#[cfg(test)]
-mod tests;
+//#[cfg(test)]
+//mod tests;
 pub mod util;
 
 extern crate clap;

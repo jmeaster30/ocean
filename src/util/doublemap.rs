@@ -34,6 +34,10 @@ DoubleMap<K, V>
     self.backward.contains_key(value)
   }
 
+  pub fn len(&self) -> usize {
+    self.forward.len()
+  }
+  
   pub fn new() -> Self {
     Self {
       forward: HashMap::new(),

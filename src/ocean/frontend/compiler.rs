@@ -7,6 +7,7 @@ use std::io::{Read, Write};
 use std::path::Path;
 use std::env;
 use std::cell::RefCell;
+use std::os::unix::fs::MetadataExt;
 use std::rc::Rc;
 use std::time::Instant;
 use crate::ocean::frontend::compilationunit::ast::AstNodes;
@@ -32,9 +33,9 @@ impl Ocean {
       Ok(file) => file,
       Err(error) => return CompilationUnit::errored(file_path.to_string(), Error::new(Severity::Error, (0, 0), error.to_string()))
     };
-    let mut file_contents = String::new();
-    match file.read_to_string(&mut file_contents) {
-      Ok(_) => {}
+    let mut file_bytes = Vec::new();
+    let file_contents = match file.read_to_end(&mut file_bytes) {
+      Ok(_) => file_bytes.iter().map(|x| *x as char).collect::<Vec<char>>(),
       Err(error) => return CompilationUnit::errored(file_path.to_string(), Error::new(Severity::Error, (0, 0), error.to_string()))
     };
 
@@ -44,7 +45,7 @@ impl Ocean {
     CompilationUnit::program(file_path.to_string(), tokens, ast_nodes, dependencies, errors)
   }
 
-  fn internal_compile(project_root: String, file_path: &str, file_contents: &String, token_mode: DebugOutputMode, ast_mode: DebugOutputMode) -> (Tokens, AstNodes, Vec<Rc<RefCell<CompilationUnit>>>, Vec<Error>) {
+  fn internal_compile(project_root: String, file_path: &str, file_contents: &Vec<char>, token_mode: DebugOutputMode, ast_mode: DebugOutputMode) -> (Tokens, AstNodes, Vec<Rc<RefCell<CompilationUnit>>>, Vec<Error>) {
     let mut errors = Vec::new();
     let (tokens, mut lex_errors) = lex(&file_contents);
     errors.append(&mut lex_errors);
@@ -87,7 +88,7 @@ impl Ocean {
     precedence_table.add_binary_operator("%", 50, 51);
     precedence_table.add_binary_operator("is", 1_000_000, 2);
     precedence_table.add_binary_operator(".", usize::MAX, usize::MAX - 1);
-    
+
     match ast_mode {
       DebugOutputMode::Print => println!("{:#?}", ast),
       DebugOutputMode::File => {
