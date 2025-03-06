@@ -2,16 +2,21 @@
 pub enum TokenType {
   EndOfInput,
   Error,
+  
+  // TODO I don't really know why these are still token types should be deletable
   Whitespace,
   Comment,
+  
   Annotation,
   AnnotationBlock,
+  
   String,
   InterpolatedString,
   Number,
   Identifier,
   True,
   False,
+  
   I8,
   I16,
   I32,

@@ -6,7 +6,7 @@ use crate::ocean::frontend::compilationunit::token::tokenindex::TokenIndex;
 #[derive(AstNode, Copy, Clone, Debug, New)]
 pub struct Statement {
     metadata: AstNodeMetadata,
-    pub data: AstNodeIndex,
+    pub annotation: AstNodeIndex,
     pub statement: Option<AstNodeIndex>,
 }
 
@@ -229,9 +229,15 @@ pub struct ExpressionNode {
 
 // Expression ast nodes
 #[derive(AstNode, Copy, Clone, Debug, New)]
-pub struct StringLiteral {
+pub struct Literal {
     metadata: AstNodeMetadata,
-    pub literal: TokenIndex,
+    pub value: TokenIndex,
+}
+
+#[derive(AstNode, Copy, Clone, Debug, New)]
+pub struct Operator {
+    metadata: AstNodeMetadata,
+    pub operator: TokenIndex,
 }
 
 #[derive(AstNode, Copy, Clone, Debug, New)]
@@ -241,27 +247,17 @@ pub struct ArrayLiteral {
 }
 
 #[derive(AstNode, Copy, Clone, Debug, New)]
-pub struct Number {
-    metadata: AstNodeMetadata,
-    pub literal: TokenIndex,
-}
-
-#[derive(AstNode, Copy, Clone, Debug, New)]
-pub struct Boolean {
-    metadata: AstNodeMetadata,
-    pub literal: TokenIndex,
-}
-
-#[derive(AstNode, Copy, Clone, Debug, New)]
 pub struct InterpolatedString {
     metadata: AstNodeMetadata,
     pub literal: TokenIndex,
+    pub expressions: AstNodeIndex,
 }
 
 #[derive(AstNode, Copy, Clone, Debug, New)]
 pub struct Cast {
     metadata: AstNodeMetadata,
     pub expression: AstNodeIndex,
+    pub as_operator: TokenIndex,
     pub casted_type: AstNodeIndex,
 }
 
@@ -275,33 +271,42 @@ pub struct Variable {
 pub struct Call {
     metadata: AstNodeMetadata,
     pub target: AstNodeIndex,
+    pub left_paren: TokenIndex,
     pub arguments: AstNodeIndex,
+    pub right_paren: TokenIndex,
 }
 
 #[derive(AstNode, Copy, Clone, Debug, New)]
 pub struct ArrayIndex {
     metadata: AstNodeMetadata,
     pub target: AstNodeIndex,
+    pub left_square: TokenIndex,
     pub arguments: AstNodeIndex,
+    pub right_square: TokenIndex,
 }
 
 #[derive(AstNode, Copy, Clone, Debug, New)]
 pub struct Argument {
     metadata: AstNodeMetadata,
     pub value: AstNodeIndex,
+    pub optional_comma: Option<AstNodeIndex>,
 }
 
 #[derive(AstNode, Copy, Clone, Debug, New)]
 pub struct Tuple {
     metadata: AstNodeMetadata,
+    pub left_paren: TokenIndex,
     pub tuple_members: AstNodeIndex,
+    pub right_paren: TokenIndex,
 }
 
 #[derive(AstNode, Copy, Clone, Debug, New)]
 pub struct TupleMember {
     metadata: AstNodeMetadata,
-    pub identifier: TokenIndex,
+    pub var: AstNodeIndex,
+    pub colon: TokenIndex,
     pub value: AstNodeIndex,
+    pub optional_comma: Option<TokenIndex>,
 }
 
 #[derive(AstNode, Copy, Clone, Debug, New)]
@@ -313,7 +318,7 @@ pub struct SubExpression {
 #[derive(AstNode, Copy, Clone, Debug, New)]
 pub struct PrefixOperator {
     metadata: AstNodeMetadata,
-    pub operator: TokenIndex,
+    pub operator: AstNodeIndex, // Operator
     pub expression: AstNodeIndex,
 }
 
@@ -321,24 +326,14 @@ pub struct PrefixOperator {
 pub struct PostfixOperator {
     metadata: AstNodeMetadata,
     pub expression: AstNodeIndex,
-    pub operator: TokenIndex,
+    pub operator: AstNodeIndex, // Operator
 }
 
 #[derive(AstNode, Copy, Clone, Debug, New)]
 pub struct BinaryOperator {
     metadata: AstNodeMetadata,
     pub left_expression: AstNodeIndex,
-    pub operator: TokenIndex,
-    pub right_expression: AstNodeIndex,
-}
-
-#[derive(AstNode, Copy, Clone, Debug, New)]
-pub struct TernaryOperator {
-    metadata: AstNodeMetadata,
-    pub left_expression: AstNodeIndex,
-    pub first_operator: TokenIndex,
-    pub middle_expression: TokenIndex,
-    pub second_operator: TokenIndex,
+    pub operator: AstNodeIndex, // Operator
     pub right_expression: AstNodeIndex,
 }
 
@@ -351,66 +346,75 @@ pub struct BaseType {
 #[derive(AstNode, Copy, Clone, Debug, New)]
 pub struct CustomType {
     metadata: AstNodeMetadata,
-    pub identifier: TokenIndex,
+    pub var: AstNodeIndex,
     pub type_parameters: Option<AstNodeIndex>,
 }
 
 #[derive(AstNode, Copy, Clone, Debug, New)]
 pub struct TupleType {
     metadata: AstNodeMetadata,
+    pub left_paren: TokenIndex,
     pub tuple_arguments: AstNodeIndex,
+    pub right_paren: TokenIndex,
 }
 
 #[derive(AstNode, Copy, Clone, Debug, New)]
 pub struct TupleArgument {
     metadata: AstNodeMetadata,
     pub optional_name: Option<TokenIndex>,
+    pub optional_colon: Option<TokenIndex>,
     pub argument_type: AstNodeIndex,
+    pub optional_comma: Option<TokenIndex>,
 }
 
 #[derive(AstNode, Copy, Clone, Debug, New)]
 pub struct TypeParameters {
     metadata: AstNodeMetadata,
+    pub left_paren: TokenIndex,
     pub type_arguments: AstNodeIndex,
+    pub right_paren: TokenIndex,
 }
 
 #[derive(AstNode, Copy, Clone, Debug, New)]
 pub struct TypeArgument {
     metadata: AstNodeMetadata,
     pub argument_type: AstNodeIndex,
+    pub comma_token: Option<TokenIndex>,
 }
 
 #[derive(AstNode, Copy, Clone, Debug, New)]
 pub struct SubType {
     metadata: AstNodeMetadata,
+    pub left_paren: TokenIndex,
     pub sub_type: AstNodeIndex,
+    pub right_paren: TokenIndex,
 }
 
 #[derive(AstNode, Copy, Clone, Debug, New)]
 pub struct AutoType {
     metadata: AstNodeMetadata,
-    pub auto_token: TokenIndex,
+    pub auto: TokenIndex,
     pub identifier: TokenIndex,
 }
 
 #[derive(AstNode, Copy, Clone, Debug, New)]
 pub struct LazyType {
     metadata: AstNodeMetadata,
-    pub lazy_token: TokenIndex,
+    pub lazy: TokenIndex,
     pub base_type: AstNodeIndex,
 }
 
 #[derive(AstNode, Copy, Clone, Debug, New)]
 pub struct RefType {
     metadata: AstNodeMetadata,
-    pub ref_token: TokenIndex,
+    pub reference: TokenIndex,
     pub base_type: AstNodeIndex,
 }
 
 #[derive(AstNode, Copy, Clone, Debug, New)]
 pub struct MutType {
     metadata: AstNodeMetadata,
-    pub mut_token: TokenIndex,
+    pub mutable: TokenIndex,
     pub base_type: AstNodeIndex,
 }
 
@@ -418,24 +422,23 @@ pub struct MutType {
 pub struct ArrayType {
     metadata: AstNodeMetadata,
     pub base_type: AstNodeIndex,
+    pub left_square: TokenIndex,
     pub index_type: Option<AstNodeIndex>,
+    pub right_square: TokenIndex,
 }
 
 #[derive(AstNode, Copy, Clone, Debug, New)]
 pub struct VariableType {
     metadata: AstNodeMetadata,
     pub base_type: AstNodeIndex,
+    pub spread: TokenIndex,
 }
 
 #[derive(AstNode, Copy, Clone, Debug, New)]
 pub struct FunctionType {
     metadata: AstNodeMetadata,
-    pub param_types: AstNodeIndex,
-    pub result_types: AstNodeIndex,
-}
-
-#[derive(AstNode, Copy, Clone, Debug, New)]
-pub struct FunctionTypeArgument {
-    metadata: AstNodeMetadata,
-    pub arg_type: AstNodeIndex
+    pub function: TokenIndex,
+    pub param_types: AstNodeIndex, // TypeParameters
+    pub optional_arrow: Option<TokenIndex>,
+    pub result_types: Option<AstNodeIndex>, // TypeParameters
 }

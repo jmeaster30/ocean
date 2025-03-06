@@ -65,7 +65,6 @@ pub fn lex(input: &Vec<char>) -> (Tokens, Vec<Error>) {
   while index < input_length {
     let start_index = index;
     let c = input[index];
-    println!("lexing character: {}", c);
     match c {
       'A'..='Z' | 'a'..='z' | '_' => {
         index += 1;
@@ -81,8 +80,7 @@ pub fn lex(input: &Vec<char>) -> (Tokens, Vec<Error>) {
           Some(token_type) => *token_type,
           None => TokenType::Identifier
         };
-        println!("TokenType {:?} start {} end {}", token_type, start_index, index);
-
+        
         tokens.push(Token::new_with_trivia(input[start_index..index].iter().collect(), token_type, (start_index, index), (line_start, line_end), (column_start, column_end), trivia.clone()));
         trivia.clear();
       }

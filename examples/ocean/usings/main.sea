@@ -1,5 +1,5 @@
 using test
-using test.a
+using test::a
 
 let my_greeting = greeting("Lily");
 let cool_number = cool_test(420);

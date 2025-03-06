@@ -205,25 +205,7 @@ impl Spanned for TupleType {
   }
 }
 
-impl Spanned for StringLiteral {
-  fn get_span(&self) -> (usize, usize) {
-    todo!()
-  }
-}
-
 impl Spanned for ArrayLiteral {
-  fn get_span(&self) -> (usize, usize) {
-    todo!()
-  }
-}
-
-impl Spanned for Number {
-  fn get_span(&self) -> (usize, usize) {
-    todo!()
-  }
-}
-
-impl Spanned for Boolean {
   fn get_span(&self) -> (usize, usize) {
     todo!()
   }
